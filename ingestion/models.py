@@ -90,6 +90,8 @@ class Document(BaseModel):
     hash: str = ""                          # SHA-256 of the file bytes
     version: int = 1                        # +1 when the same file name comes with new content
     doc_label: Optional[str] = None         # text-heavy / table-heavy / scanned / slides / spreadsheet
+    source_path: Optional[str] = None       # where the file came from (inbox or user path)
+    original_path: Optional[str] = None     # our untouched copy (source of truth)
 
     metadata: Metadata = Field(default_factory=Metadata)
     parser: Optional[str] = None
