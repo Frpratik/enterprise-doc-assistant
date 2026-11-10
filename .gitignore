@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets
+.env
+
+# Pipeline data (generated at runtime) - keep folders, ignore contents
+data/inbox/*
+data/originals/*
+data/output/*
+data/failed/*
+data/manifest.json
+!data/**/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Generated sample files (re-create with: python scripts/make_sample_data.py)
+data/samples/

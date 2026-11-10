@@ -1,0 +1,24 @@
+# --- Parsing ---
+pymupdf          # PDF text, images, page info (fast)
+pdfplumber       # PDF tables
+python-docx      # Word (.docx)
+python-pptx      # PowerPoint (.pptx)
+pandas           # Excel / CSV -> tables
+openpyxl         # Excel engine for pandas
+beautifulsoup4   # HTML
+Pillow           # images
+pytesseract      # OCR (needs the Tesseract program installed separately)
+
+# --- Pipeline helpers ---
+filetype         # detect the REAL file type from file bytes (magic bytes)
+watchdog         # watch the inbox folder for new files
+langdetect       # detect document language
+
+# --- Config, models, logs ---
+pydantic
+pydantic-settings
+structlog
+
+# --- Dev / tests / sample data ---
+pytest
+reportlab        # only used to generate sample PDFs
