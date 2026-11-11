@@ -159,6 +159,57 @@ def long_pdf_with_header_footer():
         flow, onFirstPage=header_footer, onLaterPages=header_footer)
 
 
+def faded_scan():
+    """faded_receipt_scan.png: light grey, blurry, noisy text -> OCR struggles (should be flagged)."""
+    import random
+    from PIL import ImageFilter
+    random.seed(7)
+    font = ImageFont.load_default(size=22)
+    img = Image.new("L", (900, 260), 235)
+    draw = ImageDraw.Draw(img)
+    for i, line in enumerate(["TRAVEL REIMBURSEMENT", "Claim no 88213  Amount Rs 4,350",
+                              "Approved by manager on 03/10/2026"]):
+        draw.text((40, 40 + i * 60), line, fill=185, font=font)          # light grey on light grey
+    px = img.load()
+    for _ in range(25000):                                                # paper noise / dust
+        x, y = random.randrange(img.width), random.randrange(img.height)
+        px[x, y] = random.choice([150, 200, 255])
+    img = img.filter(ImageFilter.GaussianBlur(1.6)).rotate(2.5, expand=True, fillcolor=235)
+    img = img.resize((img.width // 2, img.height // 2))                   # low resolution
+    img.save(GOOD / "faded_receipt_scan.png")
+
+
+def low_confidence_scan():
+    """canteen_notice_scan.png: readable but blurry -> OCR reads it with LOW confidence + mistakes."""
+    import random
+    from PIL import ImageFilter
+    random.seed(7)
+    font = ImageFont.load_default(size=26)
+    img = Image.new("L", (900, 260), 235)
+    draw = ImageDraw.Draw(img)
+    for i, line in enumerate(["CANTEEN MENU CHANGE", "Lunch timings now 1:00 PM to 2:30 PM",
+                              "Contact admin desk for queries"]):
+        draw.text((40, 40 + i * 60), line, fill=160, font=font)
+    px = img.load()
+    for _ in range(18000):
+        x, y = random.randrange(img.width), random.randrange(img.height)
+        px[x, y] = random.choice([120, 200, 255])
+    img = img.filter(ImageFilter.GaussianBlur(1.3)).rotate(1.5, expand=True, fillcolor=235)
+    img = img.resize((int(img.width / 1.8), int(img.height / 1.8)))
+    img.save(GOOD / "canteen_notice_scan.png")
+
+
+def pdf_with_blank_page():
+    """policy_with_blank_page.pdf: 3 pages, the middle one is empty -> page coverage check."""
+    SimpleDocTemplate(str(GOOD / "policy_with_blank_page.pdf"), pagesize=A4).build([
+        Paragraph("Gift Policy", styles["Heading2"]),
+        Paragraph("Employees must not accept gifts worth more than Rs 2,000 from vendors or clients.",
+                  styles["BodyText"]),
+        PageBreak(), Spacer(1, 1), PageBreak(),
+        Paragraph("Any gift above the limit must be reported to HR within 7 days.", styles["BodyText"]),
+    ])
+
+
 def password_pdf():
     """password_protected.pdf: encrypted PDF -> should fail with a clear reason."""
     from reportlab.lib import pdfencrypt
@@ -289,6 +340,9 @@ if __name__ == "__main__":
     scanned_pdf()
     mixed_pdf()
     long_pdf_with_header_footer()
+    faded_scan()
+    low_confidence_scan()
+    pdf_with_blank_page()
     word_doc()
     ppt_deck()
     spreadsheets()

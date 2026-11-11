@@ -77,8 +77,9 @@ company files.
   OCR settings, quality thresholds). Any value can be changed in `.env`.
 - `scripts/check_setup.py` — checks Python, every package, and the Tesseract OCR program.
 - `scripts/make_sample_data.py` — creates fake HR documents:
-  - **12 good files:** digital PDF, scanned PDF, mixed PDF, a 4-page PDF with repeated
-    headers/footers and broken words (added in Stage 5), Word (with table + image),
+  - **15 good files:** digital PDF, scanned PDF, mixed PDF, a 4-page PDF with repeated
+    headers/footers and broken words (Stage 5), 3 "bad quality" files — a blurry scan,
+    an unreadable faded scan, a PDF with a blank page (Stage 6), Word (with table + image),
     PowerPoint (with table, image, notes), Excel (2 sheets), CSV, image, TXT, Markdown, HTML
   - **6 bad files:** `.exe` renamed to `.pdf`, corrupted PDF, password PDF, empty file,
     duplicate copy, a type we don't allow
@@ -317,7 +318,56 @@ tables keep layout, language detection (English, Hindi, too-short text → none)
 
 **Memory trick:** *Clean the dust, not the furniture — remove repeats and fix broken words,
 never change the meaning.*
-### ⏳ Stage 6 — Quality checks
+### ✅ Stage 6 — Quality checks (`ingestion/quality.py`)
+
+**What:** an inspector that checks every document **after** parsing + cleaning, gives it a
+**score (0–1)**, and decides **done**, **needs_review** or **failed** — with the reasons.
+
+**Why:** extraction can "succeed" and still be bad — a blurry scan, a blank page, broken
+characters. If we don't catch it here, wrong text silently goes into search and the bot
+gives wrong answers later.
+
+**The checks**
+| Check | Meaning | Flag when |
+|---|---|---|
+| text_chars | any usable text at all? | 0 → **failed** (nothing to search) |
+| chars_per_page | how much text per page | under 50 → OCR probably missed things |
+| ocr_confidence | Tesseract's own confidence | under 0.70 → blurry / faded scan, **and it names the page** |
+| garbage_ratio | share of odd symbols (■ ◆ ▓ �) | over 30% → broken encoding or bad OCR |
+| page_coverage | pages that gave any text | under 80% → blank / unreadable pages, **lists which ones** |
+| images_without_text | pictures where OCR found nothing | info only (could be a chart or a logo) |
+| spreadsheet tables | a spreadsheet must give tables | none → parsing went wrong |
+
+All limits live in config / `.env`.
+
+**Score = the weakest link.** At first the score was an average — and a blurry scan with OCR
+confidence 0.69 got **0.996** because four other checks were perfect. That hides the problem.
+Now the score is the **lowest** sub-score, so one weak part pulls the whole document down.
+
+**3 new "bad quality" samples** (made on purpose): a blurry canteen notice, a faded receipt
+that is unreadable, and a 3-page PDF whose middle page is blank.
+
+**Result on all samples (real output)**
+```
+canteen_notice_scan.png       needs_review  0.688  low OCR confidence 0.69 on: Page 1
+policy_with_blank_page.pdf    needs_review  0.667  only 2 of 3 pages have text (empty: 2)
+faded_receipt_scan.png        failed        0.0    no text could be extracted
+scanned_code_of_conduct.pdf   done          0.946
+leave_policy.pdf              done          1.0
+(all other clean files)       done          ≥ 0.94
+```
+
+**Big lesson: OCR confidence is NOT accuracy.** While making the samples, Tesseract read
+"1:00 PM" as "2:00 PM" and still said it was 85% confident. The mixed report's "Q4 training"
+became "04 tralning" without being flagged. Confidence only catches *obviously* bad scans.
+To measure real accuracy we compare against known correct text — that's the golden set in Stage 8.
+
+**Tests (83 total):** clean files → done; blurry scan → needs_review naming the page;
+blank page → needs_review naming the page; unreadable scan → failed; garbage text flagged;
+spreadsheet without tables flagged; garbage ratio maths.
+
+**Memory trick:** *The inspector trusts nothing — check text, pages, OCR and garbage,
+score by the weakest link, and always say why.*
 ### ⏳ Stage 7 — Save, status, logs + the `run` command
 ### ⏳ Stage 8 — Ingestion golden set (measure extraction accuracy)
 
