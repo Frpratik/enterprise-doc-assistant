@@ -14,6 +14,7 @@ data/originals/*
 data/output/*
 data/failed/*
 data/manifest.json
+data/logs/
 !data/**/.gitkeep
 
 # OS / editor

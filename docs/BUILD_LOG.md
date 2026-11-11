@@ -15,7 +15,7 @@ tested before moving on.
 
 | Phase | What it does | Status |
 |---|---|---|
-| **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | 🔨 In progress |
+| **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | 🔨 Usable — golden set left |
 | Phase 2 — Store | Chunk, embed, save to a vector database, keep it in sync | ⏳ |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ⏳ |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ⏳ |
@@ -368,7 +368,72 @@ spreadsheet without tables flagged; garbage ratio maths.
 
 **Memory trick:** *The inspector trusts nothing — check text, pages, OCR and garbage,
 score by the weakest link, and always say why.*
-### ⏳ Stage 7 — Save, status, logs + the `run` command
+### ✅ Stage 7 — The full pipeline + the `run` command (`pipeline.py`, `store.py`, `logs.py`, `printer.py`, `run.py`)
+
+**What:** all the stages connected into one pipeline, plus saving, logs, a readable printout,
+and the command you actually run.
+
+**Why:** until now each stage worked alone. A real system needs one entry point that runs
+every stage in order, never crashes on one bad file, and leaves a record of everything.
+
+**The pipeline for ONE file**
+```
+gate (intake + safety) → detect → parse → clean → final label → quality → save → log
+```
+- If anything breaks while parsing/cleaning, **that file** becomes `failed` with the error
+  as the reason, a copy goes to `data/failed/` with a `.reason.txt`, and **the run goes on**.
+- Every file gets a JSON result: `data/output/<doc_id>_v<version>.json`
+  (old versions are kept, never overwritten; written safely via temp file + swap).
+- The manifest gets the **final** status and reason.
+- One **JSON log line** per file in `data/logs/ingestion.jsonl` (file, status, reason, type,
+  parser, pages, elements, score, time taken) — the same format CloudWatch / Datadog read.
+
+**How to run it**
+```bash
+python -m ingestion.run --file "C:\path\to\file.pdf"        # one or more of your files (only copied, never changed)
+python -m ingestion.run --folder "C:\path\to\folder"        # every file in a folder
+python -m ingestion.run --watch                                # process data/inbox, then keep watching it
+# options: --summary (only the table)   --max-chars 300 (shorten long text)
+```
+The command exits with **code 1 if any file failed** (useful later in scripts and CI).
+
+**What you see (real output)**
+```
+FILE   : leave_policy.pdf
+TYPE   : pdf, 2 pages, lang=en, label=text-heavy
+STATUS : [OK] DONE   score=1.0
+[Page 1 - Heading H1] Leave Policy 2026
+[Page 1 - Heading H2] 1. Sick Leave
+[Page 1 - Paragraph 1] Employees get 12 sick leaves per year...
+[Page 1 - Table 1]
+| Leave Type | Days per Year | Carry Forward | ...
+QUALITY: text_chars=677, chars_per_page=338.5, garbage_ratio=0.0, page_coverage=1.0
+FOUND  : 6 heading, 4 paragraph, 1 table
+SAVED  : data/output/doc_206b74c2ba45_v1.json
+
+SUMMARY (2 files)
+leave_policy.pdf        done   1.00
+onboarding_deck.pptx    done   0.94
+```
+
+**Watch mode, tested live:** started the watcher, then dropped 3 files into the inbox while
+it was running → the CSV was done, the fake PDF (really an `.exe`) was rejected, the photo
+was OCR'd — and the **inbox was empty afterwards** (processed files are moved out).
+
+**Small fixes found by running it for real**
+1. A 2-second "is the file still copying?" wait was slowing every file. It only matters for
+   files arriving in the inbox — files you point at with `--file` are already complete, so
+   they skip it now.
+2. The console printout is **plain text only** (no emoji) and the output is forced to UTF-8,
+   so old Windows consoles never crash on Hindi text or symbols.
+
+**Tests (90 total):** every sample gets the right final status; the saved JSON loads back
+complete; the manifest has the final status; **one crashing parser doesn't stop the next
+file**; logs are valid JSON lines; the run command prints DONE/FAILED and returns exit code 1
+on failure; folder mode with `--summary`.
+
+**Memory trick:** *One file in, every stage in order, one record out — and a bad file
+only fails itself, never the whole run.*
 ### ⏳ Stage 8 — Ingestion golden set (measure extraction accuracy)
 
 ---
@@ -382,4 +447,9 @@ pip install -r requirements.txt
 python scripts\check_setup.py     # should end with "All good!"
 python scripts\make_sample_data.py
 python -m pytest -q               # all tests should pass
+
+# run the pipeline
+python -m ingestion.run --file data\samples\good\leave_policy.pdf
+python -m ingestion.run --folder data\samples\good --summary
+python -m ingestion.run --file "C:\any\file\you\want.pdf"
 ```

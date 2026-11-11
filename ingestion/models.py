@@ -92,6 +92,7 @@ class Document(BaseModel):
     doc_label: Optional[str] = None         # text-heavy / table-heavy / scanned / slides / spreadsheet
     source_path: Optional[str] = None       # where the file came from (inbox or user path)
     original_path: Optional[str] = None     # our untouched copy (source of truth)
+    output_path: Optional[str] = None       # where the result JSON was saved
 
     metadata: Metadata = Field(default_factory=Metadata)
     parser: Optional[str] = None

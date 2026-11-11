@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     output_dir: Path = PROJECT_ROOT / "data" / "output"        # one JSON per document
     failed_dir: Path = PROJECT_ROOT / "data" / "failed"        # files that failed + reason
     manifest_path: Path = PROJECT_ROOT / "data" / "manifest.json"  # status register
+    log_path: Path = PROJECT_ROOT / "data" / "logs" / "ingestion.jsonl"  # one JSON line per event
 
     # ---------- Safety limits (guardrails) ----------
     max_file_size_mb: int = 50
@@ -67,7 +68,7 @@ class Settings(BaseSettings):
 
     def ensure_dirs(self) -> None:
         """Create the data folders if they don't exist."""
-        for d in (self.inbox_dir, self.originals_dir, self.output_dir, self.failed_dir):
+        for d in (self.inbox_dir, self.originals_dir, self.output_dir, self.failed_dir, self.log_path.parent):
             d.mkdir(parents=True, exist_ok=True)
 
 
