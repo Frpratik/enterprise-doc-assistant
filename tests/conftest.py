@@ -25,6 +25,7 @@ def temp_data(tmp_path, monkeypatch):
         monkeypatch.setattr(settings, name, tmp_path / name.replace("_dir", ""))
     monkeypatch.setattr(settings, "manifest_path", tmp_path / "manifest.json")
     monkeypatch.setattr(settings, "file_ready_wait_sec", 0.01)
+    monkeypatch.setattr(settings, "use_database", False)    # Phase 1 tests never touch a database
     settings.ensure_dirs()
     return tmp_path
 

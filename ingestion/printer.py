@@ -18,7 +18,7 @@ NAMES = {
 }
 
 
-def print_document(doc: Document, max_chars: int = 0) -> None:
+def print_document(doc: Document, max_chars: int = 0, index=None) -> None:
     m = doc.metadata
     print(LINE)
     print(f"FILE   : {doc.file_name}")
@@ -63,6 +63,13 @@ def print_document(doc: Document, max_chars: int = 0) -> None:
             print("FOUND  : " + ", ".join(f"{v} {k}" for k, v in counts.items()))
     if doc.output_path:
         print(f"SAVED  : {doc.output_path}")
+    if index is not None:
+        if index.indexed:
+            replaced = f", replaced v{index.replaced_version}" if index.replaced_version else ""
+            print(f"INDEXED: {index.chunks} chunks searchable ({index.embeddings_new} new embeddings, "
+                  f"{index.embeddings_cached} reused{replaced}) in {index.duration_ms} ms")
+        else:
+            print(f"INDEXED: no - {index.reason}")
     print(LINE + "\n")
 
 

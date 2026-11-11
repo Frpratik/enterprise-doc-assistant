@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     chunk_max_tokens: int = 480      # hard limit (the model cuts off anything above 512)
     chunk_overlap_tokens: int = 40   # only used when one long section must be split
 
+    # ---------- Indexing (Phase 2) ----------
+    use_database: bool = True          # False = Phase 1 only (JSON manifest, no indexing)
+    index_needs_review: bool = False   # True = also index documents flagged needs_review (not approved yet)
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

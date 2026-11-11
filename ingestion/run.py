@@ -18,6 +18,30 @@ from ingestion.pipeline import process_file
 from ingestion.printer import print_document, print_summary
 
 
+def open_manifest():
+    """Postgres (Phase 2: documents table + indexing) if available, else the Phase 1 JSON manifest."""
+    if settings.use_database:
+        from indexing.db import can_connect
+        if can_connect():
+            from indexing.doc_store import PgManifest
+            from indexing.migrate import _files, applied
+            pending = [f.name for f in _files() if f.name not in applied()]
+            if pending:
+                print(f"Database has {len(pending)} pending migration(s): run  python -m indexing.migrate\n")
+                return Manifest(settings.manifest_path), False
+            return PgManifest(), True
+        print("Database not reachable -> running WITHOUT indexing (start it: docker compose up -d)\n")
+    return Manifest(settings.manifest_path), False
+
+
+def handle(path: Path, manifest, move: bool, use_db: bool):
+    """Process one file, then index it if the database is in use."""
+    if use_db:
+        from indexing.service import ingest_and_index
+        return ingest_and_index(path, manifest, move=move)
+    return process_file(path, manifest, move=move), None
+
+
 def main(argv=None) -> int:
     # Windows consoles: print any character (Hindi, symbols) instead of crashing
     if hasattr(sys.stdout, "reconfigure"):
@@ -33,10 +57,10 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     settings.ensure_dirs()
-    manifest = Manifest(settings.manifest_path)
+    manifest, use_db = open_manifest()
 
     if args.watch:
-        return watch(manifest, args)
+        return watch(manifest, args, use_db)
 
     if args.file:
         paths = [Path(p) for p in args.file]
@@ -52,17 +76,17 @@ def main(argv=None) -> int:
         if not path.is_file():
             print(f"File not found: {path}")
             continue
-        doc = process_file(path, manifest, move=False)       # user's files: copy only
+        doc, index = handle(path, manifest, move=False, use_db=use_db)   # user's files: copy only
         if doc is None:
             continue
         docs.append(doc)
         if not args.summary:
-            print_document(doc, args.max_chars)
+            print_document(doc, args.max_chars, index=index)
     print_summary(docs)
     return 0 if docs and all(d.status.value != "failed" for d in docs) else 1
 
 
-def watch(manifest: Manifest, args) -> int:
+def watch(manifest, args, use_db: bool = False) -> int:
     """Process what's already in the inbox, then process new files as they arrive."""
     from watchdog.events import FileSystemEventHandler
     from watchdog.observers import Observer
@@ -94,9 +118,9 @@ def watch(manifest: Manifest, args) -> int:
                 continue
             if not path.exists() or path.name == ".gitkeep":   # already handled (events can repeat)
                 continue
-            doc = process_file(path, manifest, move=True)      # inbox files: moved out after processing
+            doc, index = handle(path, manifest, move=True, use_db=use_db)   # inbox files: moved out
             if doc is not None:
-                print_document(doc, args.max_chars) if not args.summary else print_summary([doc])
+                print_document(doc, args.max_chars, index=index) if not args.summary else print_summary([doc])
     except KeyboardInterrupt:
         print("Stopped.")
     finally:

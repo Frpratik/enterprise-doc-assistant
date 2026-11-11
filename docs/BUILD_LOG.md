@@ -708,6 +708,73 @@ instruction, and the same text is never embedded twice.*
 
 ---
 
+### ✅ Stages 3 + 4 — Documents table + Indexer with atomic swap (`doc_store.py`, `indexer.py`, `service.py`)
+
+**What:** the manifest moves into Postgres, and every processed document is **indexed**:
+chunked, embedded and saved so it becomes searchable — and updated safely when the file changes.
+
+**Why:** in real companies files change all the time. The index must never show a half-updated
+document, never mix old and new versions, and never pay to re-embed text that didn't change.
+
+**What we built**
+1. **`PgManifest`** — the `documents` table replaces `data/manifest.json`, with the same 3
+   methods (find by hash, latest by name, save), so the Phase 1 gate works unchanged.
+   The JSON manifest is still used when there is no database (Phase 1 keeps working alone).
+2. **The indexer — 4 steps:**
+   ```
+   1. CHUNK   chunk_document() + check_chunks()   -> refuse to index broken chunks
+   2. EMBED   embed_with_cache()                   -> only never-seen text goes to the model
+   3. WRITE   insert chunks as INACTIVE            -> transaction 1
+   4. SWAP    old version off, new version on      -> transaction 2 (all or nothing)
+   ```
+   If anything crashes between WRITE and SWAP, search still sees the complete **old** version.
+   Re-running is always safe (the half-written rows are replaced).
+3. **Only approved content becomes searchable.** `done` documents are indexed; `needs_review`
+   documents (blurry scans, blank pages) **wait for a person to approve them** — wrong text in
+   search means wrong answers. One setting (`index_needs_review`) changes this.
+4. **One fast search index (HNSW) per embedding model**, created automatically.
+5. **Indexing results are recorded** on the document: when, how many chunks, which model, or the error.
+6. **`python -m ingestion.run`** now indexes automatically when the database is running, and
+   prints what happened. If the database is down, it says so and keeps working without indexing.
+
+**Live run with the real model**
+```
+leave_policy.pdf            DONE          INDEXED: 5 chunks searchable (5 new embeddings, 0 reused)
+onboarding_deck.pptx        DONE          INDEXED: 4 chunks searchable (4 new embeddings, 0 reused)
+policy_with_blank_page.pdf  NEEDS REVIEW  INDEXED: no - waiting for a person to approve it
+```
+
+**The key scenario — HR edits ONE section of a policy**
+```
+VERSION 1                         INDEXED: 3 chunks (3 new embeddings, 0 reused)
+Hotels: Rs 4,000 -> Rs 5,500      INDEXED: 3 chunks (1 new embeddings, 2 reused, replaced v1)
+
+What search sees now:
+  v2 | Booking | Flights must be booked ... 7 days in advance.
+  v2 | Hotels  | Hotel stays are allowed up to Rs 5,500 per night ...
+  v2 | Claims  | Submit travel claims within 15 days of returning.
+documents table: v1 inactive (kept for history), v2 active
+```
+Only the changed section was re-embedded; the other two were reused from the cache.
+
+**A bug in a test (worth remembering):** the crash test used `monkeypatch.undo()` to "switch
+the power back on". That undid **everything** patched in the test — including the fixture that
+points the test at its throwaway database — so the next step tried to reach the **real**
+database address and hung. On a developer machine it could have written into real data.
+Fixed by patching only the crash inside `monkeypatch.context()`. **Lesson: test isolation needs
+the same care as production code.**
+
+**Tests (145 total):** a new document is indexed and searchable; a duplicate file isn't indexed
+twice; **a new version re-embeds only the changed section** and search sees only the new version;
+**a crash between write and swap keeps the old version live**, and re-running finishes the job
+without re-embedding; re-indexing the same version creates no duplicates; needs_review waits
+for approval; failed files are recorded; one HNSW index per model.
+
+**Memory trick:** *Write the new cards face-down, then flip all of them at once — and only
+re-write the cards whose text changed.*
+
+---
+
 ## How to run (so far)
 
 ```bash
