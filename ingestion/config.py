@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     ocr_timeout_sec: int = 30            # per page / per image
     ocr_dpi: int = 300                   # render scanned PDF pages at this quality
 
+    # ---------- Parsing ----------
+    table_rows_per_element: int = 100     # big sheets are split into tables of this many rows
+    min_image_px: int = 50                # ignore tiny images (icons, lines) smaller than this
+
     # ---------- Detection (per PDF page) ----------
     pdf_min_text_chars: int = 20          # fewer real characters than this = no usable text layer
     pdf_min_image_coverage: float = 0.01  # images covering >1% of the page count as "has images"

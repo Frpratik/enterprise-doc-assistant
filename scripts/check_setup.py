@@ -55,7 +55,7 @@ try:
     import pytesseract
     from ingestion.config import settings
 
-    if settings.tesseract_cmd:
+    if settings.tesseract_cmd and Path(settings.tesseract_cmd).exists():
         pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
     version = pytesseract.get_tesseract_version()
     print(f"[OK]      Tesseract OCR {version}")

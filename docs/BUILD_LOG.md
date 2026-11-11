@@ -199,8 +199,78 @@ picture page → OCR, both → do both.*
 
 ---
 
-### ⏳ Stage 4 — Parsers (next)
-Text / Markdown / HTML → CSV / Excel → Word → PowerPoint → Images → PDF.
+### ✅ Stage 4 — Parsers (`ingestion/parsers/`, `ocr.py`, `textutils.py`)
+
+**What:** one reader per file type. Each one turns its file into the standard Elements.
+
+**Why:** every file type stores content differently. Each parser knows ONE format well,
+and they all give back the same shape (Stage 1), so nothing after this cares about the type.
+
+**Shared helpers**
+- `ocr.py` — Tesseract OCR. Returns text **grouped into paragraphs, each with a confidence
+  score** (0–1), so the quality stage can spot bad scans. Grayscale + enlarge small images
+  first; timeout so one bad image can't freeze the pipeline.
+- `textutils.py` — read any text file whatever its encoding (UTF-8 / Windows) and fix
+  Windows line endings; turn rows into a **Markdown table**; spot CAPITALS lines as headings.
+- `image_elements()` — one function every parser uses for pictures: OCR → `image_ocr`,
+  or `[Image: no text found]` if the picture has no text (so we still know it was there).
+
+**The parsers**
+| File | How it reads it |
+|---|---|
+| TXT | paragraphs split by blank lines; short CAPITALS line = heading |
+| Markdown | `#` headings with level, `-` lists, `\|` tables, paragraphs |
+| HTML | headings, paragraphs, list items, tables — **drops scripts, menus, footers** |
+| CSV / Excel | every sheet → heading + Markdown table; big sheets split into 100-row tables, each with the header repeated |
+| Word | walks the body **in order** (text and tables are mixed); Heading styles → levels; lists; tables (merged cells kept once); **pictures → OCR** |
+| PowerPoint | per slide: title → heading, bullets → list items, tables, **pictures → OCR**, grouped shapes opened up, **speaker notes**; shapes read top→bottom, left→right |
+| Image | OCR with confidence; multi-page TIFF read page by page |
+| PDF | **per page by kind**: digital → text + tables; scanned → render page → OCR; mixed → both + OCR the images |
+
+**How the PDF parser finds headings:** it measures every font size in the document. The most
+common size = normal body text. Anything clearly bigger is a heading — the biggest is level 1,
+next level 2, and so on. Short bold lines also count as headings.
+
+**How it avoids reading tables twice:** tables are found first (pdfplumber), and any text
+block that sits inside a table's box is skipped.
+
+**Results on the sample files (real output)**
+```
+leave_policy.pdf (digital)
+  heading L1  Leave Policy 2026
+  heading L2  1. Sick Leave
+  paragraph   Employees get 12 sick leaves per year...
+  heading L3  Leave Summary
+  table       | Leave Type | Days per Year | Carry Forward | ... | Earned Leave | 18 | Yes, up to 30 days |
+  (page 2)    3. Maternity and Paternity Leave ... notice period is 60 days.
+
+scanned_code_of_conduct.pdf (scanned, OCR)
+  heading     CODE OF CONDUCT                       conf 0.95
+  image_ocr   2. Office hours are 9:30 AM to 6:30 PM.  conf 0.96
+
+mixed_quarterly_report.pdf
+  page 1 (mixed)    heading, paragraph, table, + OCR of the picture "Satisfaction Score: 4.2 / 5"
+  page 2 (scanned)  "Budget for 04 tralning approved! Rs 5,00,000"   conf 0.83  ← OCR mistakes
+
+onboarding_deck.pptx   4 slides: titles, 4 bullets, contacts table, picture OCR, speaker notes
+employee_handbook.docx headings, 3 list items, table, picture OCR "Helpdesk: ext 4455"
+salary_structure.xlsx  2 sheets → 2 clean tables (15.0 shown as 15)
+```
+
+**Real-world lessons from this stage**
+1. **Windows line endings** — files saved on Windows have `\r\n`. The reader now cleans them.
+2. **Config that works on two machines** — the Windows Tesseract path in `.env` doesn't exist
+   on Linux. OCR now uses it only if it exists, otherwise falls back to `tesseract` on PATH.
+3. **OCR on small, low-quality images makes mistakes** — "Q4 training" became "04 tralning",
+   with a lower confidence (0.83). The quality stage will flag pages like this.
+4. **Messy metadata** — PDF dates come as `D:20261110160445+05'00'` (now turned into
+   `2026-11-10T16:04:45`), and some tools write the author as `(anonymous)` (now dropped).
+
+**Tests (58 total):** every allowed type has a parser; each sample file gives the right
+headings, levels, list items, tables, OCR text, page/slide/sheet locations and page kinds;
+HTML junk dropped; table text not repeated; Windows line endings removed.
+
+**Memory trick:** *One reader per file type, one shape out — and pictures always go through OCR.*
 
 ### ⏳ Stage 5 — Clean
 ### ⏳ Stage 6 — Quality checks

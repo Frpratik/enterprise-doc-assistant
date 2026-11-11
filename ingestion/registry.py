@@ -23,13 +23,35 @@ def register(parser_cls: type[BaseParser]) -> type[BaseParser]:
     return parser_cls
 
 
+# parser modules register themselves when imported
+PARSER_MODULES = ["text", "sheet", "docx", "pptx", "image", "pdf"]
+_loaded = False
+
+
+def load_all() -> None:
+    """Import every parser module once, so their @register runs."""
+    global _loaded
+    if _loaded:
+        return
+    import importlib
+    for mod in PARSER_MODULES:
+        try:
+            importlib.import_module(f"ingestion.parsers.{mod}")
+        except ModuleNotFoundError as e:
+            if e.name != f"ingestion.parsers.{mod}":
+                raise                       # a real missing package, don't hide it
+    _loaded = True
+
+
 def get_parser(file_type: str) -> BaseParser:
+    load_all()
     if file_type not in _PARSERS:
         raise NoParserError(f"no parser for file type '{file_type}'")
     return _PARSERS[file_type]()
 
 
 def supported_types() -> set[str]:
+    load_all()
     return set(_PARSERS)
 
 
