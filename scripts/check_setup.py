@@ -27,6 +27,9 @@ PACKAGES = [
     ("pydantic", "pydantic"),
     ("pydantic_settings", "pydantic-settings"),
     ("structlog", "structlog"),
+    ("psycopg", "psycopg[binary]"),
+    ("psycopg_pool", "psycopg-pool"),
+    ("pgvector", "pgvector"),
     ("pytest", "pytest"),
     ("reportlab", "reportlab"),
 ]
@@ -66,7 +69,31 @@ except Exception as e:  # not installed / not on PATH
     print("          then set INGEST_TESSERACT_CMD in .env if it's not on PATH")
     print(f"          ({type(e).__name__}: {e})")
 
-# 4. Data folders
+# 4. Database (Phase 2): Postgres + pgvector from docker compose
+try:
+    import psycopg
+    from ingestion.config import settings as _s
+
+    with psycopg.connect(_s.database_url, connect_timeout=3) as conn:
+        pg = conn.execute("SHOW server_version").fetchone()[0]
+        conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        vec = conn.execute("SELECT extversion FROM pg_extension WHERE extname = 'vector'").fetchone()[0]
+    print(f"[OK]      Postgres {pg} with pgvector {vec}")
+    from indexing.migrate import _files, applied
+    pending = [f.name for f in _files() if f.name not in applied()]
+    if pending:
+        print(f"[TODO]    {len(pending)} database migration(s) pending  ->  python -m indexing.migrate")
+    else:
+        print("[OK]      Database schema up to date")
+except ImportError:
+    pass                                   # packages already reported missing above
+except Exception as e:
+    ok = False
+    print("[MISSING] Database not reachable")
+    print("          Start it with:  docker compose up -d   (Docker Desktop must be running)")
+    print(f"          ({type(e).__name__}: {str(e).strip().splitlines()[0][:120]})")
+
+# 5. Data folders
 from ingestion.config import settings  # noqa: E402
 
 settings.ensure_dirs()

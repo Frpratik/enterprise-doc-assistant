@@ -14,6 +14,11 @@ filetype         # detect the REAL file type from file bytes (magic bytes)
 watchdog         # watch the inbox folder for new files
 langdetect       # detect document language
 
+# --- Phase 2: database ---
+psycopg[binary]  # Postgres driver
+psycopg-pool     # connection pool (reuse connections instead of opening one per query)
+pgvector         # lets Python send/receive vectors to Postgres
+
 # --- Config, models, logs ---
 pydantic
 pydantic-settings

@@ -16,7 +16,7 @@ tested before moving on.
 | Phase | What it does | Status |
 |---|---|---|
 | **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | ✅ Done |
-| Phase 2 — Store | Chunk, embed, save to a vector database, keep it in sync | ⏳ |
+| **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | 🔨 In progress |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ⏳ |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ⏳ |
 | Phase 5 — Access | Login, roles, who-can-see-what | ⏳ |
@@ -513,6 +513,80 @@ and keep the index in sync when files change.
 
 ---
 
+## Phase 2 — Store (chunk, embed, save, keep in sync)
+
+**Goal:** cut the clean Elements into good chunks, turn each chunk into numbers (embeddings),
+save them in Postgres + pgvector, and keep the index correct when files are added, changed or deleted.
+
+**Analogy:** Phase 1 was the sorting room. Phase 2 is the **library** — cut each book into
+index cards (one topic per card, chapter name on top), give each card a "meaning address"
+(embedding), put them on shelves (database), and when a book gets a new edition, swap all its
+cards at once.
+
+**Decisions**
+- **Embeddings:** a **local, free model** by default (`BAAI/bge-small-en-v1.5` via fastembed —
+  no API key, runs offline). OpenAI stays an option behind the same interface.
+- **Database:** **Postgres 16 + pgvector in Docker** — the industry-standard setup, and the
+  same thing we'll run on AWS later.
+
+**Design rules**
+1. Chunk by meaning (section / slide / table), never by raw character count.
+2. Every chunk carries its context: document title + heading path + page/slide.
+3. Tables stay whole, or are split by rows with the header repeated.
+4. One embedding interface — changing the model is a config change.
+5. Never embed the same text twice (content hash = cache).
+6. Search never sees a half-updated document (write new version inactive → swap in one transaction).
+7. Soft delete first, clean up later.
+8. The database can always be rebuilt from the original files.
+9. Chunking choices are decided by a retrieval golden set (recall@5, MRR), not by guessing.
+
+**Stages:** 0 database setup · 1 chunker · 2 embeddings · 3 DB layer · 4 indexer + atomic swap ·
+5 sync + delete + search command · 6 retrieval golden set · 7 background worker (Celery + Redis)
+
+---
+
+### ✅ Stage 0 — Database setup (`docker-compose.yml`, `indexing/db.py`, `indexing/migrate.py`)
+
+**What:** Postgres + pgvector + Redis running in Docker, a connection pool, versioned
+database migrations, and the setup check now looks at the database too.
+
+**Why:** everything in Phase 2 lives in the database. The schema must be versioned like code
+(so every machine — your laptop, CI, AWS — builds exactly the same tables).
+
+**What we built**
+- `docker-compose.yml` — `pgvector/pgvector:pg16` (Postgres with pgvector built in) and
+  `redis:7` (used in Stage 7). Data is kept in Docker volumes.
+- `indexing/db.py` — a **connection pool** (connections are opened once and reused) and
+  `with connect() as conn:` = **one transaction**: everything is saved if the block finishes,
+  **nothing** is saved if it crashes halfway.
+- `indexing/migrate.py` — runs numbered SQL files (`001_...sql`) **once each, in order**,
+  each in a transaction, and records them in `schema_migrations`.
+- `check_setup.py` — now checks Postgres, pgvector and pending migrations.
+
+**The tables (migration 001)**
+| Table | Holds |
+|---|---|
+| `documents` | one row per document **version**: hash, status, reason, label, language, **is_active**, soft-delete time. Replaces `manifest.json`. |
+| `embeddings` | one vector per **(text hash, model)** — this table IS the embedding cache, and different models can live side by side |
+| `chunks` | content (for users/LLM), embed_text (title + heading path + content), heading path, location, token count, **is_active**, plus `tenant_id` / `allowed_roles` ready for Phase 5, and an automatic **keyword-search column** ready for Phase 3 |
+
+**Why embeddings get their own table:** the same text (e.g. an unchanged section in version 2
+of a document) is embedded **once** and reused forever; switching to a different model later
+just adds new rows — nothing breaks; and each model gets its own fast search index.
+
+**Testing without touching your data:** every DB test creates a **brand-new database**,
+runs the migrations, and drops it afterwards. Tests use your Docker Postgres; on machines
+without Docker they can use `pgserver` (a pip-installed Postgres with pgvector).
+
+**Tests (103 total):** all tables created; migrations run only once; vectors go in and come
+back the same; a crash halfway saves **nothing**; a chunk can't exist without its document;
+keyword search works with stemming ("leaves" matches "leave").
+
+**Memory trick:** *Shelves before books — versioned tables, a pooled connection, and
+all-or-nothing transactions.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -530,4 +604,8 @@ python -m ingestion.run --file "C:\any\file\you\want.pdf"
 
 # measure extraction quality against the golden set
 python -m ingestion.evaluate
+
+# Phase 2: database (Docker Desktop must be running)
+docker compose up -d
+python -m indexing.migrate
 ```

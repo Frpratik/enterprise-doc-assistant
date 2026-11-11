@@ -9,6 +9,7 @@ All settings in ONE place (no hard-coded values in the pipeline).
 from pathlib import Path
 from typing import Optional
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root = the folder that contains the "ingestion" package
@@ -62,6 +63,13 @@ class Settings(BaseSettings):
     min_ocr_confidence: float = 0.70
     max_garbage_ratio: float = 0.30
     min_page_coverage: float = 0.80
+
+    # ---------- Database (Phase 2) ----------
+    # read from DATABASE_URL (standard name) or INGEST_DATABASE_URL
+    database_url: str = Field(
+        default="postgresql://eda:eda_local_pw@localhost:5432/eda",
+        validation_alias=AliasChoices("DATABASE_URL", "INGEST_DATABASE_URL"),
+    )
 
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs

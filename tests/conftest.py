@@ -27,3 +27,53 @@ def temp_data(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "file_ready_wait_sec", 0.01)
     settings.ensure_dirs()
     return tmp_path
+
+
+# ---------------- Phase 2: a real Postgres for tests ----------------
+import os
+import uuid
+
+import psycopg
+from psycopg.conninfo import make_conninfo
+
+
+@pytest.fixture(scope="session")
+def pg_server_url(tmp_path_factory):
+    """
+    A Postgres server for tests, in this order:
+      1. TEST_DATABASE_URL if set
+      2. the normal DATABASE_URL (your Docker Postgres)
+      3. pgserver (a pip-installed Postgres with pgvector), if installed
+    Tests are skipped if none is available.
+    """
+    for url in (os.environ.get("TEST_DATABASE_URL"), settings.database_url):
+        if url:
+            try:
+                with psycopg.connect(url, connect_timeout=2):
+                    return url
+            except Exception:
+                pass
+    try:
+        import pgserver
+    except ImportError:
+        pytest.skip("no Postgres for tests: start Docker (docker compose up -d)")
+    srv = pgserver.get_server(tmp_path_factory.mktemp("pg"), cleanup_mode="stop")
+    return srv.get_uri()
+
+
+@pytest.fixture
+def db_url(pg_server_url, monkeypatch):
+    """A brand-new empty database for ONE test, dropped afterwards. Your real data is never touched."""
+    from indexing import db
+    from indexing.migrate import migrate
+
+    name = f"eda_test_{uuid.uuid4().hex[:10]}"
+    with psycopg.connect(pg_server_url, autocommit=True) as admin:
+        admin.execute(f'CREATE DATABASE "{name}"')
+    url = make_conninfo(pg_server_url, dbname=name)
+    monkeypatch.setattr(settings, "database_url", url)
+    migrate(url, quiet=True)
+    yield url
+    db.close_all()
+    with psycopg.connect(pg_server_url, autocommit=True) as admin:
+        admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
