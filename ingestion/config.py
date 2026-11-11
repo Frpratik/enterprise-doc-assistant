@@ -89,6 +89,10 @@ class Settings(BaseSettings):
     # ---------- Indexing (Phase 2) ----------
     use_database: bool = True          # False = Phase 1 only (JSON manifest, no indexing)
     index_needs_review: bool = False   # True = also index documents flagged needs_review (not approved yet)
+    source_dir: Path = PROJECT_ROOT / "data" / "source"   # default folder that `sync` keeps the index matching
+    keep_deleted_days: int = 30        # cleanup: hard-delete soft-deleted docs / old versions after this many days
+    search_top_k: int = 5
+    search_ef: int = 100               # HNSW search effort: higher = more accurate, a bit slower (default 40)
 
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs

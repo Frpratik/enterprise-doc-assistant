@@ -13,6 +13,7 @@ data/inbox/*
 data/originals/*
 data/output/*
 data/failed/*
+data/source/*
 data/manifest.json
 data/logs/
 !data/**/.gitkeep

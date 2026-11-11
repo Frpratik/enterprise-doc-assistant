@@ -775,6 +775,77 @@ re-write the cards whose text changed.*
 
 ---
 
+### ✅ Stage 5 — Sync, delete, approve, cleanup + search (`sync.py`, `manage.py`, `search.py`)
+
+**What:** keep the index matching a folder automatically, manage documents (delete, approve,
+cleanup, list), and **ask questions to your own documents** from the terminal.
+
+**Why:** a company folder changes every day. If the index doesn't follow — deleted policies still
+answering, old versions still showing — the bot gives confidently wrong answers.
+
+**Sync — compares the folder with the database and builds a plan**
+| Case | What happens | Cost |
+|---|---|---|
+| new | ingest + index | full |
+| unchanged (same name, same hash) | skip | zero |
+| changed (same name, new hash) | new version, **only changed sections re-embedded** | small |
+| renamed (a "new" file with a vanished file's content) | just rename it — **no re-indexing** | zero |
+| deleted | **soft delete**: hidden from search at once, rows kept until cleanup | zero |
+
+A naive sync treats a rename as "delete + add" and throws away all its embeddings. Ours spots
+the same content under a new name. `--dry-run` shows the plan without changing anything.
+
+**Other commands**
+```bash
+python -m indexing.manage sync --folder "C:\path\to\company\docs" [--dry-run]
+python -m indexing.manage list               # every document, version, status, searchable or not
+python -m indexing.manage delete DOC_ID      # hide from search (soft delete)
+python -m indexing.manage approve DOC_ID     # a person checked a needs_review doc -> searchable
+python -m indexing.manage cleanup --days 30  # hard-delete old deleted data + unused embeddings
+python -m indexing.search "how many sick leaves do I get" -k 3
+```
+
+**Live demo — 8 sample files in a "company folder"**
+```
+$ python -m indexing.manage sync --folder <company folder>
+  new: 8 -> 25 chunks indexed
+
+$ python -m indexing.search "what happens when I leave the company"
+1. [0.687] long_handbook.pdf > Exit Process  (page 4)
+   Employees must return the laptop and ID card on the last working day.
+
+$ python -m indexing.search "can I claim my internet bill"
+1. [0.612] employee_handbook.docx > Reimbursement Limits
+   | Internet | 1,000 | ...
+```
+Then HR edited one file, deleted one and renamed one:
+```
+$ python -m indexing.manage sync --dry-run
+  new: 0   changed: 1   unchanged: 5   renamed: 1   deleted: 1
+$ python -m indexing.manage sync
+  it_policy.txt    1 chunks (1 new)        <- only the edited file re-embedded
+  renamed  -> wfh_policy.md                <- zero re-embedding
+  deleted  hr_faq.html                     <- gone from search immediately
+```
+After the sync, "can I work from home" finds `wfh_policy.md`, the password question finds
+**version 2** of the IT policy, and "when is salary credited" no longer finds the deleted FAQ.
+
+**Something to fix in Phase 3:** with the FAQ deleted, "when is salary credited" still returns
+*something* — the closest remaining chunk (a salary table, score 0.652) which doesn't answer it.
+Vector search **always** returns its nearest neighbours, even when nothing is relevant. The answer
+step needs a **minimum score / "I don't know"** rule.
+
+**Tests (160 total):** first sync adds everything and the second sync does nothing; dry run changes
+nothing; a changed file becomes version 2; a deleted file disappears from search (but its rows stay);
+**a renamed file is not re-embedded at all**; cleanup only removes data older than N days, including
+chunks and unused embeddings; approve makes a needs_review document searchable; search returns the
+best first and respects k; with the real model, 3 questions each find the right file.
+
+**Memory trick:** *Compare the shelf with the folder — add new, skip same, re-do only what changed,
+relabel what was renamed, and hide what was removed.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -797,4 +868,8 @@ python -m ingestion.evaluate
 docker compose up -d
 python -m indexing.migrate
 python scripts\download_model.py      # local embedding model, once (~70 MB)
+
+# Phase 2: keep the index matching a folder, then ask questions
+python -m indexing.manage sync --folder "C:\path\to\your\documents"
+python -m indexing.search "how many sick leaves do I get"
 ```
