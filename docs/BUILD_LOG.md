@@ -77,7 +77,8 @@ company files.
   OCR settings, quality thresholds). Any value can be changed in `.env`.
 - `scripts/check_setup.py` — checks Python, every package, and the Tesseract OCR program.
 - `scripts/make_sample_data.py` — creates fake HR documents:
-  - **11 good files:** digital PDF, scanned PDF, mixed PDF, Word (with table + image),
+  - **12 good files:** digital PDF, scanned PDF, mixed PDF, a 4-page PDF with repeated
+    headers/footers and broken words (added in Stage 5), Word (with table + image),
     PowerPoint (with table, image, notes), Excel (2 sheets), CSV, image, TXT, Markdown, HTML
   - **6 bad files:** `.exe` renamed to `.pdf`, corrupted PDF, password PDF, empty file,
     duplicate copy, a type we don't allow
@@ -272,7 +273,50 @@ HTML junk dropped; table text not repeated; Windows line endings removed.
 
 **Memory trick:** *One reader per file type, one shape out — and pictures always go through OCR.*
 
-### ⏳ Stage 5 — Clean
+### ✅ Stage 5 — Clean (`ingestion/clean.py`)
+
+**What:** tidy the extracted text **without changing its meaning**.
+
+**Why:** real PDFs repeat the same header and footer on every page and break words across
+lines. If we keep that junk, every chunk in Phase 2 will contain "INTERNAL USE ONLY — Page 3
+of 4", search gets worse, and the LLM sees words like "perfor- mance".
+
+**What it does (in order)**
+1. **Fix odd characters** — ligatures (`ﬁ` → `fi`), non-breaking spaces, invisible
+   zero-width characters, control characters.
+2. **Join broken words** — `employ- ees` → `employees`. Only when the second part starts
+   with a small letter, so real dashes like `Mumbai - Pune` and `Q3- Report` are left alone.
+3. **Tidy spaces** — no double spaces, no piles of blank lines.
+4. **Remove repeated headers/footers** — a short line whose *pattern* (numbers replaced by #)
+   shows up on **60%+ of pages** is a header or footer. So `Page 1 of 4`, `Page 2 of 4`...
+   all match `page # of #`. Only done when the document has **3+ pages** (too risky to guess
+   on short documents).
+5. **Remove lone page numbers** like `7`, `Page 7`, `- 7 -`.
+6. **Drop empty elements** and renumber ids (`el_0001`, `el_0002`...).
+7. **Detect the language** (`en`, `hi`, `mr`...) from the full text.
+
+Tables keep their Markdown layout — only odd characters are fixed inside them.
+Every change is **counted** in `quality.checks`, so we can see what cleaning did.
+
+**New sample file:** `long_handbook.pdf` — 4 pages, the same header on every page, a
+"Page N of 4" footer, and two words broken across lines. That's how most real company PDFs look.
+
+**Before → after (real output)**
+```
+BEFORE (16 elements)                                   AFTER (8 elements)
+ACME EXAMPLE PVT LTD - INTERNAL USE ONLY   (x4)    →   removed
+Page 1 of 4 ... Page 4 of 4                (x4)    →   removed
+"New employ- ees ... perfor- mance review"         →   "New employees ... performance review"
+
+checks: joined_words=2, removed_headers_footers=8, language=en
+```
+
+**Tests (66 total):** odd characters, broken words (and real dashes left alone), spaces,
+headers/footers removed on the real PDF, short documents left untouched, lone page numbers,
+tables keep layout, language detection (English, Hindi, too-short text → none).
+
+**Memory trick:** *Clean the dust, not the furniture — remove repeats and fix broken words,
+never change the meaning.*
 ### ⏳ Stage 6 — Quality checks
 ### ⏳ Stage 7 — Save, status, logs + the `run` command
 ### ⏳ Stage 8 — Ingestion golden set (measure extraction accuracy)

@@ -133,6 +133,32 @@ def mixed_pdf():
     shutil.move(str(tmp_pdf), GOOD / "mixed_quarterly_report.pdf")
 
 
+def long_pdf_with_header_footer():
+    """long_handbook.pdf: 4 pages, every page has the same header + a page-number footer,
+    and some words are broken across lines with a hyphen (like real printed PDFs)."""
+    def header_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.drawString(50, A4[1] - 30, "ACME EXAMPLE PVT LTD - INTERNAL USE ONLY")
+        canvas.drawRightString(A4[0] - 50, 25, f"Page {doc.page} of 4")
+        canvas.restoreState()
+
+    topics = [
+        ("Probation", "New employ-<br/>ees are on probation for 6 months. Confirmation depends on a "
+                      "perfor-<br/>mance review by the reporting manager."),
+        ("Appraisals", "Appraisals happen once a year in April. Ratings are on a scale of 1 to 5."),
+        ("Travel", "Domestic travel must be booked through the travel desk at least 7 days in advance."),
+        ("Exit Process", "Employees must return the laptop and ID card on the last working day."),
+    ]
+    flow = []
+    for i, (title, body) in enumerate(topics):
+        flow += [Paragraph(title, styles["Heading2"]), Paragraph(body, styles["BodyText"])]
+        if i < len(topics) - 1:
+            flow.append(PageBreak())
+    SimpleDocTemplate(str(GOOD / "long_handbook.pdf"), pagesize=A4, title="Employee Handbook Part 2").build(
+        flow, onFirstPage=header_footer, onLaterPages=header_footer)
+
+
 def password_pdf():
     """password_protected.pdf: encrypted PDF -> should fail with a clear reason."""
     from reportlab.lib import pdfencrypt
@@ -262,6 +288,7 @@ if __name__ == "__main__":
     digital_pdf()
     scanned_pdf()
     mixed_pdf()
+    long_pdf_with_header_footer()
     word_doc()
     ppt_deck()
     spreadsheets()
