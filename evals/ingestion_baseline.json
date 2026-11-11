@@ -1,0 +1,213 @@
+{
+  "run_at": "2026-11-11T08:50:44+00:00",
+  "golden_version": 1,
+  "parser_version": "1.0.0",
+  "overall": {
+    "status_ok": 1.0,
+    "word_recall": 0.988,
+    "word_precision": 0.988,
+    "heading_recall": 1.0,
+    "table_accuracy": 1.0,
+    "junk_removed": 1.0
+  },
+  "documents": [
+    {
+      "file": "good/leave_policy.pdf",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 5156,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/scanned_code_of_conduct.pdf",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 5283,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0
+    },
+    {
+      "file": "good/mixed_quarterly_report.pdf",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 2543,
+      "status_ok": 1.0,
+      "word_recall": 0.966,
+      "word_precision": 0.966,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/long_handbook.pdf",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 195,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "junk_removed": 1.0
+    },
+    {
+      "file": "good/employee_handbook.docx",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 420,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/onboarding_deck.pptx",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 333,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/salary_structure.xlsx",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 649,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/holidays_2026.csv",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 334,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 0.952,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/notice_board_photo.png",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 776,
+      "status_ok": 1.0,
+      "word_recall": 0.889,
+      "word_precision": 0.941
+    },
+    {
+      "file": "good/it_policy.txt",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 69,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0
+    },
+    {
+      "file": "good/remote_work.md",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 56,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0
+    },
+    {
+      "file": "good/hr_faq.html",
+      "expected": "done",
+      "got": "done",
+      "time_ms": 97,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0,
+      "table_accuracy": 1.0,
+      "junk_removed": 1.0
+    },
+    {
+      "file": "good/canteen_notice_scan.png",
+      "expected": "needs_review",
+      "got": "needs_review",
+      "time_ms": 440,
+      "status_ok": 1.0,
+      "word_recall": 0.722,
+      "word_precision": 0.812
+    },
+    {
+      "file": "good/policy_with_blank_page.pdf",
+      "expected": "needs_review",
+      "got": "needs_review",
+      "time_ms": 82,
+      "status_ok": 1.0,
+      "word_recall": 1.0,
+      "word_precision": 1.0,
+      "heading_recall": 1.0
+    },
+    {
+      "file": "good/faded_receipt_scan.png",
+      "expected": "failed",
+      "got": "failed",
+      "time_ms": 244,
+      "status_ok": 1.0,
+      "word_recall": 0.0,
+      "word_precision": 0.0
+    },
+    {
+      "file": "bad/corrupted_report.pdf",
+      "expected": "failed",
+      "got": "failed",
+      "time_ms": 28,
+      "status_ok": 1.0
+    },
+    {
+      "file": "bad/empty_notes.txt",
+      "expected": "failed",
+      "got": "failed",
+      "time_ms": 22,
+      "status_ok": 1.0
+    },
+    {
+      "file": "bad/password_protected.pdf",
+      "expected": "failed",
+      "got": "failed",
+      "time_ms": 41,
+      "status_ok": 1.0
+    },
+    {
+      "file": "bad/salary_details.pdf",
+      "expected": "failed",
+      "got": "failed",
+      "time_ms": 26,
+      "status_ok": 1.0
+    },
+    {
+      "file": "bad/setup_tool.exe",
+      "expected": "failed",
+      "got": "failed",
+      "time_ms": 16,
+      "status_ok": 1.0
+    },
+    {
+      "file": "bad/leave_policy_copy.pdf",
+      "expected": "skipped_duplicate",
+      "got": "skipped_duplicate",
+      "time_ms": 29,
+      "status_ok": 1.0
+    }
+  ]
+}

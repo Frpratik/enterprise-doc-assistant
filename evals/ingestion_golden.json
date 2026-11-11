@@ -1,0 +1,78 @@
+{
+  "about": "Ingestion golden set: the CORRECT result for every sample file, written by hand once. 'reference' = all text in reading order. Files are created by scripts/make_sample_data.py.",
+  "version": 1,
+  "documents": [
+    {"file": "good/leave_policy.pdf", "status": "done",
+     "reference": "Leave Policy 2026 1. Sick Leave Employees get 12 sick leaves per year. A medical certificate is required for sick leave longer than 2 consecutive days. 2. Casual Leave Employees get 8 casual leaves per year. Casual leave must be applied at least 1 day in advance through the HR portal. Leave Summary Leave Type Days per Year Carry Forward Sick Leave 12 No Casual Leave 8 No Earned Leave 18 Yes, up to 30 days 3. Maternity and Paternity Leave Maternity leave is 26 weeks. Paternity leave is 10 working days, to be taken within 3 months of the child's birth. 4. Notice Period The notice period for all permanent employees is 60 days.",
+     "headings": ["Leave Policy 2026", "1. Sick Leave", "2. Casual Leave", "Leave Summary", "3. Maternity and Paternity Leave", "4. Notice Period"],
+     "table_rows": [["Leave Type", "Days per Year", "Carry Forward"], ["Sick Leave", "12", "No"], ["Casual Leave", "8", "No"], ["Earned Leave", "18", "Yes, up to 30 days"]]},
+
+    {"file": "good/scanned_code_of_conduct.pdf", "status": "done",
+     "reference": "CODE OF CONDUCT 1. Treat every colleague with respect. 2. Office hours are 9:30 AM to 6:30 PM. 3. Report any harassment to hr@acme-example.com. 4. Company laptops must be locked when unattended. DRESS CODE Business casual from Monday to Thursday. Friday is casual dress day. Approved by: HR Head, Acme Example Pvt Ltd",
+     "headings": ["CODE OF CONDUCT", "DRESS CODE"]},
+
+    {"file": "good/mixed_quarterly_report.pdf", "status": "done",
+     "reference": "Quarterly HR Report - Q3 2026 Headcount Total headcount at the end of Q3 was 412 employees, up from 389 in Q2. Department Headcount Attrition % Engineering 210 6.5 Sales 95 11.2 HR 18 3.0 Employee Satisfaction Score: 4.2 / 5 ANNEXURE A - SIGNED APPROVAL Budget for Q4 training approved: Rs 5,00,000 Signed: Finance Head",
+     "headings": ["Quarterly HR Report - Q3 2026", "Headcount"],
+     "table_rows": [["Department", "Headcount", "Attrition %"], ["Engineering", "210", "6.5"], ["Sales", "95", "11.2"], ["HR", "18", "3.0"]]},
+
+    {"file": "good/long_handbook.pdf", "status": "done",
+     "reference": "Probation New employees are on probation for 6 months. Confirmation depends on a performance review by the reporting manager. Appraisals Appraisals happen once a year in April. Ratings are on a scale of 1 to 5. Travel Domestic travel must be booked through the travel desk at least 7 days in advance. Exit Process Employees must return the laptop and ID card on the last working day.",
+     "headings": ["Probation", "Appraisals", "Travel", "Exit Process"],
+     "must_not_contain": ["INTERNAL USE ONLY", "Page 1 of 4", "employ- ees"]},
+
+    {"file": "good/employee_handbook.docx", "status": "done",
+     "reference": "Employee Handbook Working Hours Standard working hours are 9:30 AM to 6:30 PM, Monday to Friday. Benefits Health insurance for employee and family Annual learning budget of Rs 25,000 Free lunch on Fridays Reimbursement Limits Expense Monthly Limit (Rs) Internet 1,000 Mobile 800 Travel 5,000 IT Support Helpdesk: ext 4455",
+     "headings": ["Employee Handbook", "Working Hours", "Benefits", "Reimbursement Limits", "IT Support"],
+     "table_rows": [["Expense", "Monthly Limit (Rs)"], ["Internet", "1,000"], ["Mobile", "800"], ["Travel", "5,000"]]},
+
+    {"file": "good/onboarding_deck.pptx", "status": "done",
+     "reference": "New Joiner Onboarding HR Team - 2026 Speaker note: greet everyone and share the agenda. First Week Checklist Collect laptop from IT Complete payroll form Meet your buddy Finish security training Key Contacts Team Email HR hr@acme-example.com IT it@acme-example.com Welcome Welcome to Acme Example!",
+     "headings": ["New Joiner Onboarding", "First Week Checklist", "Key Contacts", "Welcome"],
+     "table_rows": [["Team", "Email"], ["HR", "hr@acme-example.com"], ["IT", "it@acme-example.com"]]},
+
+    {"file": "good/salary_structure.xlsx", "status": "done",
+     "reference": "Salary Bands Grade Min CTC (LPA) Max CTC (LPA) L1 4 7 L2 8 14 L3 15 25 Components Component Percent of CTC Basic 40 HRA 20 Special Allowance 40",
+     "headings": ["Salary Bands", "Components"],
+     "table_rows": [["Grade", "Min CTC (LPA)", "Max CTC (LPA)"], ["L1", "4", "7"], ["L2", "8", "14"], ["L3", "15", "25"], ["Component", "Percent of CTC"], ["Basic", "40"], ["HRA", "20"], ["Special Allowance", "40"]]},
+
+    {"file": "good/holidays_2026.csv", "status": "done",
+     "reference": "Date Holiday 2026-01-26 Republic Day 2026-08-15 Independence Day 2026-10-20 Dussehra 2026-11-08 Diwali",
+     "table_rows": [["Date", "Holiday"], ["2026-01-26", "Republic Day"], ["2026-08-15", "Independence Day"], ["2026-10-20", "Dussehra"], ["2026-11-08", "Diwali"]]},
+
+    {"file": "good/notice_board_photo.png", "status": "done",
+     "reference": "NOTICE Fire drill on 15 November 2026 at 11:00 AM. Please assemble at the main parking area."},
+
+    {"file": "good/it_policy.txt", "status": "done",
+     "reference": "IT POLICY Passwords must be changed every 90 days. Do not install unapproved software on company laptops.",
+     "headings": ["IT POLICY"]},
+
+    {"file": "good/remote_work.md", "status": "done",
+     "reference": "Remote Work Policy Eligibility Employees can work from home 2 days a week. Equipment Item Provided Laptop Yes Monitor On request",
+     "headings": ["Remote Work Policy", "Eligibility", "Equipment"],
+     "table_rows": [["Item", "Provided"], ["Laptop", "Yes"], ["Monitor", "On request"]]},
+
+    {"file": "good/hr_faq.html", "status": "done",
+     "reference": "HR FAQ How do I apply for leave? Use the HR portal under Leave > Apply. When is salary credited? Salary is credited on the last working day of the month. Query Contact Payroll payroll@acme-example.com",
+     "headings": ["HR FAQ", "How do I apply for leave?", "When is salary credited?"],
+     "table_rows": [["Query", "Contact"], ["Payroll", "payroll@acme-example.com"]],
+     "must_not_contain": ["tracking", "Home | About", "Copyright"]},
+
+    {"file": "good/canteen_notice_scan.png", "status": "needs_review",
+     "reference": "CANTEEN MENU CHANGE Lunch timings now 1:00 PM to 2:30 PM Contact admin desk for queries"},
+
+    {"file": "good/policy_with_blank_page.pdf", "status": "needs_review",
+     "reference": "Gift Policy Employees must not accept gifts worth more than Rs 2,000 from vendors or clients. Any gift above the limit must be reported to HR within 7 days.",
+     "headings": ["Gift Policy"]},
+
+    {"file": "good/faded_receipt_scan.png", "status": "failed",
+     "reference": "TRAVEL REIMBURSEMENT Claim no 88213 Amount Rs 4,350 Approved by manager on 03/10/2026"},
+
+    {"file": "bad/corrupted_report.pdf", "status": "failed"},
+    {"file": "bad/empty_notes.txt", "status": "failed"},
+    {"file": "bad/password_protected.pdf", "status": "failed"},
+    {"file": "bad/salary_details.pdf", "status": "failed"},
+    {"file": "bad/setup_tool.exe", "status": "failed"},
+    {"file": "bad/leave_policy_copy.pdf", "status": "skipped_duplicate"}
+  ]
+}

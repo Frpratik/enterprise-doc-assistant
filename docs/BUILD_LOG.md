@@ -15,7 +15,7 @@ tested before moving on.
 
 | Phase | What it does | Status |
 |---|---|---|
-| **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | 🔨 Usable — golden set left |
+| **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | ✅ Done |
 | Phase 2 — Store | Chunk, embed, save to a vector database, keep it in sync | ⏳ |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ⏳ |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ⏳ |
@@ -434,7 +434,82 @@ on failure; folder mode with `--summary`.
 
 **Memory trick:** *One file in, every stage in order, one record out — and a bad file
 only fails itself, never the whole run.*
-### ⏳ Stage 8 — Ingestion golden set (measure extraction accuracy)
+### ✅ Stage 8 — Golden set + eval gate (`evals/`, `ingestion/evaluate.py`, `tests/test_eval_gate.py`)
+
+**What:** for every sample file we wrote down **the correct result by hand, once** — the
+expected status, all the text in reading order, the headings, and the table rows. Then we
+run the real pipeline and **measure** how close it gets, with numbers.
+
+**Why:** Stage 6 showed that OCR confidence is NOT accuracy (Tesseract read "1:00" as "2:00"
+and was 85% sure). "Looks fine to me" is not a measurement. With a golden set, every change
+to the code is **measured**, and we can prove improvements with before/after numbers.
+
+**The golden set:** `evals/ingestion_golden.json` — 21 files (15 good + 6 bad).
+
+**The 6 metrics**
+| Metric | Question it answers |
+|---|---|
+| status_ok | Did the file get the expected status (done / needs_review / failed / duplicate)? |
+| word_recall | How much of the **correct** text did we get, in order? (missed or misread words lower it) |
+| word_precision | How much of **our** text is correct? (junk like headers/footers lowers it) |
+| heading_recall | Were the expected headings found **as headings**? |
+| table_accuracy | Were the expected table rows found with **every cell right**? |
+| junk_removed | Is the junk (headers, footers, scripts, broken words) gone? |
+
+Status is checked on every file. Text/heading/table numbers are averaged only over files
+that are **supposed** to be read correctly — the deliberately bad scans are shown row by row
+but don't hide real changes in the average.
+
+**How to run**
+```bash
+python -m ingestion.evaluate                   # score table + comparison with the baseline
+python -m ingestion.evaluate --save-baseline   # store today's numbers as the new baseline
+```
+It runs in a temporary folder, so your real `data/` is never touched.
+
+**Baseline (real numbers, saved in `evals/ingestion_baseline.json`)**
+```
+status_ok        1.000   (21 of 21 files got the right status)
+word_recall      0.988
+word_precision   0.988
+heading_recall   1.000
+table_accuracy   1.000
+junk_removed     1.000
+
+weakest text: faded_receipt_scan.png 0.00 (unreadable, expected)
+              canteen_notice_scan.png 0.72 (blurry, flagged needs_review)
+              notice_board_photo.png 0.89 ("drillon" - OCR joined two words)
+              mixed_quarterly_report.pdf 0.97 ("04 tralning")
+```
+
+**The eval gate** (`tests/test_eval_gate.py`) — minimum numbers that every code change must
+keep: status 100%, recall/precision/headings/tables ≥ 95%, junk removed 100%.
+In Phase 9 this exact test runs in GitHub Actions on every push.
+
+**Proof it works:** we simulated a bad code change (header/footer removal switched off).
+```
+junk_removed     0.500  FAIL  <-- gate blocks this change
+word_precision   0.964  PASS     (overall still passed!)
+long_handbook.pdf  precision 0.705, junk_removed 0.0
+```
+**Lesson:** one metric alone can miss a problem — overall precision still looked fine because
+one bad file was averaged with good ones. That's why we check several metrics.
+
+**Tests (97 total):** 90 earlier tests + 7 eval-gate checks.
+
+**Memory trick:** *Write the right answer once, then let numbers — not eyes — decide if a change is better.*
+
+---
+
+## ✅ Phase 1 complete
+
+Any file → safety gate → per-page detection → the right parser (with OCR) → cleaning →
+quality score → saved JSON + status + logs → measured against a golden set with an eval gate.
+
+**Numbers:** 9 file types, 21 golden files, 97 tests, word accuracy 0.988, tables 1.000.
+
+**Next phase:** Phase 2 — chunk the elements, embed them, store them in a vector database,
+and keep the index in sync when files change.
 
 ---
 
@@ -452,4 +527,7 @@ python -m pytest -q               # all tests should pass
 python -m ingestion.run --file data\samples\good\leave_policy.pdf
 python -m ingestion.run --folder data\samples\good --summary
 python -m ingestion.run --file "C:\any\file\you\want.pdf"
+
+# measure extraction quality against the golden set
+python -m ingestion.evaluate
 ```

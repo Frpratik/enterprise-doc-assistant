@@ -25,3 +25,6 @@ Thumbs.db
 
 # Generated sample files (re-create with: python scripts/make_sample_data.py)
 data/samples/
+
+# Latest eval run (the baseline IS committed)
+evals/ingestion_latest.json
