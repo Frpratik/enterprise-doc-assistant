@@ -661,6 +661,53 @@ and page, never bigger than the model can read.*
 
 ---
 
+### ✅ Stage 2 — Embeddings (`indexing/embeddings.py`)
+
+**What:** turn each chunk into a list of 384 numbers (a vector) so that texts with similar
+**meaning** get similar vectors — even with no shared words ("internet claim" ↔ "Reimbursement Limits").
+
+**Why:** keyword search only finds exact words. Employees ask in their own words; embeddings
+let search match the *meaning*.
+
+**What we built**
+1. **One interface, two models** (chosen in config — the rest of the code never changes):
+   - `LocalEmbedder` — `BAAI/bge-small-en-v1.5` via fastembed: **free, offline**, 384 numbers,
+     loaded from the `models/` folder (no internet needed at run time)
+   - `OpenAIEmbedder` — `text-embedding-3-small`: needs an API key, 1536 numbers, sends up to
+     100 texts per request, retries with backoff
+2. **Documents and questions are embedded differently.** BGE models are trained to expect an
+   instruction in front of *search questions* (not documents):
+   `"Represent this sentence for searching relevant passages: "`. fastembed doesn't add it, so we do.
+   Measured: with the instruction, the right chunk wins by a bigger margin (gap 0.176 vs 0.155).
+3. **Vectors are normalised** (length 1), so "how close" = a simple dot product (cosine similarity).
+4. **Cache in front of the model** (`embed_with_cache`): every text is identified by its SHA-256
+   hash. A (text, model) pair is embedded **once, ever** — re-running, or version 2 of a document
+   with mostly unchanged sections, costs almost nothing. Duplicate texts in one batch are embedded once.
+
+**Real result — 25 chunks from 8 sample files, 7 questions**
+```
+Q: how many sick leaves do I get        1st 0.798  leave_policy.pdf > 1. Sick Leave
+Q: what is the notice period            1st 0.798  leave_policy.pdf > 4. Notice Period
+Q: how much can I claim for internet    1st 0.688  employee_handbook.docx > Reimbursement Limits
+Q: who do I contact in IT               1st 0.648  onboarding_deck.pptx > Key Contacts
+Q: what is the HRA percentage           1st 0.699  salary_structure.xlsx > Sheet: Components
+Q: when is salary credited              1st 0.872  hr_faq.html > When is salary credited?
+Q: how long is probation                1st 0.817  long_handbook.pdf > Probation
+```
+**7 of 7 correct**, none of them by matching exact words. Speed in the test sandbox:
+about 10 chunks/second on 2 CPU cores, for free.
+
+**Tests (136 total):** 384 numbers and length 1; same text → same vector; similar meaning is
+closer ("sick leave" vs "medical leave" beats "sick leave" vs "laptop policy"); 4 questions
+each find the right chunk; the instruction goes on questions only; batching keeps the order;
+**cache:** second run embeds only the new text, duplicates embedded once, different models
+cached separately; OpenAI requests batched as 100 + 100 + 50.
+
+**Memory trick:** *Meaning becomes numbers — close numbers, close meaning; questions get an
+instruction, and the same text is never embedded twice.*
+
+---
+
 ## How to run (so far)
 
 ```bash

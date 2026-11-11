@@ -72,8 +72,14 @@ class Settings(BaseSettings):
     )
 
     # ---------- Embeddings (Phase 2) ----------
+    embed_provider: str = "local"                  # "local" (free, offline) or "openai"
     embed_model: str = "BAAI/bge-small-en-v1.5"   # local, free; reads max 512 tokens at once
     models_dir: Path = PROJECT_ROOT / "models"     # downloaded model files live here (not in git)
+    embed_batch_size: int = 64                     # texts per call
+    # BGE models work best when SEARCH QUESTIONS (not documents) start with this instruction
+    embed_query_prefix: str = "Represent this sentence for searching relevant passages: "
+    openai_embed_model: str = "text-embedding-3-small"
+    openai_api_key: Optional[str] = Field(default=None, validation_alias=AliasChoices("OPENAI_API_KEY"))
 
     # ---------- Chunking (Phase 2) ----------
     chunk_target_tokens: int = 350   # aim for about this size
