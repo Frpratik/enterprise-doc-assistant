@@ -28,3 +28,6 @@ data/samples/
 
 # Latest eval run (the baseline IS committed)
 evals/ingestion_latest.json
+
+# Downloaded embedding models (re-download with: python scripts/download_model.py)
+models/

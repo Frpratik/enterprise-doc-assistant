@@ -587,6 +587,80 @@ all-or-nothing transactions.*
 
 ---
 
+### ✅ Stage 1 — Chunker (`indexing/chunker.py`, `chunk_checks.py`, `tokens.py`)
+
+**What:** cut every document into chunks **by meaning**, each one carrying its context.
+
+**Why:** search finds *chunks*, not documents. A chunk that is half a sentence, or two unrelated
+topics glued together, or "12 days" with no idea *12 days of what*, gives bad search results
+and bad answers. Good chunks are the biggest single lever on RAG quality.
+
+**How each type is chunked**
+| Content | Chunk |
+|---|---|
+| PDF / Word / MD / HTML / TXT / images | one chunk per **section** (heading + its text) |
+| Tables inside documents | their **own chunk**, with the section heading on top |
+| PowerPoint | one chunk per **slide** (title, bullets, table, picture text, speaker notes) |
+| Excel / CSV | one chunk per **table block**, header always included |
+| A section that is too long | split at **sentence** boundaries, with a small **overlap** |
+| A table that is too long | split by **rows**, header **repeated** in every piece |
+
+**Every chunk carries its context**
+```
+heading_path : ['Leave Policy 2026', '1. Sick Leave']
+location     : {'pages': [1]}         (or {'slides': [3]}, {'sheet': 'Salary Bands'})
+content      : "1. Sick Leave\nEmployees get 12 sick leaves per year..."     <- shown to user / LLM
+embed_text   : "Leave Policy 2026 > 1. Sick Leave\n\n" + content           <- what gets embedded
+```
+
+**Sizes are counted with the model's own tokenizer.** Our local model (bge-small) reads at most
+**512 tokens** — anything longer is silently cut off. So sizes are measured exactly the way the
+model sees them (target 350, hard limit 480, overlap 40 — all in config). OpenAI's `tiktoken`
+was not used: it counts *OpenAI* tokens, not ours, and it downloads its vocabulary at runtime.
+
+**The embedding model** is downloaded once with `python scripts/download_model.py` into
+`models/` (about 70 MB, kept out of git).
+
+**Automatic chunk checks** (every document, every time)
+- no empty chunk, no chunk above the token limit, every chunk has a heading path
+- every table piece starts with its header row
+- **every element ends up in a chunk** — nothing lost, and nothing duplicated unless it was split
+
+**Result on the samples (real tokenizer)**
+```
+FILE                         CHUNKS  TYPES                 TOKENS   CHECKS
+leave_policy.pdf                  5  4 text, 1 table        26-69   OK
+scanned_code_of_conduct.pdf       2  2 text                 39-67   OK
+mixed_quarterly_report.pdf        4  3 text, 1 table        22-65   OK
+long_handbook.pdf                 4  4 text                 25-36   OK
+employee_handbook.docx            4  3 text, 1 table        17-52   OK
+onboarding_deck.pptx              4  4 slide                16-50   OK
+salary_structure.xlsx             2  2 table                43-66   OK
+hr_faq.html                       3  2 text, 1 table        28-37   OK
+```
+
+**Bugs the tests caught**
+1. When one very long "sentence" (e.g. an OCR line with no full stops) needed cutting more than
+   once, **part of the text could be dropped**, and one giant word could **loop forever**.
+   Rewritten: cut by words, and a single word always fits, so it can never loop.
+2. The checks flagged that spreadsheet **sheet-name headings were not linked to any chunk**.
+   Fixed — the sheet heading now belongs to its table chunk.
+3. The mixed report's path repeated the title (`Quarterly HR Report Q3 2026 > Quarterly HR Report - Q3 2026`)
+   because the PDF title and its first heading are the same words. Near-duplicates are now skipped.
+
+**Stress tests:** a 120-sentence section (split into several pieces, every piece under the
+limit, overlap carried over) and a 300-row table (split by rows, header repeated, every row
+exactly once and in order).
+
+**Tests (126 total):** every sample passes the chunk checks; sections keep their path and page;
+tables are their own chunk; one chunk per slide with notes; sheet chunks keep the header;
+long sections and big tables split correctly; a lost element is detected.
+
+**Memory trick:** *Cut by meaning, label every card — section, slide or table, with its path
+and page, never bigger than the model can read.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -608,4 +682,5 @@ python -m ingestion.evaluate
 # Phase 2: database (Docker Desktop must be running)
 docker compose up -d
 python -m indexing.migrate
+python scripts\download_model.py      # local embedding model, once (~70 MB)
 ```

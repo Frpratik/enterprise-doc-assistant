@@ -71,6 +71,15 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("DATABASE_URL", "INGEST_DATABASE_URL"),
     )
 
+    # ---------- Embeddings (Phase 2) ----------
+    embed_model: str = "BAAI/bge-small-en-v1.5"   # local, free; reads max 512 tokens at once
+    models_dir: Path = PROJECT_ROOT / "models"     # downloaded model files live here (not in git)
+
+    # ---------- Chunking (Phase 2) ----------
+    chunk_target_tokens: int = 350   # aim for about this size
+    chunk_max_tokens: int = 480      # hard limit (the model cuts off anything above 512)
+    chunk_overlap_tokens: int = 40   # only used when one long section must be split
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 
