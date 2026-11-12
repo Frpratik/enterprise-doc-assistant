@@ -22,6 +22,9 @@ pgvector         # lets Python send/receive vectors to Postgres
 # --- Phase 2: chunking + embeddings ---
 fastembed        # local embedding models (ONNX, no PyTorch needed); also brings the tokenizer
 
+# --- Phase 2: background jobs ---
+celery[redis]    # background worker + Redis as the job queue
+
 # --- Config, models, logs ---
 pydantic
 pydantic-settings

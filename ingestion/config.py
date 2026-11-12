@@ -94,6 +94,13 @@ class Settings(BaseSettings):
     search_top_k: int = 5
     search_ef: int = 100               # HNSW search effort: higher = more accurate, a bit slower (default 40)
 
+    # ---------- Background jobs (Phase 2) ----------
+    celery_broker_url: str = "redis://localhost:6379/0"      # the job queue (Redis from docker-compose)
+    celery_result_backend: str = "redis://localhost:6379/1"  # where job status/results are kept
+    nightly_sync_hour: int = 2                                # Celery Beat runs the folder sync at 02:15
+    nightly_sync_minute: int = 15
+    job_time_limit_sec: int = 600                             # a job running longer than this is stopped
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

@@ -16,7 +16,7 @@ tested before moving on.
 | Phase | What it does | Status |
 |---|---|---|
 | **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | ✅ Done |
-| **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | 🔨 In progress |
+| **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ⏳ |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ⏳ |
 | Phase 5 — Access | Login, roles, who-can-see-what | ⏳ |
@@ -912,6 +912,88 @@ right card comes out on top — R@1 and MRR tell the truth, recall@5 flatters sm
 
 ---
 
+### ✅ Stage 7 — Background worker with Celery + Redis (`indexing/worker.py`, `indexing/jobs.py`)
+
+**What:** parsing, OCR and embedding run **in the background**. Whoever submits a file (the command
+line now, the API later) gets a job id back at once and checks on it later.
+
+**Why:** one PDF can take seconds (OCR) and a folder can take minutes. A web request must never wait
+for that, and a crash must not lose the job.
+
+**Analogy:** a restaurant. The **waiter** (`jobs.py`) takes the order and hands you a ticket. The
+**board** (Redis) holds the orders. The **cook** (the Celery worker) cooks them one by one. The
+**alarm** (Celery Beat) starts the cleaning round every night.
+
+**What we built**
+1. **Two tasks:** `ingest_file` (process + index one file) and `sync_folder` (make the index match a folder).
+2. **Safe by design**
+   - `acks_late`: a job leaves the queue only **after** it finishes, so a worker crash puts it back.
+   - `prefetch 1`: the worker takes one slow job at a time. Time limit: 10 minutes per job.
+   - **Retries only for temporary problems** (database restarting, connection lost): up to 3 times,
+     waiting longer each time. A **broken file is never retried** - it ends as `failed` with a reason.
+   - Running the same job twice is safe (the Phase 1 gate skips exact duplicates).
+3. **Nightly sync at 02:15** (Celery Beat).
+4. **Fail fast at startup:** the worker refuses to start if the database is down or a migration is
+   pending. Real case: the worker ran against a database without migration 002, and every job failed
+   with `column "indexed_at" does not exist`.
+5. **Commands**
+```bash
+docker compose up -d
+celery -A indexing.worker worker --loglevel=info --pool=solo     # --pool=solo is needed on Windows
+celery -A indexing.worker beat --loglevel=info                   # only for the nightly sync
+python -m indexing.jobs submit data\samples\good\leave_policy.pdf
+python -m indexing.jobs status JOB_ID
+python -m indexing.jobs sync --folder "C:\path	o\docs"
+```
+
+**Real run against the live worker**
+```
+leave_policy.pdf        done, 5 chunks searchable (0 new, 5 reused)
+same file again         skipped_duplicate (safe, nothing doubled)
+corrupted_report.pdf    failed in 0.3 s: "PDF is corrupted and cannot be opened"  (not retried)
+sync of a 2-file folder new: 2
+DATABASE STOPPED, then a job submitted:
+  worker log   "Retry in 1s: OperationalError(...)"
+  database back -> "retry_demo.md: done, 1 chunks searchable"
+```
+
+**Bugs found by running it for real**
+1. **The test hang.** `self.update_state(...)` (shows "running" in the job status) writes to the Redis
+   result backend **even in eager test mode**, so tests secretly needed Redis. Now one helper skips it
+   in eager mode. Proof: the 8 worker tests pass with the Redis container **stopped**.
+2. **Config patching in tests.** `monkeypatch` could not undo changes on Celery's config object (it
+   crashed on teardown). The fixture now sets and restores the values itself.
+3. **A "duplicate" that was never indexed.** The earlier missing-migration crash left `leave_policy.pdf`
+   as `done` but **not searchable**. Re-submitting it was skipped as a duplicate - for ever. Now, if
+   a duplicate's earlier copy finished processing but has no index record, it is indexed instead of skipped.
+   This fixed the real stuck row ("5 chunks searchable").
+
+**Honest limits**
+- Eager mode cannot re-run a retry, so the unit test only checks that the task **asks** for a retry.
+  The real retry was proven by stopping Postgres (above), by hand - not automated.
+- While a job is retrying, its status can still say RUNNING (the PROGRESS note hides RETRYING).
+- One worker process at a time (`--pool=solo`). Fine for now; more workers can be added later.
+
+**Tests (168 total, 8 new):** ingest job indexes; same job twice is safe; a temporary DB error asks for a retry;
+a broken file is not retried; sync job; reliability settings (late ack, prefetch 1, time limit);
+nightly schedule at 02:15; **an unindexed duplicate gets indexed**. None needs Redis.
+
+**Memory trick:** *Waiter takes the order, board holds it, cook cooks it - retry only when the kitchen
+is briefly closed, never because the food is bad.*
+
+---
+
+## ✅ Phase 2 complete
+
+Clean documents -> structure-aware chunks -> embeddings (cached) -> Postgres + pgvector with an
+atomic swap -> folder sync (new / changed / renamed / deleted) -> measured retrieval (R@1 0.967,
+MRR 0.983) -> background jobs with retries and a nightly sync.
+
+**Next phase:** Phase 3 - Answer: hybrid search (vectors + keywords with RRF), a reranker, an LLM
+answer with citations, an "I don't know" rule, and a streamed FastAPI endpoint.
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -941,4 +1023,8 @@ python -m indexing.search "how many sick leaves do I get"
 
 # measure retrieval quality (30 questions, 4 chunking methods)
 python -m indexing.retrieval_eval
+
+# Phase 2: background jobs (Docker running)
+celery -A indexing.worker worker --loglevel=info --pool=solo
+python -m indexing.jobs submit data\samples\good\leave_policy.pdf
 ```
