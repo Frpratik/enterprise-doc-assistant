@@ -17,7 +17,7 @@ tested before moving on.
 |---|---|---|
 | **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | ✅ Done |
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
-| Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ⏳ |
+| Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | 🔨 In progress |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ⏳ |
 | Phase 5 — Access | Login, roles, who-can-see-what | ⏳ |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
@@ -994,6 +994,122 @@ answer with citations, an "I don't know" rule, and a streamed FastAPI endpoint.
 
 ---
 
+## Phase 3 — Answer (search better, then answer with citations)
+
+**Goal:** given a question, find the right chunks, decide whether we really know the answer, and
+write a short answer with citations — streamed through an API.
+
+**Analogy:** the librarian fetches ~20 candidate cards (hybrid search), an expert reads them closely
+and keeps the best 5 (reranker), says "I don't know" if none of them helps, and otherwise writes the
+answer and notes which card each fact came from.
+
+**Decisions**
+- **LLM:** Groq, behind one small interface, with a **fallback chain** (a second big model, then a small
+  one) for rate limits and errors, and a **small fast model** for simple jobs (rewriting a vague question,
+  spotting greetings / off-topic questions). The API key goes in `.env`, never in chat or git.
+- **Reranker:** a local cross-encoder model (free, offline, like the embedding model).
+
+**Stages:** 1 hybrid search · 2 reranker · 3 "I don't know" rule · 4 Groq LLM layer + answer with
+citations · 5 FastAPI + streaming · 6 wrap-up
+
+---
+
+### ✅ Stage 1 — Hybrid search (`indexing/search.py`, `indexing/search_eval.py`, migration 003)
+
+**What:** search with **two methods and merge them**.
+- **Vector search** finds the same *meaning* ("internet claim" → "Reimbursement Limits").
+- **Keyword search** finds the same *words* — exact things like `ext 4455`, `HRA`, an e-mail address.
+- **RRF (Reciprocal Rank Fusion)** merges the two ranked lists: each list gives a chunk `weight / (60 + rank)`,
+  and the scores are added. Only **ranks** are used, never raw scores, because cosine similarity (0–1) and
+  keyword scores are on different scales and can't be added fairly.
+
+**Why:** vectors are weak on exact strings and numbers; keywords are weak on paraphrases. Real employees
+ask both kinds of question.
+
+**What we built**
+1. `search(query, k, mode="hybrid" | "vector" | "keyword")`. Every hit keeps its **raw vector similarity**
+   (`vector_score`) and says who found it (`found_by`: vector / keyword / both). Stage 3's "I don't know"
+   rule needs the real similarity, because an RRF score only says how a chunk *ranked*, not whether it is relevant.
+2. **Migration 003:** the keyword column now also covers the **heading path** (weight A) as well as the text
+   (weight B), so "reimbursement" finds the chunk under that heading.
+3. **Keyword search with IDF weighting** (the idea behind BM25), written in Postgres: each term is its own
+   query, and a term's weight is **how rare it is** among the active chunks. A chunk's score is the sum of the
+   weights of the terms it contains. Terms keep inner punctuation, so `it@acme-example.com` and `25,000` stay whole.
+4. `python -m indexing.search "ext 4455" --mode keyword` (or vector / hybrid); the printout shows the RRF score,
+   the meaning score and who found it.
+5. **`python -m indexing.search_eval`** — the same 30 golden questions **plus 14 new exact-term questions**,
+   searched with the REAL code in a temporary database (your data is never touched), in all 3 modes.
+
+**The honest story (this stage did not go as expected)**
+
+*First try — equal weight, Postgres `ts_rank`:*
+```
+paraphrase (30 questions)   vector MRR 0.983   keyword 0.610   hybrid 0.869   <- hybrid WORSE than vector
+exact terms (14 questions)  vector MRR 0.929   keyword 0.716   hybrid 0.848   <- even here, keyword lost
+```
+Why? Three real problems in my keyword search:
+1. I split `it@acme-example.com` into `it | acme | example | com`. "it" is a stop word, and "acme" / "example"
+   appear in nearly every chunk.
+2. `ts_rank` has **no IDF**: it rates the common word "employees" the same as the rare number "4455".
+3. One big OR-query meant a single common word could decide the ranking.
+
+*After the fix (separate terms + IDF) — keyword alone on exact terms went 0.716 → **1.000**.* But at equal
+weight hybrid still hurt paraphrases (0.920), because keyword search is genuinely weak on them (0.750 alone).
+
+*Keyword weight in RRF (a small sweep, 5 values):*
+```
+weight      1.0     0.5     0.3     0.2     0.1
+paraphrase  0.920   0.937   0.938   0.958   0.983      (vector alone: 0.983)
+exact       1.000   0.964   0.964   0.964   0.964      (vector alone: 0.929)
+```
+**Chosen: weight 0.1** — "vector leads, keywords rescue". It never hurts normal questions and still
+fixes exact-term ones.
+
+**Final numbers — saved as `evals/search_baseline.json`**
+```
+paraphrase (30)     R@1    R@3    R@5    MRR
+  vector            0.967  1.000  1.000  0.983
+  keyword           0.667  0.867  0.867  0.750
+  hybrid            0.967  1.000  1.000  0.983     (same as vector)
+exact terms (14)
+  vector            0.857  1.000  1.000  0.929
+  keyword           1.000  1.000  1.000  1.000
+  hybrid            0.929  1.000  1.000  0.964     ("HRA" now #1; "Rs 25,000" still #2)
+```
+
+**Read these numbers honestly**
+1. **Hybrid did not beat vector on the 30 paraphrase questions** — it only matched it. On a corpus of 33
+   chunks, `bge-small` is already near-perfect, so there is little left to gain.
+2. **The exact-term set is mine**: I wrote the 14 questions knowing the documents, and I wrote them to favour
+   keyword matching. It proves hybrid *keeps* what keyword search is good at; it does not prove a general gain.
+3. **The weight 0.1 was chosen by looking at these two sets.** The difference between 0.1 and 0.2 is one
+   question. Treat it as a sensible default, not a tuned optimum — re-check it on a bigger, real corpus
+   (long documents, IDs, product codes, many look-alike sections), which is where hybrid should matter more.
+4. Keyword-only is **not** a good standalone search (0.750). It is a helper.
+
+**Lessons**
+- A "standard best practice" (hybrid search) can make results **worse** if one half is weak. Measure first.
+- The bug was in the keyword half, and only the exact-term questions made it visible.
+
+**Tests (182 total, 14 new):** terms keep e-mails and amounts whole; RRF — a chunk in both lists beats one list,
+the keyword weight lowers its list, empty lists are fine; keyword search finds exact terms, stems words, reads
+headings, and a **rare term beats a common term**; a hit says who found it and always has a vector score;
+hybrid rescues an exact term the (fake) vectors cannot see; a question of only stop words doesn't crash;
+deleted documents are not found; unknown mode rejected; the exact-term answers really exist in their
+documents; and a **hybrid gate** with the real model (paraphrase MRR ≥ 0.95, exact-term MRR ≥ 0.90, and hybrid
+must not be worse than vector on either set).
+
+```bash
+python -m indexing.search "ext 4455" --mode hybrid
+python -m indexing.search_eval                  # compare vector / keyword / hybrid with the baseline
+python -m indexing.search_eval --save-baseline
+```
+
+**Memory trick:** *Two librarians — one knows meanings, one knows exact words. Let the meaning librarian
+lead, and call on the word librarian only when a rare word really matters (and weigh words by how rare they are).*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1019,10 +1135,13 @@ python scripts\download_model.py      # local embedding model, once (~70 MB)
 
 # Phase 2: keep the index matching a folder, then ask questions
 python -m indexing.manage sync --folder "C:\path\to\your\documents"
-python -m indexing.search "how many sick leaves do I get"
+python -m indexing.search "how many sick leaves do I get"        # hybrid by default; --mode vector|keyword
 
 # measure retrieval quality (30 questions, 4 chunking methods)
 python -m indexing.retrieval_eval
+
+# Phase 3: compare vector / keyword / hybrid search on the real database
+python -m indexing.search_eval
 
 # Phase 2: background jobs (Docker running)
 celery -A indexing.worker worker --loglevel=info --pool=solo

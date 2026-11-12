@@ -1,0 +1,723 @@
+{
+  "chunks": 33,
+  "embed_model": "BAAI/bge-small-en-v1.5",
+  "rrf_keyword_weight": 0.1,
+  "questions": {
+    "paraphrase": 30,
+    "exact_terms": 14
+  },
+  "sets": {
+    "paraphrase": {
+      "vector": {
+        "recall@1": 0.967,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 0.983,
+        "questions": [
+          {
+            "q": "How many sick days am I entitled to each year?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 1. Sick Leave"
+          },
+          {
+            "q": "When do I need a doctor's note for being ill?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 1. Sick Leave"
+          },
+          {
+            "q": "How far in advance must I request casual leave?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 2. Casual Leave"
+          },
+          {
+            "q": "Can unused earned leave be carried over to next year?",
+            "rank": 1,
+            "top": "leave_policy.pdf > Leave Summary"
+          },
+          {
+            "q": "How long is maternity leave?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+          },
+          {
+            "q": "How many days notice must I give before resigning?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 4. Notice Period"
+          },
+          {
+            "q": "What time does the office open and close?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Working Hours"
+          },
+          {
+            "q": "Where do I report harassment at work?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+          },
+          {
+            "q": "Can I wear jeans on Friday?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > DRESS CODE"
+          },
+          {
+            "q": "How many people work at the company?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "Which department loses the most employees?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "What is the employee satisfaction rating?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "How long is the probation period for new joiners?",
+            "rank": 1,
+            "top": "long_handbook.pdf > Probation"
+          },
+          {
+            "q": "When are performance reviews done?",
+            "rank": 2,
+            "top": "long_handbook.pdf > Probation"
+          },
+          {
+            "q": "What must I hand back on my last day?",
+            "rank": 1,
+            "top": "long_handbook.pdf > Exit Process"
+          },
+          {
+            "q": "Does the company cover medical insurance for my family?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Benefits"
+          },
+          {
+            "q": "How much money do I get for courses and learning each year?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Benefits"
+          },
+          {
+            "q": "How much of my phone bill can I claim every month?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Reimbursement Limits"
+          },
+          {
+            "q": "What number do I call for IT help?",
+            "rank": 1,
+            "top": "employee_handbook.docx > IT Support"
+          },
+          {
+            "q": "What should I do in my first week after joining?",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > First Week Checklist"
+          },
+          {
+            "q": "What is the email address of the IT team?",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "What is the salary range for grade L2?",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Salary Bands"
+          },
+          {
+            "q": "What percentage of my CTC is basic pay?",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Components"
+          },
+          {
+            "q": "Is Diwali a company holiday this year?",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "When is the fire drill happening?",
+            "rank": 1,
+            "top": "notice_board_photo.png > notice_board_photo"
+          },
+          {
+            "q": "How often do I have to update my password?",
+            "rank": 1,
+            "top": "it_policy.txt > it_policy"
+          },
+          {
+            "q": "How many days a week can I work remotely?",
+            "rank": 1,
+            "top": "remote_work.md > Eligibility"
+          },
+          {
+            "q": "Will the company give me a monitor for home?",
+            "rank": 1,
+            "top": "remote_work.md > Equipment"
+          },
+          {
+            "q": "How do I apply for leave?",
+            "rank": 1,
+            "top": "hr_faq.html > How do I apply for leave?"
+          },
+          {
+            "q": "On which day is my salary paid?",
+            "rank": 1,
+            "top": "hr_faq.html > When is salary credited?"
+          }
+        ]
+      },
+      "keyword": {
+        "recall@1": 0.667,
+        "recall@3": 0.867,
+        "recall@5": 0.867,
+        "mrr": 0.75,
+        "questions": [
+          {
+            "q": "How many sick days am I entitled to each year?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 1. Sick Leave"
+          },
+          {
+            "q": "When do I need a doctor's note for being ill?",
+            "rank": null,
+            "top": "onboarding_deck.pptx > New Joiner Onboarding"
+          },
+          {
+            "q": "How far in advance must I request casual leave?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 2. Casual Leave"
+          },
+          {
+            "q": "Can unused earned leave be carried over to next year?",
+            "rank": 1,
+            "top": "leave_policy.pdf > Leave Summary"
+          },
+          {
+            "q": "How long is maternity leave?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+          },
+          {
+            "q": "How many days notice must I give before resigning?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 4. Notice Period"
+          },
+          {
+            "q": "What time does the office open and close?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+          },
+          {
+            "q": "Where do I report harassment at work?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+          },
+          {
+            "q": "Can I wear jeans on Friday?",
+            "rank": 3,
+            "top": "employee_handbook.docx > Working Hours"
+          },
+          {
+            "q": "How many people work at the company?",
+            "rank": null,
+            "top": "it_policy.txt > it_policy"
+          },
+          {
+            "q": "Which department loses the most employees?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "What is the employee satisfaction rating?",
+            "rank": 2,
+            "top": "long_handbook.pdf > Appraisals"
+          },
+          {
+            "q": "How long is the probation period for new joiners?",
+            "rank": 1,
+            "top": "long_handbook.pdf > Probation"
+          },
+          {
+            "q": "When are performance reviews done?",
+            "rank": null,
+            "top": "long_handbook.pdf > Probation"
+          },
+          {
+            "q": "What must I hand back on my last day?",
+            "rank": 1,
+            "top": "long_handbook.pdf > Exit Process"
+          },
+          {
+            "q": "Does the company cover medical insurance for my family?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Benefits"
+          },
+          {
+            "q": "How much money do I get for courses and learning each year?",
+            "rank": 3,
+            "top": "leave_policy.pdf > 1. Sick Leave"
+          },
+          {
+            "q": "How much of my phone bill can I claim every month?",
+            "rank": 3,
+            "top": "it_policy.txt > it_policy"
+          },
+          {
+            "q": "What number do I call for IT help?",
+            "rank": null,
+            "top": "(nothing found)"
+          },
+          {
+            "q": "What should I do in my first week after joining?",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > First Week Checklist"
+          },
+          {
+            "q": "What is the email address of the IT team?",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "What is the salary range for grade L2?",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Salary Bands"
+          },
+          {
+            "q": "What percentage of my CTC is basic pay?",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Components"
+          },
+          {
+            "q": "Is Diwali a company holiday this year?",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "When is the fire drill happening?",
+            "rank": 2,
+            "top": "long_handbook.pdf > Appraisals"
+          },
+          {
+            "q": "How often do I have to update my password?",
+            "rank": 1,
+            "top": "it_policy.txt > it_policy"
+          },
+          {
+            "q": "How many days a week can I work remotely?",
+            "rank": 1,
+            "top": "remote_work.md > Eligibility"
+          },
+          {
+            "q": "Will the company give me a monitor for home?",
+            "rank": 2,
+            "top": "remote_work.md > Eligibility"
+          },
+          {
+            "q": "How do I apply for leave?",
+            "rank": 1,
+            "top": "hr_faq.html > How do I apply for leave?"
+          },
+          {
+            "q": "On which day is my salary paid?",
+            "rank": 1,
+            "top": "hr_faq.html > When is salary credited?"
+          }
+        ]
+      },
+      "hybrid": {
+        "recall@1": 0.967,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 0.983,
+        "questions": [
+          {
+            "q": "How many sick days am I entitled to each year?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 1. Sick Leave"
+          },
+          {
+            "q": "When do I need a doctor's note for being ill?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 1. Sick Leave"
+          },
+          {
+            "q": "How far in advance must I request casual leave?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 2. Casual Leave"
+          },
+          {
+            "q": "Can unused earned leave be carried over to next year?",
+            "rank": 1,
+            "top": "leave_policy.pdf > Leave Summary"
+          },
+          {
+            "q": "How long is maternity leave?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+          },
+          {
+            "q": "How many days notice must I give before resigning?",
+            "rank": 1,
+            "top": "leave_policy.pdf > 4. Notice Period"
+          },
+          {
+            "q": "What time does the office open and close?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+          },
+          {
+            "q": "Where do I report harassment at work?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+          },
+          {
+            "q": "Can I wear jeans on Friday?",
+            "rank": 1,
+            "top": "scanned_code_of_conduct.pdf > DRESS CODE"
+          },
+          {
+            "q": "How many people work at the company?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "Which department loses the most employees?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "What is the employee satisfaction rating?",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "How long is the probation period for new joiners?",
+            "rank": 1,
+            "top": "long_handbook.pdf > Probation"
+          },
+          {
+            "q": "When are performance reviews done?",
+            "rank": 2,
+            "top": "long_handbook.pdf > Probation"
+          },
+          {
+            "q": "What must I hand back on my last day?",
+            "rank": 1,
+            "top": "long_handbook.pdf > Exit Process"
+          },
+          {
+            "q": "Does the company cover medical insurance for my family?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Benefits"
+          },
+          {
+            "q": "How much money do I get for courses and learning each year?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Benefits"
+          },
+          {
+            "q": "How much of my phone bill can I claim every month?",
+            "rank": 1,
+            "top": "employee_handbook.docx > Reimbursement Limits"
+          },
+          {
+            "q": "What number do I call for IT help?",
+            "rank": 1,
+            "top": "employee_handbook.docx > IT Support"
+          },
+          {
+            "q": "What should I do in my first week after joining?",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > First Week Checklist"
+          },
+          {
+            "q": "What is the email address of the IT team?",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "What is the salary range for grade L2?",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Salary Bands"
+          },
+          {
+            "q": "What percentage of my CTC is basic pay?",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Components"
+          },
+          {
+            "q": "Is Diwali a company holiday this year?",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "When is the fire drill happening?",
+            "rank": 1,
+            "top": "notice_board_photo.png > notice_board_photo"
+          },
+          {
+            "q": "How often do I have to update my password?",
+            "rank": 1,
+            "top": "it_policy.txt > it_policy"
+          },
+          {
+            "q": "How many days a week can I work remotely?",
+            "rank": 1,
+            "top": "remote_work.md > Eligibility"
+          },
+          {
+            "q": "Will the company give me a monitor for home?",
+            "rank": 1,
+            "top": "remote_work.md > Equipment"
+          },
+          {
+            "q": "How do I apply for leave?",
+            "rank": 1,
+            "top": "hr_faq.html > How do I apply for leave?"
+          },
+          {
+            "q": "On which day is my salary paid?",
+            "rank": 1,
+            "top": "hr_faq.html > When is salary credited?"
+          }
+        ]
+      }
+    },
+    "exact_terms": {
+      "vector": {
+        "recall@1": 0.857,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 0.929,
+        "questions": [
+          {
+            "q": "ext 4455",
+            "rank": 1,
+            "top": "employee_handbook.docx > IT Support"
+          },
+          {
+            "q": "it@acme-example.com",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "payroll@acme-example.com",
+            "rank": 1,
+            "top": "hr_faq.html > When is salary credited?"
+          },
+          {
+            "q": "hr@acme-example.com",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "HRA",
+            "rank": 2,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "Dussehra",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "L2 grade CTC",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Salary Bands"
+          },
+          {
+            "q": "Republic Day date",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "Rs 25,000",
+            "rank": 2,
+            "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+          },
+          {
+            "q": "412 employees",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "26 weeks",
+            "rank": 1,
+            "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+          },
+          {
+            "q": "Annexure A",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+          },
+          {
+            "q": "15 November",
+            "rank": 1,
+            "top": "notice_board_photo.png > notice_board_photo"
+          },
+          {
+            "q": "Attrition %",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          }
+        ]
+      },
+      "keyword": {
+        "recall@1": 1.0,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0,
+        "questions": [
+          {
+            "q": "ext 4455",
+            "rank": 1,
+            "top": "employee_handbook.docx > IT Support"
+          },
+          {
+            "q": "it@acme-example.com",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "payroll@acme-example.com",
+            "rank": 1,
+            "top": "hr_faq.html > When is salary credited?"
+          },
+          {
+            "q": "hr@acme-example.com",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "HRA",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Components"
+          },
+          {
+            "q": "Dussehra",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "L2 grade CTC",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Salary Bands"
+          },
+          {
+            "q": "Republic Day date",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "Rs 25,000",
+            "rank": 1,
+            "top": "employee_handbook.docx > Benefits"
+          },
+          {
+            "q": "412 employees",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "26 weeks",
+            "rank": 1,
+            "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+          },
+          {
+            "q": "Annexure A",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+          },
+          {
+            "q": "15 November",
+            "rank": 1,
+            "top": "notice_board_photo.png > notice_board_photo"
+          },
+          {
+            "q": "Attrition %",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          }
+        ]
+      },
+      "hybrid": {
+        "recall@1": 0.929,
+        "recall@3": 1.0,
+        "recall@5": 1.0,
+        "mrr": 0.964,
+        "questions": [
+          {
+            "q": "ext 4455",
+            "rank": 1,
+            "top": "employee_handbook.docx > IT Support"
+          },
+          {
+            "q": "it@acme-example.com",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "payroll@acme-example.com",
+            "rank": 1,
+            "top": "hr_faq.html > When is salary credited?"
+          },
+          {
+            "q": "hr@acme-example.com",
+            "rank": 1,
+            "top": "onboarding_deck.pptx > Key Contacts"
+          },
+          {
+            "q": "HRA",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Components"
+          },
+          {
+            "q": "Dussehra",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "L2 grade CTC",
+            "rank": 1,
+            "top": "salary_structure.xlsx > Sheet: Salary Bands"
+          },
+          {
+            "q": "Republic Day date",
+            "rank": 1,
+            "top": "holidays_2026.csv > Sheet: holidays_2026"
+          },
+          {
+            "q": "Rs 25,000",
+            "rank": 2,
+            "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+          },
+          {
+            "q": "412 employees",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          },
+          {
+            "q": "26 weeks",
+            "rank": 1,
+            "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+          },
+          {
+            "q": "Annexure A",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+          },
+          {
+            "q": "15 November",
+            "rank": 1,
+            "top": "notice_board_photo.png > notice_board_photo"
+          },
+          {
+            "q": "Attrition %",
+            "rank": 1,
+            "top": "mixed_quarterly_report.pdf > Headcount"
+          }
+        ]
+      }
+    }
+  }
+}

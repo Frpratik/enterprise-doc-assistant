@@ -1,0 +1,23 @@
+{
+  "about": "Exact-term questions: short, keyword-style queries (extension numbers, e-mail addresses, acronyms, amounts, dates). Written BY HAND by the project author who knows the documents, so they favour keyword matching on purpose. Used to check that hybrid search keeps what keyword search is good at. Same format as retrieval_golden.json.",
+  "version": 1,
+  "documents": ["leave_policy.pdf", "scanned_code_of_conduct.pdf", "mixed_quarterly_report.pdf", "long_handbook.pdf",
+                "employee_handbook.docx", "onboarding_deck.pptx", "salary_structure.xlsx", "holidays_2026.csv",
+                "notice_board_photo.png", "it_policy.txt", "remote_work.md", "hr_faq.html"],
+  "questions": [
+    {"q": "ext 4455", "answers": [["employee_handbook.docx", "ext 4455"]]},
+    {"q": "it@acme-example.com", "answers": [["onboarding_deck.pptx", "it@acme-example.com"]]},
+    {"q": "payroll@acme-example.com", "answers": [["hr_faq.html", "payroll@acme-example.com"]]},
+    {"q": "hr@acme-example.com", "answers": [["scanned_code_of_conduct.pdf", "hr@acme-example.com"], ["onboarding_deck.pptx", "hr@acme-example.com"]]},
+    {"q": "HRA", "answers": [["salary_structure.xlsx", "HRA"]]},
+    {"q": "Dussehra", "answers": [["holidays_2026.csv", "Dussehra"]]},
+    {"q": "L2 grade CTC", "answers": [["salary_structure.xlsx", "L2"]]},
+    {"q": "Republic Day date", "answers": [["holidays_2026.csv", "Republic Day"]]},
+    {"q": "Rs 25,000", "answers": [["employee_handbook.docx", "Rs 25,000"]]},
+    {"q": "412 employees", "answers": [["mixed_quarterly_report.pdf", "412 employees"]]},
+    {"q": "26 weeks", "answers": [["leave_policy.pdf", "26 weeks"]]},
+    {"q": "Annexure A", "answers": [["mixed_quarterly_report.pdf", "ANNEXURE A"]]},
+    {"q": "15 November", "answers": [["notice_board_photo.png", "15 November 2026"]]},
+    {"q": "Attrition %", "answers": [["mixed_quarterly_report.pdf", "Attrition"]]}
+  ]
+}

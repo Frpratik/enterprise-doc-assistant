@@ -93,6 +93,10 @@ class Settings(BaseSettings):
     keep_deleted_days: int = 30        # cleanup: hard-delete soft-deleted docs / old versions after this many days
     search_top_k: int = 5
     search_ef: int = 100               # HNSW search effort: higher = more accurate, a bit slower (default 40)
+    search_mode: str = "hybrid"        # "hybrid" (vectors + keywords), "vector" or "keyword"
+    search_candidates: int = 20        # how many results each of the two searches contributes
+    rrf_keyword_weight: float = 0.1    # how much the keyword list counts vs the vector list (1.0 = equal). 0.1 = vector leads, keywords rescue exact terms
+    rrf_k: int = 60                    # RRF constant: how quickly lower ranks lose weight (60 is the usual value)
 
     # ---------- Background jobs (Phase 2) ----------
     celery_broker_url: str = "redis://localhost:6379/0"      # the job queue (Redis from docker-compose)

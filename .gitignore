@@ -36,3 +36,4 @@ models/
 # Eval caches (parsed docs + embeddings, rebuilt automatically)
 evals/.cache/
 evals/retrieval_latest.json
+evals/search_latest.json
