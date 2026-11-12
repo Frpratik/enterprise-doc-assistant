@@ -1,0 +1,764 @@
+{
+  "golden_version": 1,
+  "embed_model": "BAAI/bge-small-en-v1.5",
+  "chunk_target_tokens": 350,
+  "questions": 30,
+  "methods": {
+    "structure": {
+      "chunks": 33,
+      "recall@1": 0.967,
+      "recall@3": 1.0,
+      "recall@5": 1.0,
+      "mrr": 0.983,
+      "questions": [
+        {
+          "q": "How many sick days am I entitled to each year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "1. Sick Leave\nEmployees get 12 sick leaves per year. A medical certificate is required for"
+        },
+        {
+          "q": "When do I need a doctor's note for being ill?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "1. Sick Leave\nEmployees get 12 sick leaves per year. A medical certificate is required for"
+        },
+        {
+          "q": "How far in advance must I request casual leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "2. Casual Leave\nEmployees get 8 casual leaves per year. Casual leave must be applied at le"
+        },
+        {
+          "q": "Can unused earned leave be carried over to next year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Summary\n| Leave Type | Days per Year | Carry Forward |\n|---|---|---|\n| Sick Leave | "
+        },
+        {
+          "q": "How long is maternity leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "3. Maternity and Paternity Leave\nMaternity leave is 26 weeks. Paternity leave is 10 workin"
+        },
+        {
+          "q": "How many days notice must I give before resigning?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "4. Notice Period\nThe notice period for all permanent employees is 60 days."
+        },
+        {
+          "q": "What time does the office open and close?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Working Hours\nStandard working hours are 9:30 AM to 6:30 PM, Monday to Friday."
+        },
+        {
+          "q": "Where do I report harassment at work?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "CODE OF CONDUCT\n1. Treat every colleague with respect.\n2. Office hours are 9:30 AM to 6:30"
+        },
+        {
+          "q": "Can I wear jeans on Friday?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "DRESS CODE\nBusiness casual from Monday to Thursday.\nFriday is casual dress day.\nApproved b"
+        },
+        {
+          "q": "How many people work at the company?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Headcount\nTotal headcount at the end of Q3 was 412 employees, up from 389 in Q2."
+        },
+        {
+          "q": "Which department loses the most employees?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "| Department | Headcount | Attrition % |\n|---|---|---|\n| Engineering | 210 | 6.5 |\n| Sales"
+        },
+        {
+          "q": "What is the employee satisfaction rating?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Employee Satisfaction Score: 4.2 / 5"
+        },
+        {
+          "q": "How long is the probation period for new joiners?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\nNew employees are on probation for 6 months. Confirmation depends on a performan"
+        },
+        {
+          "q": "When are performance reviews done?",
+          "rank": 2,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\nNew employees are on probation for 6 months. Confirmation depends on a performan"
+        },
+        {
+          "q": "What must I hand back on my last day?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Exit Process\nEmployees must return the laptop and ID card on the last working day."
+        },
+        {
+          "q": "Does the company cover medical insurance for my family?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Benefits\nHealth insurance for employee and family\nAnnual learning budget of Rs 25,000\nFree"
+        },
+        {
+          "q": "How much money do I get for courses and learning each year?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Benefits\nHealth insurance for employee and family\nAnnual learning budget of Rs 25,000\nFree"
+        },
+        {
+          "q": "How much of my phone bill can I claim every month?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Reimbursement Limits\n| Expense | Monthly Limit (Rs) |\n|---|---|\n| Internet | 1,000 |\n| Mob"
+        },
+        {
+          "q": "What number do I call for IT help?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "IT Support\nHelpdesk: ext 4455"
+        },
+        {
+          "q": "What should I do in my first week after joining?",
+          "rank": 1,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "First Week Checklist\nCollect laptop from IT\nComplete payroll form\nMeet your buddy\nFinish s"
+        },
+        {
+          "q": "What is the email address of the IT team?",
+          "rank": 1,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "Key Contacts\n| Team | Email |\n|---|---|\n| HR | hr@acme-example.com |\n| IT | it@acme-exampl"
+        },
+        {
+          "q": "What is the salary range for grade L2?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "| Grade | Min CTC (LPA) | Max CTC (LPA) |\n|---|---|---|\n| L1 | 4 | 7 |\n| L2 | 8 | 14 |\n| L"
+        },
+        {
+          "q": "What percentage of my CTC is basic pay?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "| Component | Percent of CTC |\n|---|---|\n| Basic | 40 |\n| HRA | 20 |\n| Special Allowance |"
+        },
+        {
+          "q": "Is Diwali a company holiday this year?",
+          "rank": 1,
+          "top_file": "holidays_2026.csv",
+          "top_text": "| Date | Holiday |\n|---|---|\n| 2026-01-26 | Republic Day |\n| 2026-08-15 | Independence Day"
+        },
+        {
+          "q": "When is the fire drill happening?",
+          "rank": 1,
+          "top_file": "notice_board_photo.png",
+          "top_text": "NOTICE\nFire drillon 15 November 2026 at 11:00 AM.\nPlease assemble at the main parking area"
+        },
+        {
+          "q": "How often do I have to update my password?",
+          "rank": 1,
+          "top_file": "it_policy.txt",
+          "top_text": "IT POLICY\nPasswords must be changed every 90 days.\nDo not install unapproved software on c"
+        },
+        {
+          "q": "How many days a week can I work remotely?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Eligibility\nEmployees can work from home 2 days a week."
+        },
+        {
+          "q": "Will the company give me a monitor for home?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Equipment\n| Item | Provided |\n|---|---|\n| Laptop | Yes |\n| Monitor | On request |"
+        },
+        {
+          "q": "How do I apply for leave?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "How do I apply for leave?\nUse the HR portal under Leave > Apply."
+        },
+        {
+          "q": "On which day is my salary paid?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "When is salary credited?\nSalary is credited on the last working day of the month."
+        }
+      ]
+    },
+    "structure_raw": {
+      "chunks": 33,
+      "recall@1": 0.967,
+      "recall@3": 1.0,
+      "recall@5": 1.0,
+      "mrr": 0.983,
+      "questions": [
+        {
+          "q": "How many sick days am I entitled to each year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "1. Sick Leave\nEmployees get 12 sick leaves per year. A medical certificate is required for"
+        },
+        {
+          "q": "When do I need a doctor's note for being ill?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "1. Sick Leave\nEmployees get 12 sick leaves per year. A medical certificate is required for"
+        },
+        {
+          "q": "How far in advance must I request casual leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "2. Casual Leave\nEmployees get 8 casual leaves per year. Casual leave must be applied at le"
+        },
+        {
+          "q": "Can unused earned leave be carried over to next year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Summary\n| Leave Type | Days per Year | Carry Forward |\n|---|---|---|\n| Sick Leave | "
+        },
+        {
+          "q": "How long is maternity leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "3. Maternity and Paternity Leave\nMaternity leave is 26 weeks. Paternity leave is 10 workin"
+        },
+        {
+          "q": "How many days notice must I give before resigning?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "4. Notice Period\nThe notice period for all permanent employees is 60 days."
+        },
+        {
+          "q": "What time does the office open and close?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Working Hours\nStandard working hours are 9:30 AM to 6:30 PM, Monday to Friday."
+        },
+        {
+          "q": "Where do I report harassment at work?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "CODE OF CONDUCT\n1. Treat every colleague with respect.\n2. Office hours are 9:30 AM to 6:30"
+        },
+        {
+          "q": "Can I wear jeans on Friday?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "DRESS CODE\nBusiness casual from Monday to Thursday.\nFriday is casual dress day.\nApproved b"
+        },
+        {
+          "q": "How many people work at the company?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Headcount\nTotal headcount at the end of Q3 was 412 employees, up from 389 in Q2."
+        },
+        {
+          "q": "Which department loses the most employees?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "| Department | Headcount | Attrition % |\n|---|---|---|\n| Engineering | 210 | 6.5 |\n| Sales"
+        },
+        {
+          "q": "What is the employee satisfaction rating?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Employee Satisfaction Score: 4.2 / 5"
+        },
+        {
+          "q": "How long is the probation period for new joiners?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\nNew employees are on probation for 6 months. Confirmation depends on a performan"
+        },
+        {
+          "q": "When are performance reviews done?",
+          "rank": 2,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\nNew employees are on probation for 6 months. Confirmation depends on a performan"
+        },
+        {
+          "q": "What must I hand back on my last day?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Exit Process\nEmployees must return the laptop and ID card on the last working day."
+        },
+        {
+          "q": "Does the company cover medical insurance for my family?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Benefits\nHealth insurance for employee and family\nAnnual learning budget of Rs 25,000\nFree"
+        },
+        {
+          "q": "How much money do I get for courses and learning each year?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Benefits\nHealth insurance for employee and family\nAnnual learning budget of Rs 25,000\nFree"
+        },
+        {
+          "q": "How much of my phone bill can I claim every month?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Reimbursement Limits\n| Expense | Monthly Limit (Rs) |\n|---|---|\n| Internet | 1,000 |\n| Mob"
+        },
+        {
+          "q": "What number do I call for IT help?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "IT Support\nHelpdesk: ext 4455"
+        },
+        {
+          "q": "What should I do in my first week after joining?",
+          "rank": 1,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "First Week Checklist\nCollect laptop from IT\nComplete payroll form\nMeet your buddy\nFinish s"
+        },
+        {
+          "q": "What is the email address of the IT team?",
+          "rank": 1,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "Key Contacts\n| Team | Email |\n|---|---|\n| HR | hr@acme-example.com |\n| IT | it@acme-exampl"
+        },
+        {
+          "q": "What is the salary range for grade L2?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "| Grade | Min CTC (LPA) | Max CTC (LPA) |\n|---|---|---|\n| L1 | 4 | 7 |\n| L2 | 8 | 14 |\n| L"
+        },
+        {
+          "q": "What percentage of my CTC is basic pay?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "| Component | Percent of CTC |\n|---|---|\n| Basic | 40 |\n| HRA | 20 |\n| Special Allowance |"
+        },
+        {
+          "q": "Is Diwali a company holiday this year?",
+          "rank": 1,
+          "top_file": "holidays_2026.csv",
+          "top_text": "| Date | Holiday |\n|---|---|\n| 2026-01-26 | Republic Day |\n| 2026-08-15 | Independence Day"
+        },
+        {
+          "q": "When is the fire drill happening?",
+          "rank": 1,
+          "top_file": "notice_board_photo.png",
+          "top_text": "NOTICE\nFire drillon 15 November 2026 at 11:00 AM.\nPlease assemble at the main parking area"
+        },
+        {
+          "q": "How often do I have to update my password?",
+          "rank": 1,
+          "top_file": "it_policy.txt",
+          "top_text": "IT POLICY\nPasswords must be changed every 90 days.\nDo not install unapproved software on c"
+        },
+        {
+          "q": "How many days a week can I work remotely?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Eligibility\nEmployees can work from home 2 days a week."
+        },
+        {
+          "q": "Will the company give me a monitor for home?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Equipment\n| Item | Provided |\n|---|---|\n| Laptop | Yes |\n| Monitor | On request |"
+        },
+        {
+          "q": "How do I apply for leave?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "How do I apply for leave?\nUse the HR portal under Leave > Apply."
+        },
+        {
+          "q": "On which day is my salary paid?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "When is salary credited?\nSalary is credited on the last working day of the month."
+        }
+      ]
+    },
+    "recursive": {
+      "chunks": 13,
+      "recall@1": 0.833,
+      "recall@3": 0.933,
+      "recall@5": 0.967,
+      "mrr": 0.897,
+      "questions": [
+        {
+          "q": "How many sick days am I entitled to each year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "When do I need a doctor's note for being ill?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How far in advance must I request casual leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "Can unused earned leave be carried over to next year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How long is maternity leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Casual Leave | 8 | No |\n| Earned Leave | 18 | Yes, up to 30 days |\n\n3. Maternity and Pater"
+        },
+        {
+          "q": "How many days notice must I give before resigning?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Casual Leave | 8 | No |\n| Earned Leave | 18 | Yes, up to 30 days |\n\n3. Maternity and Pater"
+        },
+        {
+          "q": "What time does the office open and close?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Employee Handbook\n\nWorking Hours\n\nStandard working hours are 9:30 AM to 6:30 PM, Monday to"
+        },
+        {
+          "q": "Where do I report harassment at work?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "CODE OF CONDUCT\n\n1. Treat every colleague with respect.\n\n2. Office hours are 9:30 AM to 6:"
+        },
+        {
+          "q": "Can I wear jeans on Friday?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "CODE OF CONDUCT\n\n1. Treat every colleague with respect.\n\n2. Office hours are 9:30 AM to 6:"
+        },
+        {
+          "q": "How many people work at the company?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Quarterly HR Report - Q3 2026\n\nHeadcount\n\nTotal headcount at the end of Q3 was 412 employe"
+        },
+        {
+          "q": "Which department loses the most employees?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Quarterly HR Report - Q3 2026\n\nHeadcount\n\nTotal headcount at the end of Q3 was 412 employe"
+        },
+        {
+          "q": "What is the employee satisfaction rating?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Quarterly HR Report - Q3 2026\n\nHeadcount\n\nTotal headcount at the end of Q3 was 412 employe"
+        },
+        {
+          "q": "How long is the probation period for new joiners?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\n\nNew employees are on probation for 6 months. Confirmation depends on a performa"
+        },
+        {
+          "q": "When are performance reviews done?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\n\nNew employees are on probation for 6 months. Confirmation depends on a performa"
+        },
+        {
+          "q": "What must I hand back on my last day?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\n\nNew employees are on probation for 6 months. Confirmation depends on a performa"
+        },
+        {
+          "q": "Does the company cover medical insurance for my family?",
+          "rank": 2,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How much money do I get for courses and learning each year?",
+          "rank": 2,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How much of my phone bill can I claim every month?",
+          "rank": 6,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "What number do I call for IT help?",
+          "rank": 4,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "New Joiner Onboarding\n\nHR Team - 2026\n\nSpeaker note: greet everyone and share the agenda.\n"
+        },
+        {
+          "q": "What should I do in my first week after joining?",
+          "rank": 2,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "What is the email address of the IT team?",
+          "rank": 1,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "New Joiner Onboarding\n\nHR Team - 2026\n\nSpeaker note: greet everyone and share the agenda.\n"
+        },
+        {
+          "q": "What is the salary range for grade L2?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "Salary Bands\n\n| Grade | Min CTC (LPA) | Max CTC (LPA) |\n|---|---|---|\n| L1 | 4 | 7 |\n| L2 "
+        },
+        {
+          "q": "What percentage of my CTC is basic pay?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "Salary Bands\n\n| Grade | Min CTC (LPA) | Max CTC (LPA) |\n|---|---|---|\n| L1 | 4 | 7 |\n| L2 "
+        },
+        {
+          "q": "Is Diwali a company holiday this year?",
+          "rank": 1,
+          "top_file": "holidays_2026.csv",
+          "top_text": "holidays_2026\n\n| Date | Holiday |\n|---|---|\n| 2026-01-26 | Republic Day |\n| 2026-08-15 | I"
+        },
+        {
+          "q": "When is the fire drill happening?",
+          "rank": 1,
+          "top_file": "notice_board_photo.png",
+          "top_text": "NOTICE\nFire drillon 15 November 2026 at 11:00 AM.\n\nPlease assemble at the main parking are"
+        },
+        {
+          "q": "How often do I have to update my password?",
+          "rank": 1,
+          "top_file": "it_policy.txt",
+          "top_text": "IT POLICY\n\nPasswords must be changed every 90 days.\nDo not install unapproved software on "
+        },
+        {
+          "q": "How many days a week can I work remotely?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "Will the company give me a monitor for home?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "How do I apply for leave?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "HR FAQ\n\nHow do I apply for leave?\n\nUse the HR portal under Leave > Apply.\n\nWhen is salary "
+        },
+        {
+          "q": "On which day is my salary paid?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "HR FAQ\n\nHow do I apply for leave?\n\nUse the HR portal under Leave > Apply.\n\nWhen is salary "
+        }
+      ]
+    },
+    "fixed": {
+      "chunks": 13,
+      "recall@1": 0.833,
+      "recall@3": 0.933,
+      "recall@5": 1.0,
+      "mrr": 0.898,
+      "questions": [
+        {
+          "q": "How many sick days am I entitled to each year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "When do I need a doctor's note for being ill?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How far in advance must I request casual leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "Can unused earned leave be carried over to next year?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How long is maternity leave?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "rnity leave is 26 weeks. Paternity leave is 10 working days, to be taken within 3 months o"
+        },
+        {
+          "q": "How many days notice must I give before resigning?",
+          "rank": 1,
+          "top_file": "leave_policy.pdf",
+          "top_text": "rnity leave is 26 weeks. Paternity leave is 10 working days, to be taken within 3 months o"
+        },
+        {
+          "q": "What time does the office open and close?",
+          "rank": 1,
+          "top_file": "employee_handbook.docx",
+          "top_text": "Employee Handbook\n\nWorking Hours\n\nStandard working hours are 9:30 AM to 6:30 PM, Monday to"
+        },
+        {
+          "q": "Where do I report harassment at work?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "CODE OF CONDUCT\n\n1. Treat every colleague with respect.\n\n2. Office hours are 9:30 AM to 6:"
+        },
+        {
+          "q": "Can I wear jeans on Friday?",
+          "rank": 1,
+          "top_file": "scanned_code_of_conduct.pdf",
+          "top_text": "CODE OF CONDUCT\n\n1. Treat every colleague with respect.\n\n2. Office hours are 9:30 AM to 6:"
+        },
+        {
+          "q": "How many people work at the company?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Quarterly HR Report - Q3 2026\n\nHeadcount\n\nTotal headcount at the end of Q3 was 412 employe"
+        },
+        {
+          "q": "Which department loses the most employees?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Quarterly HR Report - Q3 2026\n\nHeadcount\n\nTotal headcount at the end of Q3 was 412 employe"
+        },
+        {
+          "q": "What is the employee satisfaction rating?",
+          "rank": 1,
+          "top_file": "mixed_quarterly_report.pdf",
+          "top_text": "Quarterly HR Report - Q3 2026\n\nHeadcount\n\nTotal headcount at the end of Q3 was 412 employe"
+        },
+        {
+          "q": "How long is the probation period for new joiners?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\n\nNew employees are on probation for 6 months. Confirmation depends on a performa"
+        },
+        {
+          "q": "When are performance reviews done?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\n\nNew employees are on probation for 6 months. Confirmation depends on a performa"
+        },
+        {
+          "q": "What must I hand back on my last day?",
+          "rank": 1,
+          "top_file": "long_handbook.pdf",
+          "top_text": "Probation\n\nNew employees are on probation for 6 months. Confirmation depends on a performa"
+        },
+        {
+          "q": "Does the company cover medical insurance for my family?",
+          "rank": 2,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How much money do I get for courses and learning each year?",
+          "rank": 2,
+          "top_file": "leave_policy.pdf",
+          "top_text": "Leave Policy 2026\n\n1. Sick Leave\n\nEmployees get 12 sick leaves per year. A medical certifi"
+        },
+        {
+          "q": "How much of my phone bill can I claim every month?",
+          "rank": 5,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "What number do I call for IT help?",
+          "rank": 4,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "New Joiner Onboarding\n\nHR Team - 2026\n\nSpeaker note: greet everyone and share the agenda.\n"
+        },
+        {
+          "q": "What should I do in my first week after joining?",
+          "rank": 2,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "What is the email address of the IT team?",
+          "rank": 1,
+          "top_file": "onboarding_deck.pptx",
+          "top_text": "New Joiner Onboarding\n\nHR Team - 2026\n\nSpeaker note: greet everyone and share the agenda.\n"
+        },
+        {
+          "q": "What is the salary range for grade L2?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "Salary Bands\n\n| Grade | Min CTC (LPA) | Max CTC (LPA) |\n|---|---|---|\n| L1 | 4 | 7 |\n| L2 "
+        },
+        {
+          "q": "What percentage of my CTC is basic pay?",
+          "rank": 1,
+          "top_file": "salary_structure.xlsx",
+          "top_text": "Salary Bands\n\n| Grade | Min CTC (LPA) | Max CTC (LPA) |\n|---|---|---|\n| L1 | 4 | 7 |\n| L2 "
+        },
+        {
+          "q": "Is Diwali a company holiday this year?",
+          "rank": 1,
+          "top_file": "holidays_2026.csv",
+          "top_text": "holidays_2026\n\n| Date | Holiday |\n|---|---|\n| 2026-01-26 | Republic Day |\n| 2026-08-15 | I"
+        },
+        {
+          "q": "When is the fire drill happening?",
+          "rank": 1,
+          "top_file": "notice_board_photo.png",
+          "top_text": "NOTICE\nFire drillon 15 November 2026 at 11:00 AM.\n\nPlease assemble at the main parking are"
+        },
+        {
+          "q": "How often do I have to update my password?",
+          "rank": 1,
+          "top_file": "it_policy.txt",
+          "top_text": "IT POLICY\n\nPasswords must be changed every 90 days.\nDo not install unapproved software on "
+        },
+        {
+          "q": "How many days a week can I work remotely?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "Will the company give me a monitor for home?",
+          "rank": 1,
+          "top_file": "remote_work.md",
+          "top_text": "Remote Work Policy\n\nEligibility\n\nEmployees can work from home 2 days a week.\n\nEquipment\n\n|"
+        },
+        {
+          "q": "How do I apply for leave?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "HR FAQ\n\nHow do I apply for leave?\n\nUse the HR portal under Leave > Apply.\n\nWhen is salary "
+        },
+        {
+          "q": "On which day is my salary paid?",
+          "rank": 1,
+          "top_file": "hr_faq.html",
+          "top_text": "HR FAQ\n\nHow do I apply for leave?\n\nUse the HR portal under Leave > Apply.\n\nWhen is salary "
+        }
+      ]
+    }
+  }
+}

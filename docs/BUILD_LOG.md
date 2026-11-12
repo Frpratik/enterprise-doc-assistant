@@ -846,6 +846,72 @@ relabel what was renamed, and hide what was removed.*
 
 ---
 
+### ✅ Stage 6 — Retrieval golden set + chunking comparison (`evals/retrieval_golden.json`, `indexing/retrieval_eval.py`)
+
+**What:** 30 real employee questions with **where the answer is**, and a measurement of how
+well search finds it — comparing 4 chunking methods on exactly the same questions.
+
+**Why:** "structure-aware chunking is better" is a claim. This turns it into a number, and gives
+every future change (new chunk size, new model, hybrid search in Phase 3) a before/after score.
+
+**How it's measured**
+- Questions are worded **differently** from the documents, like real employees ask
+  ("doctor's note" for "medical certificate", "hand back on my last day" for "Exit Process").
+- A chunk counts as correct if it comes from the right file **and contains the answer phrase** —
+  so methods with different chunk boundaries are compared fairly.
+- **recall@k** = share of questions whose answer is in the top k chunks.
+  **MRR** = average of 1/rank (answer at #1 → 1.0, #2 → 0.5, #3 → 0.33, not found → 0).
+
+**The 4 methods**
+| Method | What it is |
+|---|---|
+| structure | ours: sections / slides / tables, heading path in the embedded text |
+| structure_raw | ours without the heading path (to measure what the context line is worth) |
+| recursive | LangChain-style RecursiveCharacterTextSplitter: 500 characters, 100 overlap |
+| fixed | naive: cut every 500 characters, no overlap |
+
+**Results (30 questions, bge-small) — saved as `evals/retrieval_baseline.json`**
+```
+METHOD           CHUNKS   R@1    R@3    R@5    MRR
+structure            33  0.967  1.000  1.000  0.983
+structure_raw        33  0.967  1.000  1.000  0.983
+recursive            13  0.833  0.933  0.967  0.897
+fixed                13  0.833  0.933  1.000  0.898
+```
+**Structure-aware chunking puts the right chunk at #1 for 29 of 30 questions (96.7%), vs 83.3%
+for recursive and fixed-size chunking.** The one miss: "When are performance **reviews** done?"
+ranked *Probation* first (it literally says "performance review"); *Appraisals* came 2nd.
+
+**Read these numbers honestly**
+1. **recall@5 is too easy here.** The naive methods have only 13 chunks, so their top 5 is almost
+   40% of all the text. **R@1 and MRR are the fair comparison** on a corpus this small.
+2. **The heading path made no difference on this set** (`structure` = `structure_raw`): every one
+   of our chunks already starts with its section heading, and these 12 documents cover clearly
+   different topics. It should matter more when many documents have look-alike sections
+   (e.g. "Eligibility" in ten different policies) — to be re-measured with a bigger corpus.
+3. **Bigger naive chunks have a hidden cost the metric doesn't show:** a 500-character piece often
+   spans 2–3 sections, so the LLM in Phase 3 would get more unrelated text and vaguer citations.
+4. **30 questions on 12 short documents is a start, not a verdict.** The golden set should grow
+   with longer, real documents.
+
+**Speed:** parsed documents and embeddings are cached in `evals/.cache` (not in git), so re-running
+the whole comparison after a change takes seconds.
+
+**Tests (166 total):** the golden set checks itself (every answer phrase must really exist in its
+document — a typo can't fake a result); questions unique; relevance needs the right file AND phrase;
+fixed chunks cover the text exactly; recursive chunks respect size and overlap; and a **retrieval
+gate**: our chunking must keep recall@5 ≥ 0.95, recall@1 ≥ 0.90 and MRR ≥ 0.90.
+
+```bash
+python -m indexing.retrieval_eval                   # compare all methods with the baseline
+python -m indexing.retrieval_eval --save-baseline
+```
+
+**Memory trick:** *Ask real questions, know where the answers live, and count how often the
+right card comes out on top — R@1 and MRR tell the truth, recall@5 flatters small libraries.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -872,4 +938,7 @@ python scripts\download_model.py      # local embedding model, once (~70 MB)
 # Phase 2: keep the index matching a folder, then ask questions
 python -m indexing.manage sync --folder "C:\path\to\your\documents"
 python -m indexing.search "how many sick leaves do I get"
+
+# measure retrieval quality (30 questions, 4 chunking methods)
+python -m indexing.retrieval_eval
 ```
