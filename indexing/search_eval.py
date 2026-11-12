@@ -32,7 +32,7 @@ from ingestion.safety import sha256
 
 BASELINE = PROJECT_ROOT / "evals" / "search_baseline.json"
 LATEST = PROJECT_ROOT / "evals" / "search_latest.json"
-MODES = ["vector", "keyword", "hybrid"]
+MODES = ["vector", "keyword", "hybrid", "hybrid+rerank"]
 KS = (1, 3, 5)
 
 
@@ -71,9 +71,14 @@ def index_golden_documents(names: list[str]) -> int:
 
 
 def evaluate_mode(mode: str, questions: list[dict], depth: int = 60) -> dict:
+    """mode 'hybrid+rerank': hybrid search, then the reranker re-reads the best candidates (and only those are ranked)."""
     ranks, per_q = [], []
+    rerank = mode.endswith("+rerank")
     for item in questions:
-        hits = search(item["q"], k=depth, mode=mode, candidates=depth)
+        if rerank:
+            hits = search(item["q"], k=settings.rerank_candidates, mode=mode.split("+")[0], rerank=True)
+        else:
+            hits = search(item["q"], k=depth, mode=mode, candidates=depth)
         rank = next((i for i, h in enumerate(hits, 1) if is_relevant(h.file_name, h.content, item["answers"])), None)
         ranks.append(rank)
         per_q.append({"q": item["q"], "rank": rank,
@@ -102,20 +107,23 @@ def print_report(result: dict, baseline: dict | None) -> None:
     for name, modes in result["sets"].items():
         base = ((baseline or {}).get("sets", {}).get(name) or {})
         print(f"\n--- {name}: {result['questions'][name]} questions ---")
-        print(f"{'MODE':10}{'R@1':>8}{'R@3':>8}{'R@5':>8}{'MRR':>8}")
+        print(f"{'MODE':14}{'R@1':>8}{'R@3':>8}{'R@5':>8}{'MRR':>8}")
         for m, r in modes.items():
-            line = f"{m:10}" + "".join(f"{r[k]:>8.3f}" for k in ("recall@1", "recall@3", "recall@5", "mrr"))
+            line = f"{m:14}" + "".join(f"{r[k]:>8.3f}" for k in ("recall@1", "recall@3", "recall@5", "mrr"))
             if m in base:
                 d = r["mrr"] - base[m]["mrr"]
                 line += "   (same as baseline)" if abs(d) < 0.0005 else f"   (MRR {'+' if d > 0 else ''}{d:.3f} vs baseline)"
             print(line)
-        hybrid, vector = modes.get("hybrid"), modes.get("vector")
-        if hybrid and vector:
-            diff = [(h, v) for h, v in zip(hybrid["questions"], vector["questions"]) if h["rank"] != v["rank"]]
-            for h, v in diff:
-                print(f"  vector {str(v['rank']):>4} -> hybrid {str(h['rank']):>4}   {h['q']}")
-            for q in (q for q in hybrid["questions"] if not q["rank"] or q["rank"] > 1):
-                print(f"  hybrid rank {q['rank'] or 'not found':>9}: {q['q']}   (top was: {q['top']})")
+        best = modes.get("hybrid+rerank") or modes.get("hybrid")
+        label = "hybrid+rerank" if "hybrid+rerank" in modes else "hybrid"
+        ref = modes.get("hybrid") if label == "hybrid+rerank" else modes.get("vector")
+        ref_label = "hybrid" if label == "hybrid+rerank" else "vector"
+        if best and ref:
+            for b, r in zip(best["questions"], ref["questions"]):
+                if b["rank"] != r["rank"]:
+                    print(f"  {ref_label} {str(r['rank']):>4} -> {label} {str(b['rank']):>4}   {b['q']}")
+            for q in (q for q in best["questions"] if not q["rank"] or q["rank"] > 1):
+                print(f"  {label} rank {q['rank'] or 'not found':>9}: {q['q']}   (top was: {q['top']})")
 
 
 def main(argv=None) -> int:

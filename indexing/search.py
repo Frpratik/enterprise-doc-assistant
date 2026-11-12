@@ -37,6 +37,7 @@ class Hit:
     vector_score: float = 0.0           # cosine similarity between the question and this chunk (0 - 1)
     keyword_score: float | None = None  # keyword rank score, None if the keyword search did not find it
     found_by: str = "vector"            # "vector", "keyword" or "both"
+    rerank_score: float | None = None   # set when the reranker has read this chunk (raw score: > 5 relevant, < 0 not)
 
     def where(self) -> str:
         loc = self.location or {}
@@ -131,11 +132,19 @@ def rrf_merge(vector_ids: list[str], keyword_ids: list[str], k: int | None = Non
 
 
 def search(query: str, k: int | None = None, embedder: Embedder | None = None, mode: str | None = None,
-           candidates: int | None = None) -> list[Hit]:
+           candidates: int | None = None, rerank: bool = False) -> list[Hit]:
+    """
+    rerank=True: take the best `rerank_candidates` results of the search, let the cross-encoder re-read them,
+    and return the best k. hit.score is then the reranker's score.
+    """
     embedder = embedder or get_embedder()
     k = k or settings.search_top_k
     mode = mode or settings.search_mode
     n = max(candidates or settings.search_candidates, k)
+    final_k = k
+    if rerank:
+        k = max(k, settings.rerank_candidates)         # fetch more, then keep the best after re-reading
+        n = max(n, k)
     if mode not in ("hybrid", "vector", "keyword"):
         raise ValueError(f"unknown search mode '{mode}' (use hybrid, vector or keyword)")
     qvec = embedder.embed_query(query)
@@ -167,7 +176,11 @@ def search(query: str, k: int | None = None, embedder: Embedder | None = None, m
         ordered = sorted(hits.values(), key=lambda h: -h.score)
     else:
         ordered = sorted(hits.values(), key=lambda h: -h.score)
-    return ordered[:k]
+    ordered = ordered[:k]
+    if rerank:
+        from indexing.rerank import rerank as rerank_hits
+        return rerank_hits(query, ordered, final_k)
+    return ordered
 
 
 def main(argv=None) -> int:
@@ -177,6 +190,7 @@ def main(argv=None) -> int:
     ap.add_argument("query")
     ap.add_argument("-k", type=int, default=settings.search_top_k, help="how many results")
     ap.add_argument("--full", action="store_true", help="show the whole chunk text")
+    ap.add_argument("--rerank", action="store_true", help="let the reranker re-read the best candidates")
     ap.add_argument("--mode", choices=["hybrid", "vector", "keyword"], default=settings.search_mode)
     args = ap.parse_args(argv)
 
@@ -184,13 +198,15 @@ def main(argv=None) -> int:
     if not can_connect():
         print("Database not reachable: start it with  docker compose up -d")
         return 1
-    hits = search(args.query, args.k, mode=args.mode)
+    hits = search(args.query, args.k, mode=args.mode, rerank=args.rerank)
     if not hits:
         print("No results (is anything indexed? try: python -m ingestion.run --file <file>)")
         return 0
-    print(f'\nQ: "{args.query}"   [{args.mode} search]\n')
+    tag = args.mode + (" + rerank" if args.rerank else "")
+    print(f'\nQ: "{args.query}"   [{tag} search]\n')
     for i, h in enumerate(hits, 1):
-        print(f"{i}. [{h.score:.3f} | meaning {h.vector_score:.2f} | {h.found_by}] {h.file_name} > "
+        rr = f" | rerank {h.rerank_score:.1f}" if h.rerank_score is not None else ""
+        print(f"{i}. [{h.score:.3f} | meaning {h.vector_score:.2f} | {h.found_by}{rr}] {h.file_name} > "
               f"{h.heading_path.split(' > ', 1)[-1]}{'  (' + h.where() + ')' if h.where() else ''}")
         text = h.content if args.full else (h.content[:220] + (" ..." if len(h.content) > 220 else ""))
         print("   " + text.replace("\n", "\n   ") + "\n")

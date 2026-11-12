@@ -96,6 +96,8 @@ class Settings(BaseSettings):
     search_mode: str = "hybrid"        # "hybrid" (vectors + keywords), "vector" or "keyword"
     search_candidates: int = 20        # how many results each of the two searches contributes
     rrf_keyword_weight: float = 0.1    # how much the keyword list counts vs the vector list (1.0 = equal). 0.1 = vector leads, keywords rescue exact terms
+    rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"   # local cross-encoder (~80 MB, English)
+    rerank_candidates: int = 10        # how many search results the reranker reads closely (more = slower, ~50 ms each)
     rrf_k: int = 60                    # RRF constant: how quickly lower ranks lose weight (60 is the usual value)
 
     # ---------- Background jobs (Phase 2) ----------

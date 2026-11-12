@@ -1110,6 +1110,87 @@ lead, and call on the word librarian only when a rare word really matters (and w
 
 ---
 
+### ✅ Stage 2 — Reranker (`indexing/rerank.py`)
+
+**What:** after search picks its best ~10 candidates, a **cross-encoder** re-reads each one **together with
+the question** and gives it a relevance score. The best 5 go on.
+
+**Why:** search turns the question and every chunk into numbers *separately* and compares the numbers — fast,
+but shallow. A cross-encoder reads question + chunk side by side, word by word, so it can tell "notice period
+for resigning" from "a long period of leave". It is too slow to run on everything, so it only reads the top candidates.
+
+**Analogy:** search = a librarian fetching books by their covers. The reranker = an expert who opens each book
+and reads the page that matters.
+
+**What we built**
+1. **Local model, free:** `Xenova/ms-marco-MiniLM-L-6-v2` (about **88 MB**, English) through fastembed — no
+   PyTorch, no API key. `python scripts\download_model.py` now downloads it too.
+   *(I first said "~80 MB BGE reranker". The BGE reranker is actually 1 GB; this MiniLM one matches the size I meant.)*
+2. `rerank.py`: `rerank(query, hits, k)` — the reranker reads **heading path + chunk text**, sets `hit.rerank_score`,
+   and re-orders. A missing model gives a clear error ("run python scripts\download_model.py").
+3. `search(..., rerank=True)` — fetches `rerank_candidates` (10) results, re-reads them, returns the best k.
+   `python -m indexing.search "..." --rerank` shows the reranker score next to the meaning score.
+4. `search_eval` has a new row, **hybrid+rerank**.
+
+**The scores are raw model outputs, not 0–1.** Example (real):
+```
+Q: "how many sick leaves do I get"   [hybrid + rerank search]
+1. [rerank  6.4 | meaning 0.80]  1. Sick Leave        <- the answer
+2. [rerank -1.9 | meaning 0.66]  2. Casual Leave
+3. [rerank -3.7 | meaning 0.61]  Leave Summary (table)
+```
+Meaning scores of 0.80 / 0.66 / 0.61 look close together; the reranker makes the gap obvious (6.4 vs −1.9).
+
+**Results (saved in `evals/search_baseline.json`)**
+```
+paraphrase (30 questions)     R@1    R@3    R@5    MRR
+  hybrid                      0.967  1.000  1.000  0.983
+  hybrid + rerank             0.933  1.000  1.000  0.967      ("Which department loses the most employees?" 1 -> 2)
+exact terms (14 questions)
+  hybrid                      0.929  1.000  1.000  0.964
+  hybrid + rerank             1.000  1.000  1.000  1.000      ("Rs 25,000" 2 -> 1)
+```
+
+**Read these numbers honestly**
+1. **The reranker did not improve retrieval on this corpus.** One question got worse, one got better: a wash.
+   With only 33 chunks and `bge-small` already at 0.98, there is almost nothing left to fix. Its job (re-reading
+   ten look-alike candidates and picking the true answer) shows up on **bigger corpora with many similar sections**.
+2. The question it lost: the answer is a *table* (attrition per department), and the reranker preferred the
+   paragraph chunk of the same section. MS-MARCO rerankers are trained on web passages and are weaker on tables and numbers.
+3. **It costs time:** about **0.4 s per query for 5 candidates, 0.6 s for 10, 1.0 s for 20** (a first measurement
+   under load showed 2.2 s median for 20). Quality was identical for 5 / 10 / 20 here, so the corpus can't tell them
+   apart; I chose **10** as a middle ground.
+4. **Do not use the reranker score as a simple "I don't know" threshold.** I measured the top score for all 44
+   answerable questions and for 4 off-topic ones:
+```
+answerable questions, top rerank score:  min -9.5   10th percentile -7.5   median +3.1
+off-topic questions (capital of France, chocolate cake, ...):  -11.0 to -11.2
+answerable questions, top meaning score: min 0.55   median 0.69
+off-topic, top meaning score:            0.35 to 0.51     ("What is the CEO's home address?" scored 0.51)
+```
+   Many answerable questions (tables, numbers) score very low with the reranker, and the margins are thin for both
+   scores. **Stage 3 has to combine signals and test the rule on questions that have NO answer** — that is exactly what it is for.
+
+**Decision:** keep the reranker as an **option** (`rerank=True`); the answer step (Stage 4) will use it, and we keep
+measuring it. It earns its place only if it helps on a bigger corpus or in the "I don't know" decision.
+
+**Tests (189 total, 7 new in `test_rerank.py`):** the reranker reads heading + text; it orders by score, keeps k and
+sets the fields; empty input is fine; a missing model gives a clear error; `search(rerank=True)` fetches more
+candidates, then returns the best k with the original meaning score kept; search without rerank is unchanged;
+**real model:** the answer scores more than 5 points above an unrelated chunk, and it picks the real answer over
+a chunk that only shares words. The hybrid gate now also checks that the reranker is not clearly worse than hybrid.
+
+```bash
+python scripts\download_model.py                         # now also downloads the reranker (~88 MB)
+python -m indexing.search "how many sick leaves do I get" --rerank
+python -m indexing.search_eval                           # vector / keyword / hybrid / hybrid+rerank
+```
+
+**Memory trick:** *Search fetches by the cover, the reranker reads the page — slower, so only for the top few,
+and not magic: on a tiny library there is nothing left for it to fix.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1131,7 +1212,7 @@ python -m ingestion.evaluate
 # Phase 2: database (Docker Desktop must be running)
 docker compose up -d
 python -m indexing.migrate
-python scripts\download_model.py      # local embedding model, once (~70 MB)
+python scripts\download_model.py      # local embedding model (~70 MB) + reranker (~88 MB), once
 
 # Phase 2: keep the index matching a folder, then ask questions
 python -m indexing.manage sync --folder "C:\path\to\your\documents"

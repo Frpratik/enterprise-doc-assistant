@@ -137,9 +137,12 @@ def test_hybrid_gate(samples, pg_server_url, monkeypatch):
     """Hybrid search must stay good on both question sets and must not hurt either one."""
     from indexing import search_eval
     monkeypatch.setattr(settings, "database_url", pg_server_url)          # the eval makes its own temporary database
-    result = search_eval.run(["vector", "hybrid"])
+    result = search_eval.run(["vector", "hybrid", "hybrid+rerank"])
     para, exact = result["sets"]["paraphrase"], result["sets"]["exact_terms"]
     assert para["hybrid"]["mrr"] >= 0.95 and para["hybrid"]["recall@5"] >= 0.95
     assert exact["hybrid"]["mrr"] >= 0.90 and exact["hybrid"]["recall@5"] >= 0.95
     assert para["hybrid"]["mrr"] >= para["vector"]["mrr"] - 0.01       # hybrid must not hurt normal questions
     assert exact["hybrid"]["mrr"] >= exact["vector"]["mrr"]            # and must not hurt exact-term ones
+    # the reranker must not make things clearly worse (on 44 questions, one question moves the score ~0.02)
+    assert para["hybrid+rerank"]["mrr"] >= para["hybrid"]["mrr"] - 0.03
+    assert exact["hybrid+rerank"]["mrr"] >= exact["hybrid"]["mrr"] - 0.03
