@@ -1300,7 +1300,7 @@ fact, and must say "not in these folders" otherwise. We then check that every pa
 *1. The LLM layer (`llm.py`)* — one place that talks to Groq. Three models, chosen from **what your account can use**
 (my first idea, `llama-3.3-70b`, is not available to you):
 ```
-main      openai/gpt-oss-120b   writes the answers
+main      openai/gpt-oss-120b   writes the answers          (CHANGED in Stage 5: qwen is now the main model, see there)
 fallback  qwen/qwen3.8-27b      a DIFFERENT model family: if one model has a problem, the other probably doesn't
 small     openai/gpt-oss-20b    simple, cheap jobs; also the last fallback
 chains:   main -> fallback -> small          small -> fallback
@@ -1518,9 +1518,13 @@ uvicorn api.main:app --host 127.0.0.1 --port 8000
 curl -N -X POST http://127.0.0.1:8000/ask/stream -H "Content-Type: application/json" -d "{\"question\": \"How long is maternity leave?\"}"
 ```
 
-**Suggestion (your call):** switch the main model to `qwen/qwen3.8-27b` and keep `gpt-oss-120b` as the fallback, in `.env`
-(`INGEST_LLM_MAIN_MODEL`, `INGEST_LLM_FALLBACK_MODEL`). It gave the same answer quality on our 76 questions and a much faster first word.
-It is only 76 questions on 12 tiny documents, so re-check on harder, real documents first.
+**Decision (made after these timings): the main model is now `qwen/qwen3.8-27b`.**
+Chains are now `main: qwen -> gpt-oss-120b -> gpt-oss-20b` and `small: gpt-oss-20b -> gpt-oss-120b`. It is a config change only
+(`llm_main_model` / `llm_fallback_model` in `ingestion/config.py`, or `INGEST_LLM_MAIN_MODEL` / `INGEST_LLM_FALLBACK_MODEL` in `.env`).
+Why: the same answer quality on our 76 questions (Stage 4) and a first word about 6 times sooner. Checked with a real question:
+answered by `qwen`, 1.8 s end to end. Caveats: that is only 76 questions on 12 tiny documents, so re-check on harder, real
+documents; and the small tier's fallback is now the slower `gpt-oss-120b` (it used to be `qwen`).
+The Stage 4 table below was measured with each model **alone**, so it is unchanged by this switch.
 
 **Memory trick:** *A front desk, not a back door: every visitor gets a ticket number, polite errors never show the mess, and
 the final slip decides what was really said — even when the words were read out loud as they were written.*

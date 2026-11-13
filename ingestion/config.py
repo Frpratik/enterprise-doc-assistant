@@ -111,8 +111,8 @@ class Settings(BaseSettings):
 
     # ---------- LLM (Phase 3 Stage 4): Groq, with a fallback chain ----------
     groq_api_key: str = Field("", validation_alias=AliasChoices("GROQ_API_KEY", "INGEST_GROQ_API_KEY"))  # in .env, never in git
-    llm_main_model: str = "openai/gpt-oss-120b"       # writes the answers
-    llm_fallback_model: str = "qwen/qwen3.8-27b"      # a DIFFERENT model family: used when the main model fails
+    llm_main_model: str = "qwen/qwen3.8-27b"          # writes the answers (first word in ~160 ms; chosen after the Stage 5 timings)
+    llm_fallback_model: str = "openai/gpt-oss-120b"   # a DIFFERENT model family: used when the main model fails
     llm_small_model: str = "openai/gpt-oss-20b"       # simple, cheap jobs; also the last fallback
     llm_timeout_sec: int = 30                          # one call must finish within this
     llm_max_wait_sec: float = 5.0                      # on a rate limit, wait at most this long before trying the next model
