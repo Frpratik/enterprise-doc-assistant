@@ -36,3 +36,6 @@ reportlab        # only used to generate sample PDFs
 
 # --- Phase 3: answers (Groq LLM; key goes in .env as GROQ_API_KEY) ---
 groq             # the Groq API client
+fastapi          # the web API (Phase 3 Stage 5)
+uvicorn          # the server that runs it
+httpx            # used by FastAPI's test client

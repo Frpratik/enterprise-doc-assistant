@@ -1402,6 +1402,131 @@ and check every page number, because even at temperature 0 the same intern doesn
 
 ---
 
+### ✅ Stage 5 — The API with streaming (`api/main.py`, `api/schemas.py`, streaming in `llm.py` + `answer.py`)
+
+**What:** the assistant is now a **web service**. Any app (a website, a Slack bot, a script) can ask a question over HTTP
+and get an answer with citations — either all at once, or **streamed** word by word.
+
+**Why:** until now it only ran in our terminal. A company assistant has to be reachable by other programs, with proper
+error messages, request ids for debugging, and no secrets or personal data leaking out.
+
+**Analogy:** the front desk of a library. Visitors don't walk into the stacks; they hand a question to the desk, and get
+the answer with the shelf numbers. If the back room is closed, the desk says so politely and doesn't show visitors the mess.
+
+**The endpoints**
+```
+GET  /health        is everything available? (database, both local models, is a key configured — never the key itself)
+POST /ask           {"question": "..."}  ->  the whole answer as JSON
+POST /ask/stream    same question; the answer arrives as Server-Sent Events while it is being written
+```
+Run it (Docker up, `GROQ_API_KEY` in `.env`): `uvicorn api.main:app --host 127.0.0.1 --port 8000`, then open
+`http://127.0.0.1:8000/docs` for the interactive page FastAPI builds for free.
+
+**The stream (SSE) — 5 kinds of event**
+```
+event: retrieval  {"answerable": true, "code": "ok", "sources": 5}   after searching, BEFORE any LLM call
+event: token      {"text": "The notice period "}                    a piece of the answer (zero or more)
+event: reset      {"reason": "..."}                                 a model failed half-way: clear the text so far
+event: done       {status, text, citations, model, ..., request_id} the FINAL answer - authoritative
+event: error      {"message", "request_id"}                         something broke after the stream began
+```
+**Why `done` is authoritative (an honest trade-off).** The checks from Stage 4 (valid citations, refusal) need the *whole*
+answer, but a streaming user sees words as they are written. So an answer that fails the checks (for example it has no
+citation) is replaced by the "not found" message in `done`. The client must show `done.text`. To keep that rare and ugly
+cases invisible, a `StreamFilter` sits between the model and the user:
+- if the answer starts to look like `NOT_IN_DOCUMENTS`, **nothing is shown** (nobody sees half a refusal token);
+- a citation split across two pieces (`[` then `1]`) is held back until complete, and every style (`【1】`, `[1, 2]`) is rewritten
+  as `[1][2]`, exactly like the final answer.
+The streaming and the normal path **share one `_finish()` function**, and a test checks that both give identical final
+results for 9 different model outputs, so they cannot drift apart.
+
+**Fallback while streaming.** Same rules as Stage 4. A model failing **before its first word** is invisible (we just use
+the next model). A model failing **half-way** sends a `reset` event (the client clears the text) and a new attempt starts.
+If the user closes the page, the model stream is closed at once (no paying for words nobody reads).
+
+**Safety and privacy built in**
+- **Every request gets an id** (`X-Request-ID` header, the JSON body, and every log line). You can pass your own.
+- **Errors are plain for the user, detailed only in logs:** missing/rejected LLM key → 503 "not configured correctly"
+  (never mentions the key); database down → 503; anything unexpected → 500 "something went wrong" + request id.
+  A test proves that internal text (`/etc/passwd`, an IP address, a fake key) never reaches the response.
+- A database problem **before** the stream starts is a proper HTTP 503, not a broken 200 stream (the search runs first).
+- **Validation:** the question must be 1–1000 characters and not blank; it is trimmed. Bad input never reaches the pipeline.
+- **The question text is never logged** (only its length): questions can hold personal details.
+- Both local models are loaded **once at startup**, so the first user doesn't wait for them.
+
+**What the API does NOT have yet** (later phases): **login / roles** (Phase 5) and **rate limits / abuse guards** (Phase 6).
+Until then keep it on `127.0.0.1`: anyone who can reach the port can ask questions.
+
+**Real run (uvicorn + Groq + your database; the database held only `leave_policy.pdf`)**
+```
+GET  /health                  200  {"status":"ok","database":true,"embedding_model":true,"reranker":true,"llm_key_configured":true}
+POST /ask "maternity / paternity leave?"
+     -> answered: "Maternity leave is 26 weeks [1] and paternity leave is 10 working days [1]."
+        source: leave_policy.pdf > 3. Maternity and Paternity Leave (page 2)
+POST /ask "capital of France?"   -> refused_gate  "I couldn't find anything about this in the company documents."
+POST /ask {"question": "   "}    -> 422 validation error
+POST /ask/stream "notice period?"  -> retrieval, 13 token events, done: "The notice period for all permanent employees is 60 days[1]."
+```
+
+**What the timings really showed (important, and not what I hoped)**
+1. **Streaming gives almost no speed-up here.** The whole answer arrived **about 40 ms after the first word**: answers are one or
+   two sentences. The user waits *before* the first word: retrieval, then the model starting to write.
+2. **First-word time per model** (5 streamed calls each, same prompt):
+```
+gpt-oss-120b (main)    median 976 ms   (min 239, max 2077)     whole answer: median 998 ms
+qwen3.8-27b            median 159 ms   (min 140, max 391)      whole answer: median 186 ms
+gpt-oss-20b            median 534 ms   (min 206, max 674)      whole answer: median 558 ms
+```
+   `qwen` writes its first word about **6 times sooner** than the main model, and in the Stage 4 evaluation answered as well
+   (100% answered, 100% right chunk). The main model is a **config choice, not a code change** — I did not change it; see the
+   suggestion below. One live stream took 3.6 s for the model alone (an outlier: no retry was logged).
+3. **Where the real value of the `retrieval` event is:** it arrives *before* the model starts, so a UI can show "found 5 sources,
+   writing the answer..." instead of a blank screen — and for refused questions the whole response ends there, with **no LLM call at all**.
+4. **Unexplained gap:** my client saw the `retrieval` event after 1.9–3.0 s, but the server's own log says the whole refused
+   request took 0.6–0.8 s. About 1–2 s is outside my handler (Windows loopback / middleware / a busy laptop with 12 containers
+   running are suspects; **not verified**). Real latency measurement needs tracing (Phase 8).
+
+**Bugs the tests found**
+1. **A 500 error had no `X-Request-ID` header.** Starlette builds the generic 500 response *outside* my middleware, so the id
+   was in the body but not in the header — exactly when a request id matters most. Fixed in the handler.
+2. **A safety test could not fail.** I broke the "close the model stream" code on purpose (a *mutation check*) and the test
+   still passed, because Python closes abandoned generators by itself. The test now keeps a reference so only an explicit close
+   satisfies it; the same check on the refusal filter was caught by 2 tests.
+3. **Tests were writing into the real log file** (`data/logs/ingestion.jsonl`): hundreds of lines across earlier stages,
+   including fake error strings like `GROQ_API_KEY rejected gsk_leaky`. A fixture in `conftest.py` now sends every test's logs
+   to a temp file (a second bug inside the fix: structlog only switches files when `get_logger()` is called). Your old log still
+   contains those test lines (harmless fakes, git-ignored); delete the file if you want a clean start.
+
+**Honest limits**
+- The API tests **fake the answering**; they check HTTP behaviour (validation, ids, errors, the SSE format, privacy). The real
+  pipeline through the API was run **by hand**, not in an automated test.
+- **Not load-tested.** Endpoints are plain `def` (run in FastAPI's thread pool) and the database pool has 5 connections; many
+  parallel users have not been tried.
+- A client that ignores `done` and only appends tokens could show an unchecked answer. The contract is documented, not enforced.
+
+**Tests (280 total, 56 new):** `test_streaming.py` (32) — pieces in order; failure before the first word falls back silently;
+failure half-way sends `reset` then retries; a long rate limit switches model without waiting; empty stream; bad key; all
+models failing; **closing the stream closes the model stream**; the filter holds split citations, normalises all styles, never
+shows a refusal even in pieces, doesn't hold back "No, ..." / "Notice period ..."; event order; the gate refusal makes no LLM
+call; a refusal shows no token; an uncited answer is replaced in `done`; stream and normal answers agree on 9 outputs.
+`test_api.py` (24) — health (incl. never revealing the key); the answer shape; request ids; 6 kinds of bad input rejected;
+the question is trimmed and **never logged**; 503 / 503 / 500 without leaking internals; SSE format and order; a problem before
+the stream is a 503; a problem after it is an `error` event; the stream is always closed.
+
+```bash
+uvicorn api.main:app --host 127.0.0.1 --port 8000
+curl -N -X POST http://127.0.0.1:8000/ask/stream -H "Content-Type: application/json" -d "{\"question\": \"How long is maternity leave?\"}"
+```
+
+**Suggestion (your call):** switch the main model to `qwen/qwen3.8-27b` and keep `gpt-oss-120b` as the fallback, in `.env`
+(`INGEST_LLM_MAIN_MODEL`, `INGEST_LLM_FALLBACK_MODEL`). It gave the same answer quality on our 76 questions and a much faster first word.
+It is only 76 questions on 12 tiny documents, so re-check on harder, real documents first.
+
+**Memory trick:** *A front desk, not a back door: every visitor gets a ticket number, polite errors never show the mess, and
+the final slip decides what was really said — even when the words were read out loud as they were written.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1436,6 +1561,7 @@ python -m indexing.retrieval_eval
 python -m indexing.search_eval
 python -m indexing.abstain_eval      # the "I don't know" gate: answered / blocked / margins
 python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
+uvicorn api.main:app --host 127.0.0.1 --port 8000        # the web API; docs at http://127.0.0.1:8000/docs
 
 # Phase 2: background jobs (Docker running)
 celery -A indexing.worker worker --loglevel=info --pool=solo

@@ -6,6 +6,8 @@ Answer = retrieve (search -> rerank -> gate) -> LLM writes a short answer from t
     a.text     what to show the user (an answer with [1] markers, or a plain "not found" message)
     a.citations  only the sources that were really cited: file, section, page
 
+  answer_stream() does the same but yields events while the answer is being written (for the API).
+
 The LLM is NOT trusted:
   * the context is wrapped in tags and the prompt says it is DATA, never instructions (a document that says
     "ignore your rules" must not work);
@@ -102,6 +104,23 @@ def is_refusal(text: str) -> bool:
     return REFUSAL_TOKEN in text.upper().replace(" ", "_")
 
 
+# ---------- finishing: the checks that decide what the user may see (shared by answer() and answer_stream()) ----------
+def _finish(base: dict, hits: list[Hit], text: str) -> Answer:
+    if is_refusal(text):                                           # layer 2: the LLM read the text and found no answer
+        return Answer(status="refused_llm", text=NO_ANSWER_MESSAGE, **base)
+
+    text, numbers = normalize_citations(text)
+    valid = [n for n in dict.fromkeys(numbers) if 1 <= n <= len(hits)]
+    invalid = [n for n in dict.fromkeys(numbers) if n not in valid]
+    if not valid:                                                  # no real source: do not show it
+        return Answer(status="uncited", text=NO_ANSWER_MESSAGE, invalid_citations=invalid, **base)
+    for n in invalid:                                              # drop made-up numbers from the shown text
+        text = text.replace(f"[{n}]", "")
+    citations = [Citation(n, hits[n - 1].file_name, hits[n - 1].heading_path, hits[n - 1].where(),
+                          hits[n - 1].chunk_id, hits[n - 1].doc_id, hits[n - 1].version) for n in valid]
+    return Answer(status="answered", text=text.strip(), citations=citations, invalid_citations=invalid, **base)
+
+
 # ---------- the whole thing ----------
 def answer(question: str, k: int | None = None, embedder: Embedder | None = None,
            llm: LLMClient | None = None) -> Answer:
@@ -117,17 +136,105 @@ def answer(question: str, k: int | None = None, embedder: Embedder | None = None
     except LLMUnavailable:
         return Answer(status="llm_unavailable", text=BUSY_MESSAGE, **base)
     base.update(model=res.model, fell_back=res.fell_back, latency_ms=res.latency_ms, raw=res.text)
+    return _finish(base, r.hits, res.text)
 
-    if is_refusal(res.text):                                       # layer 2: the LLM read the text and found no answer
-        return Answer(status="refused_llm", text=NO_ANSWER_MESSAGE, **base)
 
-    text, numbers = normalize_citations(res.text)
-    valid = [n for n in dict.fromkeys(numbers) if 1 <= n <= len(r.hits)]
-    invalid = [n for n in dict.fromkeys(numbers) if n not in valid]
-    if not valid:                                                  # no real source: do not show it
-        return Answer(status="uncited", text=NO_ANSWER_MESSAGE, invalid_citations=invalid, **base)
-    for n in invalid:                                              # drop made-up numbers from the shown text
-        text = text.replace(f"[{n}]", "")
-    citations = [Citation(n, r.hits[n - 1].file_name, r.hits[n - 1].heading_path, r.hits[n - 1].where(),
-                          r.hits[n - 1].chunk_id, r.hits[n - 1].doc_id, r.hits[n - 1].version) for n in valid]
-    return Answer(status="answered", text=text.strip(), citations=citations, invalid_citations=invalid, **base)
+# ---------- streaming ----------
+class StreamFilter:
+    """
+    Decides what part of the LLM's live text may be shown to the user, piece by piece:
+      * if the answer starts to look like NOT_IN_DOCUMENTS, nothing is shown (a user must never see half a refusal token);
+      * a citation marker split across two pieces ("[" + "1]") is held back until it is complete, and all styles
+        (【1】, [1, 2]) are rewritten as [1][2], exactly like the final answer.
+    """
+    MAX_MARKER = 16
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.head, self.started, self.refusing, self.pending = "", False, False, ""
+
+    def _citations(self, text: str) -> str:
+        text = self.pending + text
+        i = max(text.rfind("["), text.rfind("【"))
+        if i != -1 and "]" not in text[i:] and "】" not in text[i:] and len(text) - i <= self.MAX_MARKER:
+            self.pending, text = text[i:], text[:i]               # a marker may still be arriving
+        else:
+            self.pending = ""
+        return normalize_citations(text)[0]
+
+    def feed(self, piece: str) -> str:
+        """Text that may be shown now ('' = nothing yet)."""
+        if self.refusing:
+            return ""
+        if self.started:
+            return self._citations(piece)
+        self.head += piece
+        probe = self.head.strip().upper().replace(" ", "_")
+        if not probe or REFUSAL_TOKEN.startswith(probe):           # could still turn into NOT_IN_DOCUMENTS: wait
+            return ""
+        if probe.startswith(REFUSAL_TOKEN):
+            self.refusing = True
+            return ""
+        self.started = True
+        head, self.head = self.head, ""
+        return self._citations(head)
+
+    def flush(self) -> str:
+        """The end of the answer: release anything held back (unless it is a refusal)."""
+        if self.refusing:
+            return ""
+        text, self.pending = self.pending, ""
+        return normalize_citations(text)[0] if self.started else ""
+
+
+def answer_to_dict(a: Answer) -> dict:
+    """What the API sends. Deliberately leaves out the raw LLM text and the retrieved chunks."""
+    return {"status": a.status, "text": a.text,
+            "citations": [{"n": c.n, "file_name": c.file_name, "heading_path": c.heading_path, "where": c.where,
+                           "chunk_id": c.chunk_id} for c in a.citations],
+            "model": a.model, "fell_back": a.fell_back, "latency_ms": a.latency_ms,
+            "prompt_version": a.prompt_version}
+
+
+def answer_stream(question: str, k: int | None = None, embedder: Embedder | None = None, llm: LLMClient | None = None):
+    """
+    Like answer(), but yields (event, data) pairs while it works:
+      retrieval  {"answerable", "code", "sources"}   after searching (before any LLM call)
+      token      {"text"}                            a piece of the answer
+      reset      {"reason"}                          a model failed half-way: clear the text shown so far
+      done       the final answer (answer_to_dict)   AUTHORITATIVE: if its status is not "answered", or its text
+                                                     differs from what was streamed, the client must show its text
+    Why 'done' is authoritative: the checks (valid citations, refusal) need the whole answer, but the user sees
+    words as they are written. An answer that fails the checks is replaced by the 'not found' message at the end.
+    """
+    k = k or settings.answer_context_chunks
+    r = retrieve(question, k=k, embedder=embedder)
+    base = dict(question=question, decision=r.decision, hits=r.hits)
+    yield "retrieval", {"answerable": r.decision.answerable, "code": r.decision.code, "sources": len(r.hits)}
+
+    if not r.decision.answerable:
+        yield "done", answer_to_dict(Answer(status="refused_gate", text=NO_ANSWER_MESSAGE, **base))
+        return
+
+    flt, result = StreamFilter(), None
+    try:
+        for kind, payload in (llm or LLMClient()).stream(build_messages(question, r.hits), tier="main"):
+            if kind == "token":
+                shown = flt.feed(payload)
+                if shown:
+                    yield "token", {"text": shown}
+            elif kind == "reset":
+                flt.reset()
+                yield "reset", {"reason": payload}
+            else:
+                result = payload
+    except LLMUnavailable:
+        yield "done", answer_to_dict(Answer(status="llm_unavailable", text=BUSY_MESSAGE, **base))
+        return
+    tail = flt.flush()
+    if tail:
+        yield "token", {"text": tail}
+    base.update(model=result.model, fell_back=result.fell_back, latency_ms=result.latency_ms, raw=result.text)
+    yield "done", answer_to_dict(_finish(base, r.hits, result.text))

@@ -78,3 +78,13 @@ def db_url(pg_server_url, monkeypatch):
     db.close_all()
     with psycopg.connect(pg_server_url, autocommit=True) as admin:
         admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+
+
+# ---------------- logs: tests must never write into the real log file ----------------
+@pytest.fixture(autouse=True)
+def _logs_go_to_a_temp_file(tmp_path, monkeypatch):
+    """Every test logs into its own temp file. Before this, test runs added hundreds of lines
+    (including fake error messages) to data/logs/ingestion.jsonl."""
+    monkeypatch.setattr(settings, "log_path", tmp_path / "test_logs" / "ingestion.jsonl")
+    from ingestion.logs import get_logger
+    get_logger()        # structlog only switches files when get_logger() is called: do it now

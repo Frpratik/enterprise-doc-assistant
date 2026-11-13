@@ -112,15 +112,31 @@ class LLMClient:
         self.max_wait = settings.llm_max_wait_sec if max_wait is None else max_wait
         self.retries = retries
 
-    # ----- the one place that really calls Groq (tests and the eval cache replace this) -----
-    def _call(self, model: str, messages: list[dict], max_tokens: int, temperature: float) -> tuple[str, dict]:
+    def _get_client(self):
         if self._client is None:
             if not settings.groq_api_key:
                 raise LLMAuthError("GROQ_API_KEY is not set. Put it in .env:  GROQ_API_KEY=...")
             from groq import Groq
             self._client = Groq(api_key=settings.groq_api_key, timeout=settings.llm_timeout_sec, max_retries=0)
-        r = self._client.chat.completions.create(model=model, messages=messages, temperature=temperature,
-                                                 max_completion_tokens=max_tokens, **_params(model))
+        return self._client
+
+    # ----- the places that really call Groq (tests and the eval cache replace these) -----
+    def _stream_call(self, model: str, messages: list[dict], max_tokens: int, temperature: float):
+        """Yields the answer text piece by piece. Reasoning models also stream their 'thinking': we skip it."""
+        stream = self._get_client().chat.completions.create(model=model, messages=messages, temperature=temperature,
+                                                            max_completion_tokens=max_tokens, stream=True, **_params(model))
+        try:
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        finally:
+            close = getattr(stream, "close", None)            # the user left: stop the model, stop paying for tokens
+            if close:
+                close()
+
+    def _call(self, model: str, messages: list[dict], max_tokens: int, temperature: float) -> tuple[str, dict]:
+        r = self._get_client().chat.completions.create(model=model, messages=messages, temperature=temperature,
+                                                       max_completion_tokens=max_tokens, **_params(model))
         usage = {"prompt_tokens": r.usage.prompt_tokens, "completion_tokens": r.usage.completion_tokens} if r.usage else {}
         return (r.choices[0].message.content or "").strip(), usage
 
@@ -157,4 +173,58 @@ class LLMClient:
                 attempts.append(Attempt(model, "ok", ms))
                 log.info("llm_ok", model=model, tier=tier, ms=ms, fell_back=len(attempts) > 1, **usage)
                 return LLMResult(text, model, tier, attempts, usage, int((time.perf_counter() - start) * 1000))
+        raise LLMUnavailable(attempts)
+
+    def stream(self, messages: list[dict], tier: str = "main", max_tokens: int | None = None,
+               temperature: float = 0.0):
+        """
+        Same retries and fallback chain as chat(), but the answer arrives piece by piece. Yields:
+          ("token", text)    a piece of the answer
+          ("reset", reason)  the model failed HALF-WAY: throw away everything shown so far, a new attempt starts
+          ("done", LLMResult)
+        A failure BEFORE the first piece is silent (we just move on, like chat()); only a failure after the user
+        already saw words needs a reset. If the consumer stops listening (the user closed the page), the model
+        stream is closed right away.
+        """
+        log = get_logger()
+        max_tokens = max_tokens or settings.llm_answer_max_tokens
+        attempts: list[Attempt] = []
+        start = time.perf_counter()
+        for model in chain_for(tier):
+            for attempt_no in range(1 + self.retries):
+                t0 = time.perf_counter()
+                parts: list[str] = []
+                source = self._stream_call(model, messages, max_tokens, temperature)
+                try:
+                    for piece in source:
+                        parts.append(piece)
+                        yield "token", piece
+                except LLMAuthError:
+                    raise
+                except Exception as exc:
+                    kind, retry_after = classify(exc)
+                    ms = int((time.perf_counter() - t0) * 1000)
+                    attempts.append(Attempt(model, kind, ms, f"{type(exc).__name__}: {str(exc)[:150]}"))
+                    log.warning("llm_stream_failed", model=model, kind=kind, after_pieces=len(parts))
+                    if kind == "auth":
+                        raise LLMAuthError(f"Groq rejected the API key ({type(exc).__name__}). Check GROQ_API_KEY in .env.") from exc
+                    if parts:
+                        yield "reset", f"{model} failed while answering"
+                    if kind in ("rate_limited", "temporary") and attempt_no < self.retries:
+                        wait = retry_after if retry_after is not None else 1.0
+                        if wait <= self.max_wait:
+                            self._sleep(wait)
+                            continue
+                    break
+                finally:
+                    source.close()
+                text = "".join(parts).strip()
+                ms = int((time.perf_counter() - t0) * 1000)
+                if not text:
+                    attempts.append(Attempt(model, "empty", ms, "no text came back (all tokens used for thinking?)"))
+                    break
+                attempts.append(Attempt(model, "ok", ms))
+                log.info("llm_stream_ok", model=model, tier=tier, ms=ms, fell_back=len(attempts) > 1)
+                yield "done", LLMResult(text, model, tier, attempts, {}, int((time.perf_counter() - start) * 1000))
+                return
         raise LLMUnavailable(attempts)
