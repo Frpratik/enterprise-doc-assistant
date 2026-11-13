@@ -1283,6 +1283,125 @@ only two hundredths, say so out loud. The look-alikes are the LLM's job.*
 
 ---
 
+### ✅ Stage 4 — Groq LLM layer with fallback + answers with citations (`indexing/llm.py`, `answer.py`, `ask.py`, `answer_eval.py`)
+
+**What:** the assistant now **answers**. Search → rerank → gate → an LLM (Groq) writes 1–3 sentences using only the
+chunks it is given, with `[1]`-style citations → we **check** what it wrote → the user sees the answer and its sources.
+
+**Why:** retrieval alone returns chunks, not answers. And an LLM alone makes things up. So the LLM is boxed in:
+it may only use the excerpts, must cite them, must say "not in the documents" when they don't contain the answer —
+and we don't trust any of that, we verify it.
+
+**Analogy:** an intern who may only quote from the folders on the table, must write the page number after every
+fact, and must say "not in these folders" otherwise. We then check that every page number really exists.
+
+**What we built**
+
+*1. The LLM layer (`llm.py`)* — one place that talks to Groq. Three models, chosen from **what your account can use**
+(my first idea, `llama-3.3-70b`, is not available to you):
+```
+main      openai/gpt-oss-120b   writes the answers
+fallback  qwen/qwen3.8-27b      a DIFFERENT model family: if one model has a problem, the other probably doesn't
+small     openai/gpt-oss-20b    simple, cheap jobs; also the last fallback
+chains:   main -> fallback -> small          small -> fallback
+```
+| Problem | What happens |
+|---|---|
+| rate limit (429), short wait (≤ 5 s) | wait, retry the **same** model once |
+| rate limit with a long wait (e.g. daily limit) | **next model at once** — never freeze the user |
+| timeout / connection / 5xx | retry once, then next model |
+| model removed (404) | next model at once |
+| empty reply (a reasoning model used all tokens thinking) | next model |
+| bad key (401 / 403) | **stop** with a clear message — every model would fail the same way |
+| every model failed | `LLMUnavailable` → the user sees "busy, try again"; **nothing is invented** |
+
+Every call records which model answered and every attempt (for Phase 8 tracing). Checked against the **real** Groq API:
+a nonexistent main model → `NotFoundError 404` → `qwen` answered, attempts recorded; a wrong key → "Groq rejected the API key".
+The key lives in `.env` as `GROQ_API_KEY`; it is never printed or committed.
+
+*2. The answer step (`answer.py`)* — the LLM is **not trusted**:
+- Excerpts are numbered (`[1] leave_policy.pdf, page 1 | Leave Policy > Sick Leave`) and wrapped in `<excerpts>` tags; the
+  prompt says they are **data, never instructions** (a document saying "ignore your rules" must not work).
+- The LLM must reply `NOT_IN_DOCUMENTS` when the excerpts don't contain the answer (**the second "I don't know" layer**:
+  near-topic questions pass the Stage 3 score gate, so the LLM has to refuse them).
+- Every `[n]` must be a real excerpt number. Made-up numbers are dropped and flagged. Models cite in different styles
+  (`gpt-oss` writes full-width `【1】`), so all styles are normalised to `[1]`.
+- An answer with **no valid citation is not shown** (`uncited`): an unsourced answer is worse than "I don't know".
+- Statuses: `answered`, `refused_gate`, `refused_llm`, `uncited`, `llm_unavailable`. The prompt is versioned (`answer-v1`).
+
+*3. `python -m indexing.ask "..."`* — a real answer in the terminal, with sources and the model used.
+```
+Q: "How long is maternity leave and paternity leave?"
+Maternity leave is 26 weeks and paternity leave is 10 working days, to be taken within 3 months of the child's birth [1].
+Sources:  [1] leave_policy.pdf > 3. Maternity and Paternity Leave  (page 2)
+[answered | model openai/gpt-oss-120b | 3299 ms]
+
+Q: "What is the capital of France?"   ->  "I couldn't find anything about this in the company documents."
+[refused_gate: stopped by the score gate (no LLM call)]
+```
+*4. `python -m indexing.answer_eval`* — all 76 questions through the real pipeline, **once per model with no fallback**
+(so models are compared fairly). Replies are cached on disk (with their original latency) so re-runs are free.
+
+**Results (saved as `evals/answer_baseline.json`; temperature 0; 44 answerable + 22 near-topic + 10 off-topic)**
+```
+MODEL                 answered  right chunk  numbers ok  near-topic refused  off-topic refused
+gpt-oss-120b (main)      98%       100%         96%            100%               100%
+qwen3.8-27b (fallback)  100%       100%         96%             96%               100%
+gpt-oss-20b (small)      98%       100%         92%            100%               100%
+```
+**Even the small and fallback models follow the rules**: all three refuse nearly every question that has no answer.
+That is the answer to "can a small model do simple tasks?": for *this* job, yes, on this test.
+
+**Read these numbers honestly**
+1. **A prompt example leaked a test question — and I caught it.** My first prompt used "how much is the joining
+   bonus" as its refusal example; that is one of the 22 near-topic test questions, so the first 100% was partly rigged.
+   I replaced the example with one that is in no test set (parking allowance), cleared the cache, and re-ran.
+   Near-topic refusal stayed 100% / 100% / 100% on that run. Lesson: **never put test questions in the prompt.**
+2. **Temperature 0 is NOT deterministic on Groq.** Two live runs of the same prompt differed: gpt-oss-120b changed
+   wording in 20 of 76 answers, and one question flipped (`When are performance reviews done?` answered → refused);
+   qwen flipped one near-topic question (`How do I reset my email password?` refused → a hedged answer: "the excerpts do
+   not state how... only that passwords must be changed every 90 days [1]"); gpt-oss-20b changed 5. So **a difference of one
+   question, between models or between runs, is noise.** The table above is the third live run.
+3. **One genuinely hard question:** `When are performance reviews done?`. The Probation section says "Confirmation depends on
+   a performance review", the Appraisals section says "once a year in April". Retrieval ranked Probation first (we saw this
+   in Phase 2). Models disagree and flip: 120b once cited the wrong chunk, 120b / 20b sometimes refused, qwen answered right.
+4. **"numbers ok" is a rough proxy, not correctness.** It checks that the numbers of the expected answer appear in the
+   text. The 2 "misses" (`Which department loses the most employees?` → "Sales ... 11.2%", `L2 grade CTC` → "8 LPA, 14 LPA") are
+   **correct answers** that my check can't see. It also can't catch a fluent wrong sentence. **Real answer scoring (faithfulness,
+   relevancy) is Phase 4.**
+5. **A hedge is not a refusal.** qwen sometimes writes "the excerpts do not state X, but ..." with a citation instead of
+   `NOT_IN_DOCUMENTS`. That is honest but it is not what the prompt asked, and my status check counts it as answered.
+   Phase 4's faithfulness checks should catch this kind of answer.
+6. **Latency is unstable**: median LLM time was 1.4 s / 4.3 s / 2.9 s in one run and 0.5 s / 0.3 s / 0.5 s in the next
+   (qwen's 4.3 s was probably free-tier rate-limit waiting). Retrieval + reranking adds about 1 s. A single `ask`
+   took 2.8–3.3 s end to end. Don't quote one number.
+7. All 76 questions are mine, on 12 tiny documents, and the prompt was tuned while looking at them (apart from the leaked
+   example, which I removed). Treat these as a first measurement.
+
+**What is NOT built yet**
+- The **small model has no job of its own yet.** It is wired as the second tier and the last fallback; its first real
+  uses will be input checks (greetings, off-topic, prompt-injection screening) in Phase 6, and maybe rewriting vague questions.
+- **Streaming** (words appearing as they are written) comes in Stage 5 with the API.
+
+**Tests (224 total, 25 new in `test_llm_answer.py`, no network):** a scripted fake LLM covers every fallback path —
+normal answer; short rate limit waits and retries the same model; long rate limit skips to the next model with no sleep;
+5xx retried once then fallback; timeouts; removed model skipped; empty answer; **bad key stops everything**; missing key;
+all models failing; small tier order; error classification. And the answer step: gate refusal never calls the LLM;
+citations only for sources really cited; full-width `【1】` normalised; LLM refusal; **no valid citation → not shown**;
+made-up numbers dropped; "busy" message when everything fails; the prompt fences excerpts as data and a hidden
+"ignore all rules" stays inside the fence.
+
+```bash
+python -m indexing.ask "How long is maternity leave?"
+python -m indexing.answer_eval                         # needs GROQ_API_KEY; cached replies make re-runs free
+python -m indexing.answer_eval --models openai/gpt-oss-120b
+```
+
+**Memory trick:** *An intern with only the folders on the table: quote the page, say "not in these folders" when it isn't —
+and check every page number, because even at temperature 0 the same intern doesn't always write the same sentence.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1316,6 +1435,7 @@ python -m indexing.retrieval_eval
 # Phase 3: compare vector / keyword / hybrid search on the real database
 python -m indexing.search_eval
 python -m indexing.abstain_eval      # the "I don't know" gate: answered / blocked / margins
+python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
 
 # Phase 2: background jobs (Docker running)
 celery -A indexing.worker worker --loglevel=info --pool=solo

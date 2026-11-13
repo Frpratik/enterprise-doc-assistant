@@ -109,6 +109,16 @@ class Settings(BaseSettings):
     nightly_sync_minute: int = 15
     job_time_limit_sec: int = 600                             # a job running longer than this is stopped
 
+    # ---------- LLM (Phase 3 Stage 4): Groq, with a fallback chain ----------
+    groq_api_key: str = Field("", validation_alias=AliasChoices("GROQ_API_KEY", "INGEST_GROQ_API_KEY"))  # in .env, never in git
+    llm_main_model: str = "openai/gpt-oss-120b"       # writes the answers
+    llm_fallback_model: str = "qwen/qwen3.8-27b"      # a DIFFERENT model family: used when the main model fails
+    llm_small_model: str = "openai/gpt-oss-20b"       # simple, cheap jobs; also the last fallback
+    llm_timeout_sec: int = 30                          # one call must finish within this
+    llm_max_wait_sec: float = 5.0                      # on a rate limit, wait at most this long before trying the next model
+    llm_answer_max_tokens: int = 1200                  # reasoning models "think" first, so leave room
+    answer_context_chunks: int = 5                     # how many chunks the LLM gets to read
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

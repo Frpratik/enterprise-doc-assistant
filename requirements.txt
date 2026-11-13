@@ -33,3 +33,6 @@ structlog
 # --- Dev / tests / sample data ---
 pytest
 reportlab        # only used to generate sample PDFs
+
+# --- Phase 3: answers (Groq LLM; key goes in .env as GROQ_API_KEY) ---
+groq             # the Groq API client

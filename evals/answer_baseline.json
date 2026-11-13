@@ -1,0 +1,1964 @@
+{
+  "prompt_version": "answer-v1",
+  "models": {
+    "openai/gpt-oss-120b": {
+      "summary": {
+        "answerable_answered": 0.977,
+        "answerable_refused_by_llm": 1,
+        "answerable_uncited": 0,
+        "cited_right_chunk": 1.0,
+        "numbers_match": 0.958,
+        "invalid_citations": 0,
+        "near_topic_refused": 1.0,
+        "off_topic_refused": 1.0,
+        "median_llm_ms": 498
+      },
+      "rows": {
+        "answerable": [
+          {
+            "q": "How many sick days am I entitled to each year?",
+            "status": "answered",
+            "text": "Employees receive 12 sick days per year [1][2].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 1405,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "When do I need a doctor's note for being ill?",
+            "status": "answered",
+            "text": "A medical certificate is required for sick leave longer than\u202f2\u202fconsecutive days[1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 533,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How far in advance must I request casual leave?",
+            "status": "answered",
+            "text": "Casual leave must be applied at least\u202f1\u202fday in advance through the HR portal [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 511,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Can unused earned leave be carried over to next year?",
+            "status": "answered",
+            "text": "Yes, unused earned leave can be carried forward to the next year, up to a maximum of 30 days [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 865,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How long is maternity leave?",
+            "status": "answered",
+            "text": "Maternity leave is 26 weeks [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 261,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many days notice must I give before resigning?",
+            "status": "answered",
+            "text": "The notice period for all permanent employees is 60 days[1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 862,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What time does the office open and close?",
+            "status": "answered",
+            "text": "The office opens at\u202f9:30\u202fAM and closes at\u202f6:30\u202fPM[1][2]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 354,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Where do I report harassment at work?",
+            "status": "answered",
+            "text": "Report any harassment to\u202fhr@acme-example.com[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 583,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Can I wear jeans on Friday?",
+            "status": "answered",
+            "text": "Yes, Friday is a casual dress day, so jeans are permitted. [1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 486,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many people work at the company?",
+            "status": "answered",
+            "text": "The company has 412 employees\u202f[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 268,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Which department loses the most employees?",
+            "status": "answered",
+            "text": "Sales department has the highest attrition rate at 11.2\u202f%[2]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 496,
+            "cited_right": true,
+            "numbers_match": false,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the employee satisfaction rating?",
+            "status": "answered",
+            "text": "Employee Satisfaction Score is 4.2\u202f/\u202f5[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 523,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How long is the probation period for new joiners?",
+            "status": "answered",
+            "text": "New employees are on probation for 6 months [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 430,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "When are performance reviews done?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "model": "openai/gpt-oss-120b",
+            "ms": 555,
+            "cited_right": null,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What must I hand back on my last day?",
+            "status": "answered",
+            "text": "Employees must return the laptop and ID card on the last working day [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 497,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Does the company cover medical insurance for my family?",
+            "status": "answered",
+            "text": "Yes, the company provides health insurance for both the employee and their family [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 569,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How much money do I get for courses and learning each year?",
+            "status": "answered",
+            "text": "You receive an annual learning budget of Rs\u202f25,000 per year [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 509,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How much of my phone bill can I claim every month?",
+            "status": "answered",
+            "text": "You can claim up to\u202f800\u202fRs per month for your mobile bill\u202f[1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 510,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What number do I call for IT help?",
+            "status": "answered",
+            "text": "The IT helpdesk can be reached at extension\u202f4455[1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 455,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What should I do in my first week after joining?",
+            "status": "answered",
+            "text": "Collect a laptop from IT, complete the payroll form, meet your buddy, and finish security training [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 498,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the email address of the IT team?",
+            "status": "answered",
+            "text": "The IT team\u2019s email address is it@acme-example.com [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 599,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the salary range for grade L2?",
+            "status": "answered",
+            "text": "The salary range for grade\u202fL2 is\u202f8\u202fLPA to\u202f14\u202fLPA[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 435,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What percentage of my CTC is basic pay?",
+            "status": "answered",
+            "text": "40\u202f% of CTC is basic pay [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 325,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Is Diwali a company holiday this year?",
+            "status": "answered",
+            "text": "Yes, Diwali is a company holiday this year [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 432,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "When is the fire drill happening?",
+            "status": "answered",
+            "text": "The fire drill is scheduled for 15\u202fNovember\u202f2026 at 11:00\u202fAM[1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 541,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How often do I have to update my password?",
+            "status": "answered",
+            "text": "Passwords must be changed every 90 days [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 471,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many days a week can I work remotely?",
+            "status": "answered",
+            "text": "Employees can work from home 2 days a week [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 835,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Will the company give me a monitor for home?",
+            "status": "answered",
+            "text": "Yes, the company will provide a monitor for home if you request it [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 292,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How do I apply for leave?",
+            "status": "answered",
+            "text": "Use the HR portal under\u202fLeave\u202f>\u202fApply[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 541,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "On which day is my salary paid?",
+            "status": "answered",
+            "text": "Salary is credited on the last working day of the month. [1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 384,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "ext 4455",
+            "status": "answered",
+            "text": "The helpdesk can be reached at extension\u202f4455[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 497,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "it@acme-example.com",
+            "status": "answered",
+            "text": "it@acme-example.com [1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 547,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "payroll@acme-example.com",
+            "status": "answered",
+            "text": "payroll@acme-example.com[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 535,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "hr@acme-example.com",
+            "status": "answered",
+            "text": "hr@acme-example.com\u202f[1][2]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 349,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "HRA",
+            "status": "answered",
+            "text": "HRA accounts for 20\u202f% of CTC[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 316,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Dussehra",
+            "status": "answered",
+            "text": "Dussehra is on 2026\u201110\u201120[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 533,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "L2 grade CTC",
+            "status": "answered",
+            "text": "L2 grade CTC ranges from 8\u202fLPA to 14\u202fLPA [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 316,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Republic Day date",
+            "status": "answered",
+            "text": "Republic Day is on 2026-01-26[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 675,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Rs 25,000",
+            "status": "answered",
+            "text": "Annual learning budget of Rs\u202f25,000 per employee[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 455,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "412 employees",
+            "status": "answered",
+            "text": "The total headcount at the end of Q3 was 412 employees [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 499,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "26 weeks",
+            "status": "answered",
+            "text": "Maternity leave is 26 weeks[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 282,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Annexure A",
+            "status": "answered",
+            "text": "Annexure\u202fA is the signed approval showing a budget of Rs\u202f5,00,000 for \u201c04 tralning\u201d approved by the Finance Head[1]",
+            "model": "openai/gpt-oss-120b",
+            "ms": 638,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "15 November",
+            "status": "answered",
+            "text": "Fire drill is scheduled for 15\u202fNovember\u202f2026 at 11:00\u202fAM, and employees should assemble at the main parking area [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 571,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Attrition %",
+            "status": "answered",
+            "text": "Engineering attrition is 6.5\u202f% [1]. Sales attrition is 11.2\u202f% [1]. HR attrition is 3.0\u202f% [1].",
+            "model": "openai/gpt-oss-120b",
+            "ms": 347,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          }
+        ],
+        "near_topic": [
+          {
+            "q": "How many days of leave do I get for my marriage?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4102
+          },
+          {
+            "q": "What is the bereavement leave policy?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 1549
+          },
+          {
+            "q": "When is Holi this year?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2219
+          },
+          {
+            "q": "How many days of paid time off do I get for volunteering?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4504
+          },
+          {
+            "q": "What is the dental coverage under the health insurance?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2510
+          },
+          {
+            "q": "What is the sales commission structure?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How much is the joining bonus?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 1540
+          },
+          {
+            "q": "What is the CEO's salary?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the policy on smoking in the office?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 1301
+          },
+          {
+            "q": "How many stock options do employees get?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2509
+          },
+          {
+            "q": "How do I reset my email password?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 522
+          },
+          {
+            "q": "Which VPN should I use for remote work?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 917
+          },
+          {
+            "q": "How many people work in the Finance department?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 288
+          },
+          {
+            "q": "What is the attrition rate in Marketing?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 1944
+          },
+          {
+            "q": "What is the CTC range for grade L4?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 508
+          },
+          {
+            "q": "Who is the head of Engineering?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What time does the cafeteria close?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 481
+          },
+          {
+            "q": "How much is the relocation allowance?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 269
+          },
+          {
+            "q": "What are the rules for the Diwali bonus?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 291
+          },
+          {
+            "q": "Where is the Pune office located?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How often are fire drills held?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 454
+          },
+          {
+            "q": "What is the laptop replacement cycle?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 398
+          }
+        ],
+        "off_topic": [
+          {
+            "q": "What is the capital of France?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How do I bake a chocolate cake?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Who won the cricket world cup?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the weather in Mumbai today?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Translate 'good morning' into French.",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the stock price of Tesla?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Write a poem about spring.",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How do I fix a flat bicycle tyre?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Who is the prime minister of Canada?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the meaning of life?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          }
+        ]
+      }
+    },
+    "qwen/qwen3.8-27b": {
+      "summary": {
+        "answerable_answered": 1.0,
+        "answerable_refused_by_llm": 0,
+        "answerable_uncited": 0,
+        "cited_right_chunk": 1.0,
+        "numbers_match": 0.958,
+        "invalid_citations": 0,
+        "near_topic_refused": 0.955,
+        "off_topic_refused": 1.0,
+        "median_llm_ms": 262
+      },
+      "rows": {
+        "answerable": [
+          {
+            "q": "How many sick days am I entitled to each year?",
+            "status": "answered",
+            "text": "You are entitled to 12 sick leaves per year [1][2].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 1704,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "When do I need a doctor's note for being ill?",
+            "status": "answered",
+            "text": "A medical certificate is required for sick leave longer than 2 consecutive days [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 680,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How far in advance must I request casual leave?",
+            "status": "answered",
+            "text": "Casual leave must be applied at least 1 day in advance through the HR portal [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 511,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Can unused earned leave be carried over to next year?",
+            "status": "answered",
+            "text": "Yes, unused earned leave can be carried forward to the next year, up to a maximum of 30 days [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 303,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How long is maternity leave?",
+            "status": "answered",
+            "text": "Maternity leave is 26 weeks [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 163,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many days notice must I give before resigning?",
+            "status": "answered",
+            "text": "The notice period for all permanent employees is 60 days [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 189,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What time does the office open and close?",
+            "status": "answered",
+            "text": "Office hours are 9:30 AM to 6:30 PM [1][2].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 539,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Where do I report harassment at work?",
+            "status": "answered",
+            "text": "Report any harassment to hr@acme-example.com [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 298,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Can I wear jeans on Friday?",
+            "status": "answered",
+            "text": "Yes, you can wear jeans on Friday because it is designated as casual dress day [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 583,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many people work at the company?",
+            "status": "answered",
+            "text": "The total headcount at the end of Q3 was 412 employees [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 168,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Which department loses the most employees?",
+            "status": "answered",
+            "text": "Sales loses the most employees with an attrition rate of 11.2% [2].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 3583,
+            "cited_right": true,
+            "numbers_match": false,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the employee satisfaction rating?",
+            "status": "answered",
+            "text": "The employee satisfaction score is 4.2 / 5 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 162,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How long is the probation period for new joiners?",
+            "status": "answered",
+            "text": "New employees are on probation for 6 months. [1]",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 146,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "When are performance reviews done?",
+            "status": "answered",
+            "text": "Appraisals happen once a year in April [2].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 154,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What must I hand back on my last day?",
+            "status": "answered",
+            "text": "You must return the laptop and ID card on your last working day [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 313,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Does the company cover medical insurance for my family?",
+            "status": "answered",
+            "text": "Yes, the company provides health insurance for the employee and their family [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 366,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How much money do I get for courses and learning each year?",
+            "status": "answered",
+            "text": "You receive an annual learning budget of Rs 25,000 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 227,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How much of my phone bill can I claim every month?",
+            "status": "answered",
+            "text": "You can claim up to Rs 800 per month for mobile expenses. [1]",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 738,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What number do I call for IT help?",
+            "status": "answered",
+            "text": "The number to call for IT help is extension 4455 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 235,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What should I do in my first week after joining?",
+            "status": "answered",
+            "text": "In your first week, you should collect your laptop from IT, complete the payroll form, meet your buddy, and finish security training [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 183,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the email address of the IT team?",
+            "status": "answered",
+            "text": "The email address of the IT team is it@acme-example.com [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 160,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the salary range for grade L2?",
+            "status": "answered",
+            "text": "The salary range for grade L2 is 8 to 14 LPA [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 456,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What percentage of my CTC is basic pay?",
+            "status": "answered",
+            "text": "Basic pay is 40% of your CTC [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 1028,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Is Diwali a company holiday this year?",
+            "status": "answered",
+            "text": "Yes, Diwali is a company holiday on 2026-11-08 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 909,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "When is the fire drill happening?",
+            "status": "answered",
+            "text": "The fire drill is happening on 15 November 2026 at 11:00 AM [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 571,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How often do I have to update my password?",
+            "status": "answered",
+            "text": "Passwords must be changed every 90 days [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 159,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many days a week can I work remotely?",
+            "status": "answered",
+            "text": "Employees can work from home 2 days a week [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 472,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Will the company give me a monitor for home?",
+            "status": "answered",
+            "text": "Yes, a monitor is provided on request. [1]",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 150,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How do I apply for leave?",
+            "status": "answered",
+            "text": "Use the HR portal under Leave > Apply [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 487,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "On which day is my salary paid?",
+            "status": "answered",
+            "text": "Salary is credited on the last working day of the month [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 175,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "ext 4455",
+            "status": "answered",
+            "text": "The helpdesk can be reached at ext 4455 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 619,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "it@acme-example.com",
+            "status": "answered",
+            "text": "The email address it@acme-example.com is the contact for the IT team [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 168,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "payroll@acme-example.com",
+            "status": "answered",
+            "text": "The email address payroll@acme-example.com is the contact for Payroll queries [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 162,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "hr@acme-example.com",
+            "status": "answered",
+            "text": "The email address hr@acme-example.com is the contact for the HR team [1] and is where harassment should be reported [2].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 208,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "HRA",
+            "status": "answered",
+            "text": "HRA constitutes 20% of the CTC [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 677,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Dussehra",
+            "status": "answered",
+            "text": "Dussehra is a holiday on 2026-10-20 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 166,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "L2 grade CTC",
+            "status": "answered",
+            "text": "The CTC range for the L2 grade is 8 to 14 LPA [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 170,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Republic Day date",
+            "status": "answered",
+            "text": "Republic Day is on 2026-01-26 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 168,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Rs 25,000",
+            "status": "answered",
+            "text": "The annual learning budget is Rs 25,000 [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 161,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "412 employees",
+            "status": "answered",
+            "text": "The total headcount at the end of Q3 was 412 employees [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 523,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "26 weeks",
+            "status": "answered",
+            "text": "Maternity leave is 26 weeks [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 179,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Annexure A",
+            "status": "answered",
+            "text": "Annexure A is the signed approval for a budget of Rs 5,00,000 for 04 training, signed by the Finance Head [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 199,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "15 November",
+            "status": "answered",
+            "text": "A fire drill is scheduled for 15 November 2026 at 11:00, with employees required to assemble at the main area [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 262,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Attrition %",
+            "status": "answered",
+            "text": "The attrition percentages for Q3 2026 are 6.5% for Engineering, 11.2% for Sales, and 3.0% for HR [1].",
+            "model": "qwen/qwen3.8-27b",
+            "ms": 822,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          }
+        ],
+        "near_topic": [
+          {
+            "q": "How many days of leave do I get for my marriage?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4185
+          },
+          {
+            "q": "What is the bereavement leave policy?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5164
+          },
+          {
+            "q": "When is Holi this year?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5163
+          },
+          {
+            "q": "How many days of paid time off do I get for volunteering?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4400
+          },
+          {
+            "q": "What is the dental coverage under the health insurance?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5191
+          },
+          {
+            "q": "What is the sales commission structure?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How much is the joining bonus?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4367
+          },
+          {
+            "q": "What is the CEO's salary?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the policy on smoking in the office?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5300
+          },
+          {
+            "q": "How many stock options do employees get?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4404
+          },
+          {
+            "q": "How do I reset my email password?",
+            "status": "answered",
+            "text": "The provided excerpts do not state how to specifically email password, only that passwords must be every 90 days [1].",
+            "ms": 4429
+          },
+          {
+            "q": "Which VPN should I use for remote work?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4167
+          },
+          {
+            "q": "How many people work in the Finance department?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5369
+          },
+          {
+            "q": "What is the attrition rate in Marketing?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4204
+          },
+          {
+            "q": "What is the CTC range for grade L4?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5306
+          },
+          {
+            "q": "Who is the head of Engineering?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What time does the cafeteria close?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5312
+          },
+          {
+            "q": "How much is the relocation allowance?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4187
+          },
+          {
+            "q": "What are the rules for the Diwali bonus?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5548
+          },
+          {
+            "q": "Where is the Pune office located?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How often are fire drills held?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4483
+          },
+          {
+            "q": "What is the laptop replacement cycle?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4162
+          }
+        ],
+        "off_topic": [
+          {
+            "q": "What is the capital of France?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How do I bake a chocolate cake?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Who won the cricket world cup?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the weather in Mumbai today?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Translate 'good morning' into French.",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the stock price of Tesla?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Write a poem about spring.",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How do I fix a flat bicycle tyre?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Who is the prime minister of Canada?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the meaning of life?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          }
+        ]
+      }
+    },
+    "openai/gpt-oss-20b": {
+      "summary": {
+        "answerable_answered": 0.977,
+        "answerable_refused_by_llm": 1,
+        "answerable_uncited": 0,
+        "cited_right_chunk": 1.0,
+        "numbers_match": 0.917,
+        "invalid_citations": 0,
+        "near_topic_refused": 1.0,
+        "off_topic_refused": 1.0,
+        "median_llm_ms": 478
+      },
+      "rows": {
+        "answerable": [
+          {
+            "q": "How many sick days am I entitled to each year?",
+            "status": "answered",
+            "text": "12 sick leaves per year. [1][2]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 1508,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "When do I need a doctor's note for being ill?",
+            "status": "answered",
+            "text": "A medical certificate is required for sick leave longer than 2 consecutive days. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 487,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How far in advance must I request casual leave?",
+            "status": "answered",
+            "text": "You must request casual leave at least 1 day in advance through the HR portal. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 610,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Can unused earned leave be carried over to next year?",
+            "status": "answered",
+            "text": "Yes, unused earned leave can be carried over to the next year, up to 30 days. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 395,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How long is maternity leave?",
+            "status": "answered",
+            "text": "Maternity leave is 26 weeks. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 492,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many days notice must I give before resigning?",
+            "status": "answered",
+            "text": "60 days. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 1570,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What time does the office open and close?",
+            "status": "answered",
+            "text": "The office opens at 9:30\u202fAM and closes at 6:30\u202fPM. [1][2]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 342,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Where do I report harassment at work?",
+            "status": "answered",
+            "text": "Report any harassment to hr@acme-example.com. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 979,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Can I wear jeans on Friday?",
+            "status": "answered",
+            "text": "Yes, Friday is a casual dress day. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 443,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many people work at the company?",
+            "status": "answered",
+            "text": "412 employees [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 568,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Which department loses the most employees?",
+            "status": "answered",
+            "text": "Sales has the highest attrition rate at 11.2\u202f%[2]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 450,
+            "cited_right": true,
+            "numbers_match": false,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the employee satisfaction rating?",
+            "status": "answered",
+            "text": "Employee satisfaction rating: 4.2 / 5[1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 458,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How long is the probation period for new joiners?",
+            "status": "answered",
+            "text": "6 months [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 1050,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "When are performance reviews done?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "model": "openai/gpt-oss-20b",
+            "ms": 641,
+            "cited_right": null,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What must I hand back on my last day?",
+            "status": "answered",
+            "text": "Employees must return the laptop and ID card on the last working day. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 492,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Does the company cover medical insurance for my family?",
+            "status": "answered",
+            "text": "Yes, the company provides health insurance for employees and their families. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 449,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How much money do I get for courses and learning each year?",
+            "status": "answered",
+            "text": "Rs\u202f25,000 per year for courses and learning. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 693,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How much of my phone bill can I claim every month?",
+            "status": "answered",
+            "text": "800 Rs per month. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 172,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What number do I call for IT help?",
+            "status": "answered",
+            "text": "Call the IT helpdesk at extension 4455. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 936,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What should I do in my first week after joining?",
+            "status": "answered",
+            "text": "Collect laptop from IT, complete payroll form, meet your buddy, and finish security training. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 478,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the email address of the IT team?",
+            "status": "answered",
+            "text": "hr@acme-example.com [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 230,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "What is the salary range for grade L2?",
+            "status": "answered",
+            "text": "Grade\u202fL2 salary range: 8\u202fLPA to 14\u202fLPA. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 503,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "What percentage of my CTC is basic pay?",
+            "status": "answered",
+            "text": "40% [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 468,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Is Diwali a company holiday this year?",
+            "status": "answered",
+            "text": "Yes, Diwali is listed as a company holiday in 2026. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 899,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "When is the fire drill happening?",
+            "status": "answered",
+            "text": "The fire drill is scheduled for 15\u202fNovember\u202f2026 at 11:00\u202fAM. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 528,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How often do I have to update my password?",
+            "status": "answered",
+            "text": "Passwords must be changed every 90 days. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 435,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "How many days a week can I work remotely?",
+            "status": "answered",
+            "text": "Employees can work from home 2 days a week. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 693,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Will the company give me a monitor for home?",
+            "status": "answered",
+            "text": "Yes, a monitor can be provided if you request it. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 497,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "How do I apply for leave?",
+            "status": "answered",
+            "text": "Use the HR portal under Leave\u202f>\u202fApply. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 492,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "On which day is my salary paid?",
+            "status": "answered",
+            "text": "Salary is credited on the last working day of the month. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 547,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "ext 4455",
+            "status": "answered",
+            "text": "ext 4455 [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 450,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "it@acme-example.com",
+            "status": "answered",
+            "text": "it@acme-example.com [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 509,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "payroll@acme-example.com",
+            "status": "answered",
+            "text": "payroll@acme-example.com [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 343,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "hr@acme-example.com",
+            "status": "answered",
+            "text": "hr@acme-example.com is the email address for the HR team. [1][2]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 459,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "HRA",
+            "status": "answered",
+            "text": "HRA is 20% of the CTC. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 484,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Dussehra",
+            "status": "answered",
+            "text": "2026-10-20 is the date for Dussehra. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 670,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "L2 grade CTC",
+            "status": "answered",
+            "text": "Min CTC: 8 LPA, Max CTC: 14 LPA [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 262,
+            "cited_right": true,
+            "numbers_match": false,
+            "invalid_citations": []
+          },
+          {
+            "q": "Republic Day date",
+            "status": "answered",
+            "text": "2026-01-26[1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 261,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "Rs 25,000",
+            "status": "answered",
+            "text": "Annual learning budget of Rs\u202f25,000. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 459,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "412 employees",
+            "status": "answered",
+            "text": "412 employees [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 373,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "26 weeks",
+            "status": "answered",
+            "text": "Maternity leave is 26 weeks. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 250,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Annexure A",
+            "status": "answered",
+            "text": "Annexure\u202fA is the signed approval for the budget of the 04 tralning, amounting to Rs\u202f5,00,000, signed by the Finance Head. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 275,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          },
+          {
+            "q": "15 November",
+            "status": "answered",
+            "text": "Fire drill 15\u202fNovember\u202f2026 at\u202f11:00\u202fAM. [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 306,
+            "cited_right": true,
+            "numbers_match": true,
+            "invalid_citations": []
+          },
+          {
+            "q": "Attrition %",
+            "status": "answered",
+            "text": "Attrition %: Engineering 6.5% [1], Sales 11.2% [1], HR 3.0% [1]",
+            "model": "openai/gpt-oss-20b",
+            "ms": 287,
+            "cited_right": true,
+            "numbers_match": null,
+            "invalid_citations": []
+          }
+        ],
+        "near_topic": [
+          {
+            "q": "How many days of leave do I get for my marriage?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 3451
+          },
+          {
+            "q": "What is the bereavement leave policy?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4742
+          },
+          {
+            "q": "When is Holi this year?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2859
+          },
+          {
+            "q": "How many days of paid time off do I get for volunteering?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2300
+          },
+          {
+            "q": "What is the dental coverage under the health insurance?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2297
+          },
+          {
+            "q": "What is the sales commission structure?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How much is the joining bonus?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 3215
+          },
+          {
+            "q": "What is the CEO's salary?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the policy on smoking in the office?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2489
+          },
+          {
+            "q": "How many stock options do employees get?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2535
+          },
+          {
+            "q": "How do I reset my email password?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2721
+          },
+          {
+            "q": "Which VPN should I use for remote work?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 3473
+          },
+          {
+            "q": "How many people work in the Finance department?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2457
+          },
+          {
+            "q": "What is the attrition rate in Marketing?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 5559
+          },
+          {
+            "q": "What is the CTC range for grade L4?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2600
+          },
+          {
+            "q": "Who is the head of Engineering?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What time does the cafeteria close?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 2508
+          },
+          {
+            "q": "How much is the relocation allowance?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 4167
+          },
+          {
+            "q": "What are the rules for the Diwali bonus?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 3485
+          },
+          {
+            "q": "Where is the Pune office located?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How often are fire drills held?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 1968
+          },
+          {
+            "q": "What is the laptop replacement cycle?",
+            "status": "refused_llm",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 3797
+          }
+        ],
+        "off_topic": [
+          {
+            "q": "What is the capital of France?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How do I bake a chocolate cake?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Who won the cricket world cup?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the weather in Mumbai today?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Translate 'good morning' into French.",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the stock price of Tesla?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Write a poem about spring.",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "How do I fix a flat bicycle tyre?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "Who is the prime minister of Canada?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          },
+          {
+            "q": "What is the meaning of life?",
+            "status": "refused_gate",
+            "text": "I couldn't find anything about this in the company documents.",
+            "ms": 0
+          }
+        ]
+      }
+    }
+  }
+}
