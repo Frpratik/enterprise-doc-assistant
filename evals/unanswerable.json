@@ -1,0 +1,40 @@
+{
+  "about": "Questions whose answer is NOT in the 12 sample documents. 'off_topic' = nothing to do with the company. 'near_topic' = sounds like the documents (leave, salary, holidays, IT ...) but the answer is not there. Written by hand by the project author, who checked each one against the document text. Used to test the 'I don't know' rule: the assistant must NOT answer these.",
+  "version": 1,
+  "off_topic": [
+    "What is the capital of France?",
+    "How do I bake a chocolate cake?",
+    "Who won the cricket world cup?",
+    "What is the weather in Mumbai today?",
+    "Translate 'good morning' into French.",
+    "What is the stock price of Tesla?",
+    "Write a poem about spring.",
+    "How do I fix a flat bicycle tyre?",
+    "Who is the prime minister of Canada?",
+    "What is the meaning of life?"
+  ],
+  "near_topic": [
+    "How many days of leave do I get for my marriage?",
+    "What is the bereavement leave policy?",
+    "When is Holi this year?",
+    "How many days of paid time off do I get for volunteering?",
+    "What is the dental coverage under the health insurance?",
+    "What is the sales commission structure?",
+    "How much is the joining bonus?",
+    "What is the CEO's salary?",
+    "What is the policy on smoking in the office?",
+    "How many stock options do employees get?",
+    "How do I reset my email password?",
+    "Which VPN should I use for remote work?",
+    "How many people work in the Finance department?",
+    "What is the attrition rate in Marketing?",
+    "What is the CTC range for grade L4?",
+    "Who is the head of Engineering?",
+    "What time does the cafeteria close?",
+    "How much is the relocation allowance?",
+    "What are the rules for the Diwali bonus?",
+    "Where is the Pune office located?",
+    "How often are fire drills held?",
+    "What is the laptop replacement cycle?"
+  ]
+}

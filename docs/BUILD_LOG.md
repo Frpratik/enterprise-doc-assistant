@@ -1191,6 +1191,98 @@ and not magic: on a tiny library there is nothing left for it to fix.*
 
 ---
 
+### ✅ Stage 3 — The "I don't know" gate (`indexing/confidence.py`, `retrieve.py`, `abstain_eval.py`)
+
+**What:** a check that runs **before** the LLM and decides: did search find anything worth answering from?
+If not, we say *"I couldn't find anything about this in the company documents"* and never call the LLM.
+
+**Why:** vector search **always** returns its nearest chunks, even for "what is the capital of France?"
+(we saw this back in Phase 2 Stage 5). Hand those chunks to an LLM and it may write a confident answer
+out of irrelevant text. A company assistant that confidently makes things up is worse than none.
+
+**Analogy:** a security guard at the door of the answer room. He turns away visitors who are obviously
+lost — but he cannot judge a visitor who looks like they belong and asks for something we don't have.
+That second job belongs to the LLM (Stage 4).
+
+**What we built**
+1. **A hand-written set of 32 questions with NO answer in the documents** (`evals/unanswerable.json`):
+   10 **off-topic** (capital of France, bake a cake, ...) and 22 **near-topic** — they sound like our
+   documents but the answer isn't there ("How much is the joining bonus?", "What is the CEO's salary?",
+   "What is the CTC range for grade L4?"). I checked each against the document text. (I removed
+   "Is Christmas a company holiday?" because a 4-day holiday list arguably *does* answer it.)
+2. **`decide(hits)`** — two signals, **either one** can say "no":
+   the best **reranker score** (below −10.0) or the best **meaning score** (below 0.56).
+3. **`retrieve(question)`** — hybrid search → reranker → gate, in one call. Stage 4 starts here.
+4. **`python -m indexing.abstain_eval`** — runs all 76 questions through the real pipeline in a temporary
+   database and prints the three numbers, the **margins**, and every near-topic question that slipped past.
+5. `python -m indexing.search "..." --rerank` now prints a `GATE:` line.
+
+**How the thresholds were chosen (and what that really means)**
+I collected the scores for all 76 questions first, then looked at them.
+```
+                          rerank score (best chunk)      meaning score (best chunk)
+answerable (44)           weakest -9.5                   weakest 0.58
+off-topic  (10)           strongest -10.5                strongest 0.54
+chosen threshold          -10.0                          0.56            (the middle of each gap)
+```
+A grid search over both thresholds showed the trade-off:
+```
+rule                                        answerable kept   off-topic blocked   near-topic blocked
+rerank < -10.0 or meaning < 0.55                  100%              100%                14%
+rerank < -9.0  or meaning < 0.55                   93%              100%                41%
+rerank < -8.0  or meaning < 0.55                   93%              100%                55%
+rerank < -6.0  or meaning < 0.55                   89%              100%                64%
+```
+Being stricter blocks more near-topic questions — **and starts blocking questions the documents CAN answer**
+(doctor's note, phone bill, monitor, family insurance: the reranker scores these −7 to −9.5 because it is a
+web-search model and doesn't connect "doctor's note" with "medical certificate"). A leave-one-out check
+(choose the rule on 75 questions, test on the 76th) gave **43 of 44 answerable still answered**, and 16 of 32
+no-answer questions blocked.
+
+**Final result — saved as `evals/abstain_baseline.json`**
+```
+answerable questions still answered      100%  of 44   (want 100%)
+off-topic questions blocked              100%  of 10   (want 100%)
+near-topic questions blocked by scores    18%  of 22   (the LLM must refuse the other 18)
+```
+Blocked near-topic: "Where is the Pune office?" (−11.3), "Who is the head of Engineering?",
+"What is the CEO's salary?" and "What is the sales commission structure?". The other 18 pass the gate with scores that look completely normal
+(e.g. "How many days of leave for my marriage?" — rerank −1.2, meaning 0.72).
+
+**Read these numbers honestly**
+1. **The margins are thin.** Rerank: weakest answerable −9.5, threshold −10.0, strongest off-topic −10.5 — half a point
+   each side. Meaning: 0.58 / 0.56 / 0.54 — **0.02** each side. One new document or one odd question could cross a line.
+2. **Both thresholds were set by looking at the same questions they are scored on.** The leave-one-out check is some
+   protection, not proof. Re-run `abstain_eval` after any change to the models or the documents, and treat 44 + 32
+   questions as a start. A real company corpus will have different score ranges.
+3. **The gate solves only the easy half.** Scores catch *"obviously unrelated"*. They cannot catch *"related but not
+   there"*, because the documents really do talk about leave, pay and holidays. **82% of the near-topic questions go
+   through to the LLM.** If Stage 4's prompt does not make it refuse, the assistant will make up answers about bonuses
+   and commissions. Stage 4 will be measured on these exact 22 questions.
+4. The gate was designed to be **conservative on purpose**: blocking a question the documents can answer
+   ("doctor's note") is a visible failure for the user; letting a near-topic question reach the LLM has a second safety net.
+5. All questions are mine; the off-topic set is easy by nature (a 10-question sanity check, not a benchmark).
+
+**Lessons**
+- Search scores say *how close*, not *whether the answer is there*. "Is there an answer?" is a separate question.
+- Two layers beat one clever threshold: a cheap guard for the obvious cases, a smarter judge for the subtle ones.
+- Look at the margin, not just the pass rate. 100% with a 0.02 margin is a warning, not a victory.
+
+**Tests (199 total, 10 new in `test_confidence.py`):** no hits → no answer; a clear match passes; unrelated blocked;
+**either signal alone can block**; the best hit counts, not the first; the boundary values are exact; without the
+reranker only the meaning score is used; readable reasons; the question sets are well-formed and unique; and a
+**gate test with the real models** (100% of answerable answered, 100% of off-topic blocked, near-topic ≥ 10% as a floor).
+
+```bash
+python -m indexing.abstain_eval                 # the 3 numbers + margins + the near-topic questions that slipped through
+python -m indexing.search "what is the capital of France" --rerank      # shows GATE: NO ANSWER (...)
+```
+
+**Memory trick:** *A guard at the door turns away the obviously lost, not the look-alikes — and if his margin is
+only two hundredths, say so out loud. The look-alikes are the LLM's job.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1223,6 +1315,7 @@ python -m indexing.retrieval_eval
 
 # Phase 3: compare vector / keyword / hybrid search on the real database
 python -m indexing.search_eval
+python -m indexing.abstain_eval      # the "I don't know" gate: answered / blocked / margins
 
 # Phase 2: background jobs (Docker running)
 celery -A indexing.worker worker --loglevel=info --pool=solo

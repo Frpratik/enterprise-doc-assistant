@@ -98,6 +98,8 @@ class Settings(BaseSettings):
     rrf_keyword_weight: float = 0.1    # how much the keyword list counts vs the vector list (1.0 = equal). 0.1 = vector leads, keywords rescue exact terms
     rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"   # local cross-encoder (~80 MB, English)
     rerank_candidates: int = 10        # how many search results the reranker reads closely (more = slower, ~50 ms each)
+    min_rerank_score: float = -10.0    # "I don't know" gate: block if the best rerank score is below this ...
+    min_vector_score: float = 0.56     # ... or the best meaning score (cosine) is below this. Re-check with indexing.abstain_eval
     rrf_k: int = 60                    # RRF constant: how quickly lower ranks lose weight (60 is the usual value)
 
     # ---------- Background jobs (Phase 2) ----------

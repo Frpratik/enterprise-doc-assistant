@@ -203,7 +203,12 @@ def main(argv=None) -> int:
         print("No results (is anything indexed? try: python -m ingestion.run --file <file>)")
         return 0
     tag = args.mode + (" + rerank" if args.rerank else "")
-    print(f'\nQ: "{args.query}"   [{tag} search]\n')
+    print(f'\nQ: "{args.query}"   [{tag} search]')
+    if args.rerank:
+        from indexing.confidence import decide
+        d = decide(hits)
+        print(f"GATE: {'answerable' if d.answerable else 'NO ANSWER (' + d.reason + ')'}")
+    print()
     for i, h in enumerate(hits, 1):
         rr = f" | rerank {h.rerank_score:.1f}" if h.rerank_score is not None else ""
         print(f"{i}. [{h.score:.3f} | meaning {h.vector_score:.2f} | {h.found_by}{rr}] {h.file_name} > "

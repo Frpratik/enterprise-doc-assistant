@@ -1,0 +1,638 @@
+{
+  "thresholds": {
+    "min_rerank_score": -10.0,
+    "min_vector_score": 0.56
+  },
+  "counts": {
+    "answerable": 44,
+    "off_topic": 10,
+    "near_topic": 22
+  },
+  "summary": {
+    "answerable_answered": 1.0,
+    "off_topic_blocked": 1.0,
+    "near_topic_blocked": 0.18181818181818182
+  },
+  "margin": {
+    "weakest_answerable_rerank": -9.495,
+    "strongest_off_topic_rerank": -10.493,
+    "weakest_answerable_vector": 0.577,
+    "strongest_off_topic_vector": 0.541
+  },
+  "groups": {
+    "answerable": [
+      {
+        "q": "How many sick days am I entitled to each year?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 3.435,
+        "top_vector": 0.771,
+        "top": "leave_policy.pdf > 1. Sick Leave"
+      },
+      {
+        "q": "When do I need a doctor's note for being ill?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.495,
+        "top_vector": 0.643,
+        "top": "leave_policy.pdf > 1. Sick Leave"
+      },
+      {
+        "q": "How far in advance must I request casual leave?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 7.047,
+        "top_vector": 0.795,
+        "top": "leave_policy.pdf > 2. Casual Leave"
+      },
+      {
+        "q": "Can unused earned leave be carried over to next year?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -2.358,
+        "top_vector": 0.724,
+        "top": "leave_policy.pdf > Leave Summary"
+      },
+      {
+        "q": "How long is maternity leave?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 8.14,
+        "top_vector": 0.873,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      },
+      {
+        "q": "How many days notice must I give before resigning?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 0.101,
+        "top_vector": 0.794,
+        "top": "leave_policy.pdf > 4. Notice Period"
+      },
+      {
+        "q": "What time does the office open and close?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -0.952,
+        "top_vector": 0.649,
+        "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+      },
+      {
+        "q": "Where do I report harassment at work?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 2.503,
+        "top_vector": 0.682,
+        "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+      },
+      {
+        "q": "Can I wear jeans on Friday?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -2.527,
+        "top_vector": 0.693,
+        "top": "scanned_code_of_conduct.pdf > DRESS CODE"
+      },
+      {
+        "q": "How many people work at the company?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -0.366,
+        "top_vector": 0.677,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "Which department loses the most employees?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -7.795,
+        "top_vector": 0.583,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "What is the employee satisfaction rating?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 5.853,
+        "top_vector": 0.762,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "How long is the probation period for new joiners?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 4.578,
+        "top_vector": 0.746,
+        "top": "long_handbook.pdf > Probation"
+      },
+      {
+        "q": "When are performance reviews done?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -0.595,
+        "top_vector": 0.586,
+        "top": "long_handbook.pdf > Probation"
+      },
+      {
+        "q": "What must I hand back on my last day?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 1.811,
+        "top_vector": 0.687,
+        "top": "long_handbook.pdf > Exit Process"
+      },
+      {
+        "q": "Does the company cover medical insurance for my family?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -7.535,
+        "top_vector": 0.598,
+        "top": "employee_handbook.docx > Benefits"
+      },
+      {
+        "q": "How much money do I get for courses and learning each year?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -4.689,
+        "top_vector": 0.577,
+        "top": "employee_handbook.docx > Benefits"
+      },
+      {
+        "q": "How much of my phone bill can I claim every month?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.455,
+        "top_vector": 0.669,
+        "top": "employee_handbook.docx > Reimbursement Limits"
+      },
+      {
+        "q": "What number do I call for IT help?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 2.91,
+        "top_vector": 0.644,
+        "top": "employee_handbook.docx > IT Support"
+      },
+      {
+        "q": "What should I do in my first week after joining?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -0.02,
+        "top_vector": 0.735,
+        "top": "onboarding_deck.pptx > First Week Checklist"
+      },
+      {
+        "q": "What is the email address of the IT team?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -2.671,
+        "top_vector": 0.686,
+        "top": "onboarding_deck.pptx > Key Contacts"
+      },
+      {
+        "q": "What is the salary range for grade L2?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -1.207,
+        "top_vector": 0.641,
+        "top": "salary_structure.xlsx > Sheet: Salary Bands"
+      },
+      {
+        "q": "What percentage of my CTC is basic pay?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 3.25,
+        "top_vector": 0.785,
+        "top": "salary_structure.xlsx > Sheet: Components"
+      },
+      {
+        "q": "Is Diwali a company holiday this year?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -0.005,
+        "top_vector": 0.695,
+        "top": "holidays_2026.csv > Sheet: holidays_2026"
+      },
+      {
+        "q": "When is the fire drill happening?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 5.587,
+        "top_vector": 0.75,
+        "top": "notice_board_photo.png > notice_board_photo"
+      },
+      {
+        "q": "How often do I have to update my password?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 3.206,
+        "top_vector": 0.749,
+        "top": "it_policy.txt > it_policy"
+      },
+      {
+        "q": "How many days a week can I work remotely?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 7.632,
+        "top_vector": 0.859,
+        "top": "remote_work.md > Eligibility"
+      },
+      {
+        "q": "Will the company give me a monitor for home?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.464,
+        "top_vector": 0.683,
+        "top": "remote_work.md > Equipment"
+      },
+      {
+        "q": "How do I apply for leave?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 6.016,
+        "top_vector": 0.835,
+        "top": "hr_faq.html > How do I apply for leave?"
+      },
+      {
+        "q": "On which day is my salary paid?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 2.215,
+        "top_vector": 0.784,
+        "top": "hr_faq.html > When is salary credited?"
+      },
+      {
+        "q": "ext 4455",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 7.588,
+        "top_vector": 0.794,
+        "top": "employee_handbook.docx > IT Support"
+      },
+      {
+        "q": "it@acme-example.com",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 6.0,
+        "top_vector": 0.722,
+        "top": "onboarding_deck.pptx > Key Contacts"
+      },
+      {
+        "q": "payroll@acme-example.com",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 5.065,
+        "top_vector": 0.801,
+        "top": "hr_faq.html > When is salary credited?"
+      },
+      {
+        "q": "hr@acme-example.com",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 6.074,
+        "top_vector": 0.78,
+        "top": "onboarding_deck.pptx > Key Contacts"
+      },
+      {
+        "q": "HRA",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -1.202,
+        "top_vector": 0.638,
+        "top": "salary_structure.xlsx > Sheet: Components"
+      },
+      {
+        "q": "Dussehra",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -0.017,
+        "top_vector": 0.588,
+        "top": "holidays_2026.csv > Sheet: holidays_2026"
+      },
+      {
+        "q": "L2 grade CTC",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 3.36,
+        "top_vector": 0.678,
+        "top": "salary_structure.xlsx > Sheet: Salary Bands"
+      },
+      {
+        "q": "Republic Day date",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 6.16,
+        "top_vector": 0.705,
+        "top": "holidays_2026.csv > Sheet: holidays_2026"
+      },
+      {
+        "q": "Rs 25,000",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 4.803,
+        "top_vector": 0.623,
+        "top": "employee_handbook.docx > Benefits"
+      },
+      {
+        "q": "412 employees",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 6.752,
+        "top_vector": 0.676,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "26 weeks",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 5.828,
+        "top_vector": 0.7,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      },
+      {
+        "q": "Annexure A",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 5.369,
+        "top_vector": 0.699,
+        "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+      },
+      {
+        "q": "15 November",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 5.54,
+        "top_vector": 0.647,
+        "top": "notice_board_photo.png > notice_board_photo"
+      },
+      {
+        "q": "Attrition %",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": 3.809,
+        "top_vector": 0.645,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      }
+    ],
+    "off_topic": [
+      {
+        "q": "What is the capital of France?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.188,
+        "top_vector": 0.438,
+        "top": "employee_handbook.docx > Working Hours"
+      },
+      {
+        "q": "How do I bake a chocolate cake?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.116,
+        "top_vector": 0.418,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      },
+      {
+        "q": "Who won the cricket world cup?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.136,
+        "top_vector": 0.441,
+        "top": "employee_handbook.docx > Benefits"
+      },
+      {
+        "q": "What is the weather in Mumbai today?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.209,
+        "top_vector": 0.541,
+        "top": "employee_handbook.docx > Working Hours"
+      },
+      {
+        "q": "Translate 'good morning' into French.",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.131,
+        "top_vector": 0.512,
+        "top": "employee_handbook.docx > Working Hours"
+      },
+      {
+        "q": "What is the stock price of Tesla?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -10.493,
+        "top_vector": 0.476,
+        "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+      },
+      {
+        "q": "Write a poem about spring.",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.246,
+        "top_vector": 0.424,
+        "top": "leave_policy.pdf > 4. Notice Period"
+      },
+      {
+        "q": "How do I fix a flat bicycle tyre?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.306,
+        "top_vector": 0.411,
+        "top": "employee_handbook.docx > IT Support"
+      },
+      {
+        "q": "Who is the prime minister of Canada?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.087,
+        "top_vector": 0.447,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      },
+      {
+        "q": "What is the meaning of life?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.178,
+        "top_vector": 0.397,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      }
+    ],
+    "near_topic": [
+      {
+        "q": "How many days of leave do I get for my marriage?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -1.185,
+        "top_vector": 0.718,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      },
+      {
+        "q": "What is the bereavement leave policy?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -2.627,
+        "top_vector": 0.657,
+        "top": "leave_policy.pdf > 3. Maternity and Paternity Leave"
+      },
+      {
+        "q": "When is Holi this year?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -8.655,
+        "top_vector": 0.57,
+        "top": "holidays_2026.csv > Sheet: holidays_2026"
+      },
+      {
+        "q": "How many days of paid time off do I get for volunteering?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -5.433,
+        "top_vector": 0.688,
+        "top": "leave_policy.pdf > 4. Notice Period"
+      },
+      {
+        "q": "What is the dental coverage under the health insurance?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.991,
+        "top_vector": 0.607,
+        "top": "employee_handbook.docx > Benefits"
+      },
+      {
+        "q": "What is the sales commission structure?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -10.05,
+        "top_vector": 0.593,
+        "top": "salary_structure.xlsx > Sheet: Components"
+      },
+      {
+        "q": "How much is the joining bonus?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.697,
+        "top_vector": 0.613,
+        "top": "employee_handbook.docx > Benefits"
+      },
+      {
+        "q": "What is the CEO's salary?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -9.397,
+        "top_vector": 0.552,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "What is the policy on smoking in the office?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -8.428,
+        "top_vector": 0.565,
+        "top": "leave_policy.pdf > 2. Casual Leave"
+      },
+      {
+        "q": "How many stock options do employees get?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -6.648,
+        "top_vector": 0.648,
+        "top": "leave_policy.pdf > 2. Casual Leave"
+      },
+      {
+        "q": "How do I reset my email password?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -5.483,
+        "top_vector": 0.591,
+        "top": "it_policy.txt > it_policy"
+      },
+      {
+        "q": "Which VPN should I use for remote work?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -3.922,
+        "top_vector": 0.647,
+        "top": "remote_work.md > Eligibility"
+      },
+      {
+        "q": "How many people work in the Finance department?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -4.483,
+        "top_vector": 0.621,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "What is the attrition rate in Marketing?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -3.221,
+        "top_vector": 0.632,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "What is the CTC range for grade L4?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -1.798,
+        "top_vector": 0.677,
+        "top": "salary_structure.xlsx > Sheet: Salary Bands"
+      },
+      {
+        "q": "Who is the head of Engineering?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -6.658,
+        "top_vector": 0.527,
+        "top": "mixed_quarterly_report.pdf > Headcount"
+      },
+      {
+        "q": "What time does the cafeteria close?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -6.478,
+        "top_vector": 0.594,
+        "top": "employee_handbook.docx > Working Hours"
+      },
+      {
+        "q": "How much is the relocation allowance?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.33,
+        "top_vector": 0.589,
+        "top": "mixed_quarterly_report.pdf > ANNEXURE A- SIGNED APPROVAL"
+      },
+      {
+        "q": "What are the rules for the Diwali bonus?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -8.132,
+        "top_vector": 0.659,
+        "top": "holidays_2026.csv > Sheet: holidays_2026"
+      },
+      {
+        "q": "Where is the Pune office located?",
+        "answered": false,
+        "code": "weak_match",
+        "top_rerank": -11.26,
+        "top_vector": 0.481,
+        "top": "scanned_code_of_conduct.pdf > CODE OF CONDUCT"
+      },
+      {
+        "q": "How often are fire drills held?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -4.082,
+        "top_vector": 0.649,
+        "top": "notice_board_photo.png > notice_board_photo"
+      },
+      {
+        "q": "What is the laptop replacement cycle?",
+        "answered": true,
+        "code": "ok",
+        "top_rerank": -9.223,
+        "top_vector": 0.654,
+        "top": "long_handbook.pdf > Exit Process"
+      }
+    ]
+  }
+}
