@@ -21,6 +21,7 @@ What counts as a problem, and what we do:
 
 Every call records which model answered and every attempt, so Phase 8 tracing can show it.
 """
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -105,6 +106,22 @@ def _params(model: str) -> dict:
     return {"reasoning_effort": "low"} if "gpt-oss" in model else {}
 
 
+_client_lock = threading.Lock()
+_default_client: "LLMClient | None" = None
+
+
+def default_client() -> "LLMClient":
+    """
+    ONE shared client for the whole process. The Groq client keeps its connection open between calls; a new client
+    per request pays a new TLS handshake every time (measured: about +0.5 s on the first word).
+    """
+    global _default_client
+    with _client_lock:
+        if _default_client is None:
+            _default_client = LLMClient()
+        return _default_client
+
+
 class LLMClient:
     def __init__(self, client=None, sleep=time.sleep, max_wait: float | None = None, retries: int = 1):
         self._client = client
@@ -113,12 +130,13 @@ class LLMClient:
         self.retries = retries
 
     def _get_client(self):
-        if self._client is None:
-            if not settings.groq_api_key:
-                raise LLMAuthError("GROQ_API_KEY is not set. Put it in .env:  GROQ_API_KEY=...")
-            from groq import Groq
-            self._client = Groq(api_key=settings.groq_api_key, timeout=settings.llm_timeout_sec, max_retries=0)
-        return self._client
+        with _client_lock:
+            if self._client is None:
+                if not settings.groq_api_key:
+                    raise LLMAuthError("GROQ_API_KEY is not set. Put it in .env:  GROQ_API_KEY=...")
+                from groq import Groq
+                self._client = Groq(api_key=settings.groq_api_key, timeout=settings.llm_timeout_sec, max_retries=0)
+            return self._client
 
     # ----- the places that really call Groq (tests and the eval cache replace these) -----
     def _stream_call(self, model: str, messages: list[dict], max_tokens: int, temperature: float):

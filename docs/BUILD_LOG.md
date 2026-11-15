@@ -17,7 +17,7 @@ tested before moving on.
 |---|---|---|
 | **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | ✅ Done |
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
-| Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | 🔨 In progress |
+| Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ⏳ |
 | Phase 5 — Access | Login, roles, who-can-see-what | ⏳ |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
@@ -1471,20 +1471,18 @@ POST /ask/stream "notice period?"  -> retrieval, 13 token events, done: "The not
 **What the timings really showed (important, and not what I hoped)**
 1. **Streaming gives almost no speed-up here.** The whole answer arrived **about 40 ms after the first word**: answers are one or
    two sentences. The user waits *before* the first word: retrieval, then the model starting to write.
-2. **First-word time per model** (5 streamed calls each, same prompt):
+2. **First-word time per model** (5 streamed calls each, a SMALL prompt of 2 short excerpts; **superseded by the real-prompt numbers in Stage 6**):
 ```
 gpt-oss-120b (main)    median 976 ms   (min 239, max 2077)     whole answer: median 998 ms
 qwen3.8-27b            median 159 ms   (min 140, max 391)      whole answer: median 186 ms
 gpt-oss-20b            median 534 ms   (min 206, max 674)      whole answer: median 558 ms
 ```
-   `qwen` writes its first word about **6 times sooner** than the main model, and in the Stage 4 evaluation answered as well
+   On this small prompt `qwen` looked about 6 times faster. **That was overstated: with real prompts it is about 2 times (see Stage 6).** In the Stage 4 evaluation answered as well
    (100% answered, 100% right chunk). The main model is a **config choice, not a code change** — I did not change it; see the
    suggestion below. One live stream took 3.6 s for the model alone (an outlier: no retry was logged).
 3. **Where the real value of the `retrieval` event is:** it arrives *before* the model starts, so a UI can show "found 5 sources,
    writing the answer..." instead of a blank screen — and for refused questions the whole response ends there, with **no LLM call at all**.
-4. **Unexplained gap:** my client saw the `retrieval` event after 1.9–3.0 s, but the server's own log says the whole refused
-   request took 0.6–0.8 s. About 1–2 s is outside my handler (Windows loopback / middleware / a busy laptop with 12 containers
-   running are suspects; **not verified**). Real latency measurement needs tracing (Phase 8).
+4. **The 1-2 s gap** between the client's timing and the server's log is explained in Stage 6: cold start plus about 0.4 s for every new connection on this machine.
 
 **Bugs the tests found**
 1. **A 500 error had no `X-Request-ID` header.** Starlette builds the generic 500 response *outside* my middleware, so the id
@@ -1521,13 +1519,129 @@ curl -N -X POST http://127.0.0.1:8000/ask/stream -H "Content-Type: application/j
 **Decision (made after these timings): the main model is now `qwen/qwen3.8-27b`.**
 Chains are now `main: qwen -> gpt-oss-120b -> gpt-oss-20b` and `small: gpt-oss-20b -> gpt-oss-120b`. It is a config change only
 (`llm_main_model` / `llm_fallback_model` in `ingestion/config.py`, or `INGEST_LLM_MAIN_MODEL` / `INGEST_LLM_FALLBACK_MODEL` in `.env`).
-Why: the same answer quality on our 76 questions (Stage 4) and a first word about 6 times sooner. Checked with a real question:
+Why: the same answer quality on our 76 questions (Stage 4) and a first word about 2 times sooner (measured with real prompts in Stage 6; I first claimed 6 times, which was wrong). Checked with a real question:
 answered by `qwen`, 1.8 s end to end. Caveats: that is only 76 questions on 12 tiny documents, so re-check on harder, real
 documents; and the small tier's fallback is now the slower `gpt-oss-120b` (it used to be `qwen`).
 The Stage 4 table below was measured with each model **alone**, so it is unchanged by this switch.
 
 **Memory trick:** *A front desk, not a back door: every visitor gets a ticket number, polite errors never show the mess, and
 the final slip decides what was really said — even when the words were read out loud as they were written.*
+
+---
+
+### ✅ Stage 6 — Wrap-up: end-to-end tests, the speed questions answered, a real bug found
+
+**What:** the last stage of Phase 3 closes the loose ends from Stages 4 and 5: an automated test of the whole real pipeline,
+the latency questions I could not explain, and the Phase 3 summary.
+
+**1. The end-to-end test (`tests/test_e2e.py`, 8 tests).** Until now the API tests *faked* the answering and the real pipeline was only
+run by hand. Now the 12 sample documents are indexed (real chunks, real embeddings, real keyword index) into a throwaway
+database, and requests go through the **real FastAPI app, real search, real reranker and real gate** — only the LLM is a script
+(so no key and no network are needed). The scripted LLM is a stand-in that quotes the first sentence of excerpt [1].
+- **All 44 answerable questions:** through `POST /ask`, the excerpt that holds the answer is among those sent to the LLM — **44 of 44**,
+  checked by parsing the prompt the LLM really received (right file *and* the answer phrase).
+- **All 10 off-topic questions:** `refused_gate`, and the LLM is **never called** (zero calls for ten questions).
+- The LLM can still refuse something that passed the gate (`refused_llm`); an answer with no citation is replaced by the not-found message;
+  streaming end to end (`retrieval → token… → done`, streamed text equals the final text, right source); a refused stream is just
+  `retrieval → done`; `/health` sees the real database and models.
+- **Mutation check:** I broke the gate on purpose in both directions. Too strict (blocks everything): **5 tests fail**. Switched off
+  (blocks nothing): **2 tests fail** (off-topic reached the LLM, a refused stream was not refused). So the tests can really fail.
+
+**2. The latency questions (and a correction)**
+
+*The 1–2 s gap from Stage 5 is explained.* Retrieval in-process takes a median of **0.4 s** (the reranker is about 0.3 s of it). Through
+HTTP, a refused question takes about **0.2 s** and the server's own log agrees. What I saw earlier was **cold start** plus a **new
+connection per request**: on this machine opening a fresh connection costs about **0.4 s** (`/health`: 465 ms on a new connection,
+45 ms on a reused one), and my demo script opened a new one every time. Real browsers keep connections alive.
+
+*My "qwen's first word is about 6 times sooner" claim was wrong.* It came from a probe with a tiny 2-excerpt prompt. With the **real
+5-excerpt prompts**, paced to stay under the rate limit (9 samples each, 0 rate-limit hits):
+```
+qwen3.8-27b (main now)   first word: median 336 ms  (min 275, max 1172)
+gpt-oss-20b              first word: median 624 ms  (min 473, max 782)
+gpt-oss-120b             first word: median 703 ms  (min 483, max 1487)
+```
+So `qwen` is about **2 times** faster, not 6. The switch still makes sense (same answer quality in Stage 4, about twice as fast), but I
+overstated it by 3 times and the Stage 5 text is corrected. (The commit message of the switch still says "~6x"; history is not rewritten.)
+
+*A bigger finding: Groq's rate limit is the real throughput limit.* On your tier, `qwen/qwen3.8-27b` allows **7,000 input tokens per
+minute**. One question sends about **600** input tokens (5 excerpts + the rules), so **about 11 questions per minute** fill it; one of my
+probe calls got a real `429` ("Limit 7000, Used 6473, Requested 593"). Our client waits (up to 5 s) and retries, or moves to the
+next model, exactly as designed, but under a burst of users the first word gets slower. For a company this needs one of:
+a paid tier, fewer / shorter excerpts (fewer input tokens), caching repeated questions (Phase 9), and per-user rate limits (Phase 6).
+`gpt-oss-120b` has its own limit (not measured).
+
+**3. A real bug found while measuring: a new LLM client for every request.** Even paced, the API's first word took about 1.3 s while
+my direct test took 0.34 s. The server log showed no rate limiting, and `qwen`'s stream took about 1 s *inside* the server. The cause:
+`answer()` and `answer_stream()` built a **new `LLMClient` — and so a new Groq client with a new TLS connection — on every request**.
+Now there is **one shared client** (`default_client()`, created once, thread-safe) that keeps its connection open.
+```
+API first word, qwen, warm server, reused connection, paced (11 requests, noisy):
+  before the fix   median 1322 ms   (min 1159, max 2418)
+  after the fix    median  805 ms   (min  473, max 1254)      retrieval event: median 489 ms (min 317, max 1580)
+```
+Two tests: all requests share one client; and the Groq client is created **exactly once** even with 12 threads asking at the same
+moment (and with `max_retries=0`: our own retry and fallback logic decides, never the SDK).
+
+**Honest limits of these numbers**
+- 11 requests, one laptop that had just woken up and had 12 Docker containers running: **treat them as ranges, not as a benchmark.**
+  Retrieval alone varied from 0.3 s to 1.6 s between requests.
+- The end-to-end test uses a **scripted** LLM: it proves the right excerpts reach the LLM and that refusals never reach it; it cannot
+  prove that a real model answers well. That is what the Stage 4 evaluation is for (and Phase 4 will measure it properly).
+- The test run took **43 s** one time and **318 s** another (same code): the laptop's speed varies a lot.
+
+**Tests (290 total, 10 new this stage):** `test_e2e.py` (8, need the two local models, no key) and 2 for the shared client.
+```bash
+python -m pytest tests\test_e2e.py -q          # the whole real pipeline with a scripted LLM
+```
+
+**Memory trick:** *Measure the thing you will ship: a tiny test prompt made the model look six times faster, a client built for every
+request cost half a second each time, and a rate limit — not the model — decides how many people can ask per minute.*
+
+---
+
+## ✅ Phase 3 complete — the assistant answers
+
+A question now goes: **search (vectors + exact words) → reranker → "do we know?" gate → LLM with citations → checks → answer**,
+through a web API that can stream, with a fallback chain across three models.
+
+```
+Step                  What it does                                          Measured (our 12 documents, my 44-76 questions)
+hybrid search         meaning + exact words, merged with RRF                MRR 0.983 (same as vector) paraphrase | 0.964 exact terms (vector 0.929)
+reranker              a second, closer read of the top 10                   MRR 0.967 | 1.000  -> a wash on this tiny corpus (used in the pipeline)
+"I don't know" gate   blocks clearly unrelated questions, no LLM call       answerable kept 100% | off-topic blocked 100% | near-topic blocked 18%
+LLM + checks          cites sources, says NOT_IN_DOCUMENTS, drops bad cites answered 98-100% | right chunk 98-100% | near-topic refused 96-100%
+API                   /health, /ask, /ask/stream (SSE), request ids         280 -> 290 tests; end to end: 44/44 right excerpts, 10/10 off-topic never reach the LLM
+speed (qwen main)     warm server, reused connection, paced, 11 requests    retrieval ~0.5 s | first word ~0.8 s | whole answer ~1.0 s (noisy)
+throughput            Groq free tier on qwen                                about 11 questions a minute (7,000 input tokens/min)
+```
+
+**Numbers to quote, and numbers not to:** the quality numbers are on 12 tiny documents and 44–76 questions I wrote myself, and the
+prompt and thresholds were tuned while looking at them. They show the design works; they do **not** prove it will work on a real
+company's documents.
+
+**What is still weak (the hand-off to Phase 4: Measure)**
+1. **No real answer-quality score yet.** The "numbers ok" check is a proxy (it called two *correct* answers wrong). Phase 4 needs
+   **faithfulness** (is every claim in the answer supported by the cited text?) and **relevancy / correctness** against written golden answers.
+2. **Hedged non-refusals.** A model sometimes writes "the excerpts do not state X, but..." with a citation instead of `NOT_IN_DOCUMENTS`.
+   Our status check counts that as answered. Faithfulness checks should catch it.
+3. **Noise.** The same prompt at temperature 0 gave different answers in two live runs (one question flipped each time). Phase 4 should run
+   every evaluation several times and report the spread, not one number.
+4. **Thin margins in the gate** (rerank 0.5 points, meaning 0.02) and a **keyword weight (0.1) picked by looking at the same questions** —
+   re-check both on a bigger, harder corpus (long documents, look-alike sections, many tables).
+5. **One hard question** is ambiguous in the documents (`When are performance reviews done?`, Probation vs Appraisals): models disagree.
+6. **Latency has no tracing.** We have request ids and a log line per request, not a timeline per request (retrieval / rerank / LLM). Phase 8.
+7. **Open doors:** no login or roles (Phase 5); no rate limits or abuse guards (Phase 6); the rate limit of the LLM provider caps throughput (Phase 6 / 9).
+
+```bash
+python -m indexing.ask "How long is maternity leave?"            # an answer with sources in the terminal
+uvicorn api.main:app --host 127.0.0.1 --port 8000                 # the web API, docs at /docs
+python -m indexing.search_eval | abstain_eval | answer_eval       # the three measurements
+python -m pytest -q                                                # all tests (the end-to-end ones need the local models)
+```
+
+**Next phase:** Phase 4 — Measure: golden question sets with real expected answers, faithfulness and relevancy scores, run several times
+for the spread, and a regression gate for the whole answer pipeline.
 
 ---
 
@@ -1564,6 +1678,7 @@ python -m indexing.retrieval_eval
 # Phase 3: compare vector / keyword / hybrid search on the real database
 python -m indexing.search_eval
 python -m indexing.abstain_eval      # the "I don't know" gate: answered / blocked / margins
+python -m indexing.answer_eval       # answers per model (needs GROQ_API_KEY; replies are cached)
 python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
 uvicorn api.main:app --host 127.0.0.1 --port 8000        # the web API; docs at http://127.0.0.1:8000/docs
 

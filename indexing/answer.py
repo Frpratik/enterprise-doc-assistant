@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 
 from indexing.confidence import NO_ANSWER_MESSAGE, Decision
 from indexing.embeddings import Embedder
-from indexing.llm import LLMClient, LLMError, LLMUnavailable
+from indexing.llm import LLMClient, LLMError, LLMUnavailable, default_client
 from indexing.retrieve import retrieve
 from indexing.search import Hit
 from ingestion.config import settings
@@ -132,7 +132,7 @@ def answer(question: str, k: int | None = None, embedder: Embedder | None = None
         return Answer(status="refused_gate", text=NO_ANSWER_MESSAGE, **base)
 
     try:
-        res = (llm or LLMClient()).chat(build_messages(question, r.hits), tier="main")
+        res = (llm or default_client()).chat(build_messages(question, r.hits), tier="main")
     except LLMUnavailable:
         return Answer(status="llm_unavailable", text=BUSY_MESSAGE, **base)
     base.update(model=res.model, fell_back=res.fell_back, latency_ms=res.latency_ms, raw=res.text)
@@ -220,7 +220,7 @@ def answer_stream(question: str, k: int | None = None, embedder: Embedder | None
 
     flt, result = StreamFilter(), None
     try:
-        for kind, payload in (llm or LLMClient()).stream(build_messages(question, r.hits), tier="main"):
+        for kind, payload in (llm or default_client()).stream(build_messages(question, r.hits), tier="main"):
             if kind == "token":
                 shown = flt.feed(payload)
                 if shown:
