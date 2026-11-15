@@ -1948,6 +1948,98 @@ python -m indexing.answer_judge --run evals/answers_v2_baseline.json     # judge
 
 ---
 
+### ✅ Stage 4 — Repeat runs, spread and significance (`indexing/answer_stats.py`, `answer_run --repeat`)
+
+**What:** the whole pipeline is run **several times** and we measure how much the results move when nothing has changed, how large a change the exam can reliably
+detect, and how noisy a regression gate would be.
+
+**Why:** "98%" came from one run, of a model that is not guaranteed to answer the same way twice, on questions I happened to write. Before anyone builds a gate on that number
+we need to know what is signal and what is noise.
+
+**Analogy:** weigh yourself three times. 70.0, 70.0, 70.0 means a steady scale; 68, 72, 70 means a noisy one. And to tell whether you really lost a kilo, you have to know how much
+the scale wobbles *and* how much a single reading can be trusted at all.
+
+**What was built**
+- **Two sources of uncertainty, both measured:** *which questions* were asked (a confidence interval over questions: Wilson for one run, a bootstrap over questions for several) and
+  *what the model did this time* (the same pipeline run several times).
+- **Reliability, stricter than an average:** `pass@1` (average of one run), `pass^k` (right in **all** k runs), `pass@k` (right in **at least one**), and the **flaky** questions.
+- **Paired comparison of two runs or models on the same questions:** an **exact McNemar test** (only the questions where exactly one of them is right carry information) and a paired bootstrap
+  for the difference in accuracy.
+- **Noise of a regression gate** ("fail if a question that was always right is now wrong"): leave one run out at a time and count the false alarms.
+- `answer_run --repeat N` (each repeat really asks the LLM again: it has its own cache salt), `--chunks K` (give the LLM fewer excerpts: a deliberately weaker system).
+```bash
+python -m indexing.answer_run --repeat 3                       # three real runs, then the spread report
+python -m indexing.answer_stats --stability RUN1.json RUN2.json RUN3.json
+python -m indexing.answer_stats --compare RUN_A.json RUN_B.json     # paired comparison, e.g. two models
+```
+
+**Result 1: `qwen` three times (temperature 0, 93 answerable questions)**
+```
+accuracy of each run                97.9%   97.9%   97.9%         (range 97.9% - 97.9%)
+mean accuracy, 95% interval         97.9%   (94.6% - 100.0%)       <- bootstrap over the QUESTIONS: this interval is the honest uncertainty
+pass^3 (right in ALL runs)          91/93   = pass@3 (right in any run)
+identical answer text in every run  120 of 120 questions        same status (answered / refused): 120 of 120
+flaky questions: 0        wrong in every run: A018, A085
+unanswerable (27 compared): refused every time, 0 answered       noise of a "no new failure" gate: 0 false alarms in 3 leave-one-out tests
+```
+I checked that this is real and not a cache replay: runs 2 and 3 wrote about 223 new live entries in the cache, and **92 questions have the same answer text stored under three different keys**.
+So `qwen` at temperature 0 is **very steady** here (earlier, `gpt-oss-120b` changed its wording on 20 of 76 answers). **For `qwen`, repeating the run adds almost nothing: the uncertainty is in the questions, not in the model.**
+
+**Result 2: the three models compared, paired (same 93 questions)**
+```
+qwen vs gpt-oss-120b   97.9% vs 97.9%   only qwen right 0 | only 120b right 0                          p = 1.00   not different
+qwen vs gpt-oss-20b    97.9% vs 96.8%   only qwen right 1 (A009, jeans) | only 20b right 0               p = 1.00   not different
+```
+This confirms Stage 2's conclusion with a real test: the exam cannot separate these models.
+
+**Result 3: a real degradation, and what the exam can and cannot detect** (`gpt-oss-20b`, 5 excerpts vs 2 excerpts: one model, one change)
+```
+accuracy 96.8% -> 92.5%.  Only the 5-excerpt run right: 4 questions (A060, A086, A087, A093).  Only the 2-excerpt run right: 0.
+McNemar exact p = 0.125  -> NOT statistically significant.     (the bootstrap interval, +1.1% to +8.6%, excludes zero: over-optimistic with so few disagreements; trust the exact test)
+the weakened system also gave the FIRST false answer in any rule-scored run: "How long are employee medical records kept?" -> "7 years" (it took the HR personnel files row)
+```
+**A paired comparison needs at least 6 questions to change for the worse, with none changing for the better (about 6% of this exam), to be significant (p < 0.05).** So a real 4-point drop
+(4 new failures out of 93) is *invisible to a significance test*. But a strict rule ("fail on any new failure among questions that were always right") **would have fired** (4 new failures)
+and, for `qwen`, had **0 false alarms** in 3 tests. **That is the shape of the Stage 5 gate: a strict regression guard, not a percentage threshold.**
+
+**The incident: a quota that looked like a model changing its mind (what I got wrong)**
+My first 3-repeat run reported, for run 3, *"unanswerable questions: refused 24/51, refused every time 47%, 27 questions flipped"*, and my degraded `qwen` run reported *"4% correct"*.
+Both were **artifacts**: `qwen` has a limit of **200,000 tokens a day (a rolling window) and 1,000 requests a day** on this account, about **300 answers a day** (a question costs about 650 tokens;
+a full 144-question run is about 75,000 tokens). Three repeats plus earlier runs used it up, and from then on the LLM returned "unavailable". My scorer correctly kept "unavailable" apart from
+"wrong", but my **stability report** treated "the LLM never answered" as "the model changed its answer". Fixes, all with tests:
+- stability, comparison, gate noise and text-stability **leave out any question the LLM never answered in some run**, and the report opens with a loud warning;
+- the scoring report warns that the run is **incomplete**; no **baseline** can be saved from an incomplete run; the command exits with **code 2**;
+- a **stall guard**: after 5 questions in a row without an LLM answer the run **stops** (instead of grinding through a whole run and printing nonsense). The answers already received are
+  cached, so the same command later **continues where it stopped**.
+- **A bug in the guard itself, found by its own test:** the first version did not work. It raised its "stalled" error *inside* the `try` block, and the generic `except Exception` right below caught it and
+  recorded an "error" instead, so the run carried on. (The command-level tests had passed because they replaced the whole function; the test that runs the real loop with a failing LLM caught it.)
+  The stall error now passes through, like the bad-key error.
+The `qwen` degradation could therefore not be run today; the controlled degradation above was done on `gpt-oss-20b`, which has its own quota, compared with its own full-context run.
+
+**What this means for the project (and for Stage 5)**
+- **Free-tier throughput is a hard limit, not just a speed limit:** about **300 `qwen` answers a day**, at most one full exam run (plus part of another) per day. A nightly gate must **replay cached answers**
+  and re-ask the LLM only for questions whose prompt changed; production traffic of more than ~300 questions a day needs a paid tier, shorter prompts or caching (Phases 6 and 9).
+- A live `qwen` run of the whole exam took about 10 minutes (the per-minute limit); a mostly cached one about 5.
+
+**Read these numbers honestly**
+1. **Only `qwen` was repeated** (and its answerable part three times; the third run's unanswerable part is partial: 27 of 51 comparable). `gpt-oss-120b` is known to be less steady, and its gate noise was **not** measured.
+2. **Three runs that are all identical** make `pass^3` equal to `pass@1`: the reliability metrics show their value only for a noisier model.
+3. **The degradation test is one run of one model.** It shows the *method* works (and what it can and cannot see), not how every regression behaves. A degradation in retrieval (as in Stage 1) would need its own test.
+4. **The exam is small and has a ceiling**: with 2 failures at the top, few things can still get *better*, and only changes of 6 or more questions are significant. For a 4-point regression the gate must rely on the strict rule.
+5. The bootstrap interval for a difference is shown but **not trusted when few questions disagree**; the exact test is the reference.
+
+**Tests (this stage):** `test_answer_stats.py` (29, no LLM, no database): known McNemar values by hand (6-0 gives 0.03125, 5-0 gives 0.0625, 3-3 gives 1, 10-2 gives 0.0386), the smallest significant count (6 at 5%, 8 at 1%), reliability
+on a hand-made set (`pass^k` < average < `pass@k`), bootstrap determinism and sanity, text stability, the dangerous failure found even in one run only, new failures only among always-right
+questions, gate noise by leaving each run out, the two commands run on saved files, **and the unavailable-question handling** (left out, not a flip; not a new failure; warned loudly). `test_answer_score.py` +2 (incomplete runs warn).
+`test_answer_run.py` +9 (real retrieval, scripted LLM): each repeat asks the LLM again with its own salt; fewer excerpts; the run meta records salt and excerpts; the repeat command saves each run and prints the spread; **the run stops after 5 questions
+without an LLM answer, but a few failures between successes do not stop it**; exit code 2 and no baseline for an incomplete run.
+**Mutation checks:** one-sided McNemar fails 12 tests; the held-out run left in the baseline fails 2; `pass^k` counting "at least one" fails 1; flaky including always-wrong questions fails 3.
+(Lesson: a mutation applied while a background job might lazily import the module can contaminate that job: I now apply them only when nothing else runs.)
+
+**Memory trick:** *A thermometer that shows the same number three times is steady — steady is not the same as right; and when it stops answering, don't write the silence down as a temperature.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1986,6 +2078,7 @@ python scripts/make_eval_corpus.py   # Phase 4: the 10 harder evaluation documen
 python -m indexing.answer_golden     # Phase 4: validate the answer key (add --retrieval for difficulty per type)
 python -m indexing.answer_run        # Phase 4: the real pipeline on all 144 questions, scored by fixed rules (--rescore FILE: no LLM)
 python -m indexing.answer_judge --calibrate --repeat 2   # Phase 4: how far can the LLM judge be trusted? (add --run FILE to judge a run)
+python -m indexing.answer_run --repeat 3                 # Phase 4: three real runs + spread; python -m indexing.answer_stats --compare A.json B.json
 python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
 uvicorn api.main:app --host 127.0.0.1 --port 8000        # the web API; docs at http://127.0.0.1:8000/docs
 

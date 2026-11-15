@@ -172,6 +172,7 @@ def summarize(scored: list[dict]) -> dict:
 
     summary = {
         "n": len(scored), "n_answerable": n_a, "n_unanswerable": n_u,
+        "unavailable": sum(s["outcome"] == "unavailable" for s in scored),      # the LLM never answered: neither right nor wrong
         "answerable": {
             "accuracy": rate(count(ans, "correct"), n_a),
             "all_facts_present": rate(count(ans, "correct") + count(ans, "lookalike_mention"), n_a),
@@ -226,7 +227,12 @@ def fmt(r: dict) -> str:
 def format_report(summary: dict, scored: list[dict], golden: Golden) -> str:
     a, u, c = summary["answerable"], summary["unanswerable"], summary["confusion"]
     q_by_id = {q.id: q for q in golden.questions}
-    L = [f"\n{summary['n']} questions: {summary['n_answerable']} answerable, {summary['n_unanswerable']} unanswerable\n",
+    L = [f"\n{summary['n']} questions: {summary['n_answerable']} answerable, {summary['n_unanswerable']} unanswerable\n"]
+    if summary.get("unavailable"):
+        L += [f"*** WARNING: the LLM never answered {summary['unavailable']} questions (a rate limit or a daily quota?).",
+              "*** This run is INCOMPLETE: those questions are counted neither as right nor as wrong, so every rate below is for a partial exam.",
+              "*** Run the same command again later: answers already received are cached, only the missing ones are asked.\n"]
+    L += [
          "ANSWERABLE QUESTIONS (rule-based)",
          f"  correct (all facts, no look-alike value)    {fmt(a['accuracy'])}",
          f"  all required facts present                  {fmt(a['all_facts_present'])}",

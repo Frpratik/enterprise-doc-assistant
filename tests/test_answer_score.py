@@ -221,3 +221,21 @@ def test_a_yes_no_question_is_scored_on_the_polarity_not_on_a_detail_it_did_not_
                    reference="No. Receipts are mandatory only above Rs 500.")
     assert score_record(q, record(text="No, a receipt is not required [1]."))["outcome"] == "correct"
     assert score_record(q, record(text="Yes, you need a receipt [1]."))["outcome"] == "incorrect"
+
+
+# ---------- an incomplete run says so ----------
+def test_unanswered_questions_are_counted_and_the_report_warns():
+    golden, records = make_scored()
+    records[1] = {**record(status="llm_unavailable", citations=()), "id": "A2"}
+    records[4] = {"id": "U2", "status": "error", "text": "", "context": [], "citations": []}
+    scored = score_all(golden, records)
+    s = summarize(scored)
+    assert s["unavailable"] == 2
+    text = format_report(s, scored, golden)
+    assert "WARNING: the LLM never answered 2 questions" in text and "INCOMPLETE" in text and "cached" in text
+
+
+def test_a_complete_run_has_no_warning():
+    golden, records = make_scored()
+    scored = score_all(golden, records)
+    assert summarize(scored)["unavailable"] == 0 and "WARNING" not in format_report(summarize(scored), scored, golden)
