@@ -1747,6 +1747,105 @@ python -m indexing.answer_golden --retrieval      # how hard is it? retrieval + 
 
 ---
 
+### ✅ Stage 2 — Rule-based answer metrics (`indexing/answer_score.py`, `indexing/answer_run.py`)
+
+**What:** the real pipeline is run on all 144 questions and every answer is scored with **fixed rules** — no LLM, same input gives the same score.
+Each answer is saved as a **record** (the answer, the excerpts the LLM was given, the sources it cited, the gate scores), so answers can be **re-scored later**
+(new rules, the LLM judge in Stage 3) without calling the LLM again.
+
+**Why:** "98% looks fine" is not a measurement. We need to know *what* is right or wrong, and *why* — and whether the number can be trusted.
+
+**Analogy:** the marker doesn't just give a mark; it writes in the margin *why* a point was lost — "the page was never in the folder" (retrieval) versus
+"the page was in the folder and you misread it" (generation).
+
+**What is measured (all by fixed rules)**
+```
+answerable questions    correct = answered + every required fact + no look-alike value   |  lookalike_mention  |  incorrect  |  refused
+unanswerable questions  refused_ok  |  soft_refusal (answered but hedged)  |  false_answer (made up: the dangerous failure)
+why a failure happened  retrieval (evidence NOT in the excerpts) | generation (evidence WAS there, answer still wrong) | gate (score gate blocked it)
+citations               precision = share of cited sources that really are evidence | recall = share of evidence groups that were cited
+other                   hedged answers ("the excerpts do not state..."), word overlap with the reference (rough), confusion matrix, 95% confidence intervals
+```
+New field in the key: `wrong_facts` — for 11 look-alike questions, the values from the *look-alike* document that a correct answer must not state
+(e.g. travel claim = 15 days; if the answer says 30 days, it fell for the trap).
+
+**How to run**
+```bash
+python -m indexing.answer_run                       # the real pipeline, main model alone (qwen), all 144 questions, report
+python -m indexing.answer_run --model openai/gpt-oss-20b
+python -m indexing.answer_run --rescore evals/runs/latest.json --save-baseline    # score saved answers again: NO LLM call
+```
+The model is tested **alone** (a chain of one, no fallback). The full run takes about **10 minutes** the first time (qwen's limit is 7,000 input tokens a
+minute); replies are cached on disk, so re-running is free.
+
+**The first result — and why I did not trust it**
+```
+qwen3.8-27b, answer key v1:   correct 88/93 (95%)     unanswerable refused 51/51 (100%), false answers 0
+```
+Five answerable questions were "not correct". **I read all five answers**, and then all 92 answers the model gave. Three were mistakes in *my key*:
+| Question | What the model said | What my key demanded |
+|---|---|---|
+| Does the company cover medical insurance for my family? | "covers the employee, the spouse, and up to 2 children" (correct) | the single word `family` |
+| How much is the referral bonus? | "Rs 25,000" (correct) | also `6 months` (a condition, not asked) |
+| How many earned leave days can I encash? | "Up to 10 earned leave days" (correct) | also `December` (not asked) |
+Because those corrections only make the key *more lenient*, I audited the other direction too: of the 88 answers marked correct, **none was wrong or incomplete**.
+The key was corrected (v2) and the changes are written in its `changelog`. Score: **91/93 (98%)**.
+
+**Then I ran the other two models on the same questions — and found a bias in my own scorer**
+```
+key v2 (before the matcher fix)     qwen3.8-27b 91/93 | gpt-oss-120b 86/93 | gpt-oss-20b 83/93      <- looks like a clear ranking
+key v3 (after the matcher fix)      qwen3.8-27b 91/93 | gpt-oss-120b 91/93 | gpt-oss-20b 90/93      <- no real difference
+```
+Reading the failures showed *correct* answers scored wrong: "up to **two** children" did not match `2 children`, "**three** consecutive days" did not
+match `3 consecutive days`, "last **five** passwords" did not match `last 5`; a yes/no answer ("No, a receipt is not required") was failed for not
+repeating `500`; "Sales has the highest attrition rate" was failed for not repeating `11.2`. **My scorer favoured the model whose phrasing matched my key —
+`qwen` happened to write digits.** Fixes (key v3, in the changelog): spelled-out numbers now match digits (`three` = `3`); `@yes` / `@no` facts test that an
+answer *starts* with yes / no; facts that asked for more than the question did were relaxed. Real failures were left alone.
+**Lesson: before believing a comparison between models, read the failures; a scorer can quietly prefer one writing style.**
+
+**Final results (key v3, 3 models, each alone, 93 answerable + 51 unanswerable)**
+```
+MODEL                  correct (95% CI)       refused ok (51)   false answers   evidence in the excerpts
+qwen3.8-27b            91/93  98% (92-99%)         51                0               91/93
+gpt-oss-120b           91/93  98% (92-99%)         51                0               91/93
+gpt-oss-20b            90/93  97% (91-99%)         51                0               91/93
+questions answered correctly by all three models: 90 of 93.      Questions NO model got right: A018, A085.
+```
+- **A018** "How much of my phone bill can I claim every month?" — the right chunk (`Mobile | 800`) was **never in the excerpts**, so every model said "not found".
+  It was answered correctly in Phase 3 with 12 documents; **adding 10 documents pushed the evidence out of the top 5.** A genuine retrieval regression caused by corpus growth.
+- **A085** (multi-chunk: lost laptop with employee data) — the security-incident chunk (`4 hours`) was never retrieved; all models gave only part of the answer.
+- **A009** "Can I wear jeans on Friday?" — only `gpt-oss-20b` refused it, although the evidence was in the excerpts (an over-refusal).
+- **Unanswerable questions: all 51 refused by all three models, 0 false answers.** 20 were stopped by the score gate (15 off-topic, 5 near-topic); the other
+  31 near-topic questions were refused by the **LLM** itself.
+- The model's own time per answer: qwen median 161 ms (p95 421), gpt-oss-20b 454 ms, gpt-oss-120b 466 ms.
+
+**Read these numbers honestly**
+1. **The exam cannot tell these three models apart (a ceiling effect).** At 97-98% the confidence intervals overlap completely, and the remaining failures are
+   *retrieval* failures that every model shares. For picking a model this exam is currently useless; for catching a *regression* it is useful only if a gate looks
+   for any new failure against the baseline, not for a small drop in a percentage.
+2. **The look-alike traps did not trap anything.** 11 questions have `wrong_facts`; across 3 models no answer stated a wrong look-alike value (0 mentions), and
+   look-alike accuracy was 100%. I designed those traps for the answer step, and it handled them (and so did retrieval in Stage 1).
+3. **I changed the key after seeing results — twice.** Every change is listed in the key's `changelog`, and the principle was to make facts test *what the question
+   asks*, not one model's wording. But the answers of the other two models were only read where they failed; I did **not** read the ~180 answers they got "correct",
+   so a too-loose fact could still hide a wrong answer there. Stage 3's judge is the independent check for this: where the judge and the rules disagree,
+   one of them is wrong.
+4. **Hedges:** 0 hedged answers were found in any run. The hedge detector is tested on typical sentences (8 hedges, 6 normal answers), but a rule list will miss
+   phrasings it was not written for.
+5. The rules cannot see an extra wrong claim that is not on the `wrong_facts` list, bad wording, or an incomplete answer beyond the listed facts.
+6. Still my documents, my questions, my reference answers: one author, synthetic, English only.
+
+**Tests (377 total, 68 new this stage):** `test_answer_score.py` (33, no LLM, no database) — every outcome and cause; the evidence is checked in the *given* excerpts (a wrong answer is blamed on
+retrieval when the evidence was never given, on generation when it was); multi-chunk questions need every evidence group; citation precision and recall; hedges
+(8 positive, 6 negative examples); Wilson intervals (0 of 20 does not mean "0% for sure"); the summary, the confusion matrix and the report; scoring works from saved JSON;
+**spelled-out numbers and yes/no polarity**. `test_answer_run.py` (7, real retrieval + gate with a scripted LLM): records have everything needed to judge an answer;
+off-topic questions never reach the LLM; the model setting is restored; saved runs re-score with **no** LLM call; **one crashing question does not lose the run** and is not counted as a wrong
+answer; a bad API key stops the run. `test_answer_golden.py` grew to 47 (the matcher, polarity, `wrong_facts`, the key's version and changelog).
+**Mutation checks:** inverting the retrieval/generation blame fails 4 tests; ignoring look-alike values fails 2; switching the hedge detector off fails 10.
+
+**Memory trick:** *Read the failures before you trust the score: a marker can quietly prefer one student's handwriting, and a ceiling of 98% means the exam, not the students, has run out of room.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1783,6 +1882,7 @@ python -m indexing.abstain_eval      # the "I don't know" gate: answered / block
 python -m indexing.answer_eval       # answers per model (needs GROQ_API_KEY; replies are cached)
 python scripts/make_eval_corpus.py   # Phase 4: the 10 harder evaluation documents
 python -m indexing.answer_golden     # Phase 4: validate the answer key (add --retrieval for difficulty per type)
+python -m indexing.answer_run        # Phase 4: the real pipeline on all 144 questions, scored by fixed rules (--rescore FILE: no LLM)
 python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
 uvicorn api.main:app --host 127.0.0.1 --port 8000        # the web API; docs at http://127.0.0.1:8000/docs
 

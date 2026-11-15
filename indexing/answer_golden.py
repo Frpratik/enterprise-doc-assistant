@@ -7,9 +7,11 @@ Every question has
   q, type, difficulty, answerable, origin ("v1" = a Phase 1-3 question, "v2" = new in Phase 4)
   answerable questions:    reference (a correct answer), facts (what a correct answer MUST contain), sources (gold evidence)
   unanswerable questions:  forbidden_terms (words that must not appear anywhere in the documents)
+  look-alike questions:    wrong_facts (values from the look-alike evidence that a correct answer should NOT state)
 
   facts     ["26 weeks", "12 sick leaves || 12 sick days"]     every entry must appear in the answer; ' || ' separates
-                                                                alternative wordings
+                                                                alternative wordings; numbers match as words or digits;
+                                                                '@yes' / '@no' = the answer starts with yes / no
   sources   a list of GROUPS; for each group, ONE chunk matching any of its [file, phrase] alternatives must be found.
             One group = a single-evidence question; several groups = a multi-chunk question.
 
@@ -50,6 +52,7 @@ class Question:
     sources: list[list[list[str]]] = field(default_factory=list)
     forbidden_terms: list[str] = field(default_factory=list)
     computed: bool = False
+    wrong_facts: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -95,18 +98,50 @@ def fact_alternatives(fact: str) -> list[str]:
     return [alt.strip() for alt in fact.split("||") if alt.strip()]
 
 
+_NUMBER_WORDS = {"zero": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8",
+                 "nine": "9", "ten": "10", "eleven": "11", "twelve": "12", "thirteen": "13", "fourteen": "14", "fifteen": "15",
+                 "sixteen": "16", "seventeen": "17", "eighteen": "18", "nineteen": "19", "twenty": "20", "thirty": "30",
+                 "forty": "40", "fifty": "50", "sixty": "60", "seventy": "70", "eighty": "80", "ninety": "90"}
+_NUMBER_RE = re.compile(r"\b(" + "|".join(_NUMBER_WORDS) + r")\b")
+_POLARITY = {"@yes": re.compile(r"^\W*yes\b", re.IGNORECASE), "@no": re.compile(r"^\W*no\b", re.IGNORECASE)}
+
+
+def numbers_as_digits(text: str) -> str:
+    """'up to two children' -> 'up to 2 children'. A model may write numbers as words; the fact must not depend on that."""
+    return _NUMBER_RE.sub(lambda m: _NUMBER_WORDS[m.group(1)], text)
+
+
 def contains(text: str, phrase: str) -> bool:
     """
-    True if the phrase appears in the text as WHOLE WORDS, ignoring case and punctuation.
-    Plain substring matching would find '12' inside '120' and '8' inside '18', and inflate every score.
+    True if the phrase appears in the text as WHOLE WORDS, ignoring case, punctuation and spelled-out numbers
+    ('three' = '3'). Plain substring matching would find '12' inside '120' and '8' inside '18', and inflate every score.
     """
-    needle = norm(phrase)
-    return bool(needle) and f" {needle} " in f" {norm(text)} "
+    needle = numbers_as_digits(norm(phrase))
+    return bool(needle) and f" {needle} " in f" {numbers_as_digits(norm(text))} "
+
+
+def is_polarity(alt: str) -> bool:
+    return alt.strip().lower() in _POLARITY
 
 
 def fact_present(fact: str, text: str) -> bool:
-    """True if any alternative wording of the fact appears in text (whole words, ignoring case and punctuation)."""
-    return any(contains(text, alt) for alt in fact_alternatives(fact))
+    """
+    True if any alternative wording of the fact is in the text.
+      'plain words'  whole-word match, ignoring case, punctuation and spelled-out numbers
+      '@yes' / '@no' the answer STARTS with yes / no  (a yes/no question: the polarity is the answer)
+    """
+    for alt in fact_alternatives(fact):
+        if is_polarity(alt):
+            if _POLARITY[alt.strip().lower()].search(text.strip()):
+                return True
+        elif contains(text, alt):
+            return True
+    return False
+
+
+def fact_in_sources(fact: str, text: str) -> bool:
+    """For the validator: a fact must be backed by the documents. Polarity alternatives ('@yes') are not text, so they are ignored."""
+    return any(contains(text, alt) for alt in fact_alternatives(fact) if not is_polarity(alt))
 
 
 def fact_recall(facts: list[str], answer_text: str) -> float:
@@ -151,11 +186,16 @@ def validate(golden: Golden, texts: dict[str, str]) -> list[str]:
                         problems.append(f"{tag}: phrase '{phrase}' is not in {file_name}")
             if q.type == "multi_chunk" and len(q.sources) < 2:
                 problems.append(f"{tag}: a multi_chunk question needs at least 2 source groups")
+            for wrong in q.wrong_facts:
+                if fact_present(wrong, q.reference):
+                    problems.append(f"{tag}: wrong fact '{wrong}' is in the reference answer")
+                if not fact_present(wrong, all_text):
+                    problems.append(f"{tag}: wrong fact '{wrong}' is in no document, so it is not a real look-alike")
             source_text = "\n".join(texts.get(f, "") for f in source_files)
             for fact in q.facts:
                 if not fact_present(fact, q.reference):
                     problems.append(f"{tag}: fact '{fact}' is not in the reference answer")
-                if not q.computed and not fact_present(fact, source_text):
+                if not q.computed and not fact_in_sources(fact, source_text):
                     problems.append(f"{tag}: fact '{fact}' is not in its source documents (mark the question computed if it is calculated)")
         else:
             if q.type not in UNANSWERABLE_TYPES:

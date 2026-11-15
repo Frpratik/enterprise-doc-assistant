@@ -1,6 +1,10 @@
 {
  "about": "Golden answers for the whole answer pipeline (Phase 4). Every question has a REFERENCE answer, the FACTS a correct answer must contain (alternatives separated by ' || '), and the gold SOURCES: a list of groups - for each group, one chunk from any of its (file, phrase) alternatives must be found. Unanswerable questions have forbidden_terms: words that must NOT appear anywhere in the documents (checked by a test, so a new document can never silently make a question answerable). Written by hand by the project author, who also wrote the documents: expect some bias.",
- "version": 1,
+ "version": 3,
+ "changelog": [
+  "v2: three required facts were wider than the question (found by reading the first real run, Phase 4 Stage 2): A016 'family' -> 'family || spouse' (a correct answer said 'the employee, the spouse and up to 2 children'); A077 removed '6 months' (the question asks only how much the referral bonus is); A078 removed 'December' (the question asks only how many days). The reference answers still state the conditions. All three changes make the key MORE lenient, so the run was also audited the other way: all 92 answered questions were read by hand, and no answer counted as correct was wrong or incomplete.",
+  "v3: the other two models were run on the same questions and their failures read by hand. The matcher was biased toward the first model's phrasing, which wrote digits: 'two children' did not match '2 children'. The matcher now treats spelled-out numbers as digits ('three' = '3') and supports '@yes' / '@no' (the answer starts with yes / no). Facts that asked for more than the question did were relaxed: A009, A024, A041, A048, A093 (yes/no questions: polarity or the explanation), A011 (the department, not the rate), A028 and A056 (alternative wordings), A052 (blocked, not who approves exceptions), A090 (10 days; the December condition stays in the reference). Real failures were not touched: A018, A085 (evidence not retrieved) and A009 for one model (it refused a question it could answer)."
+ ],
  "documents": [
   "code_of_conduct_2026.pdf",
   "data_privacy_policy.md",
@@ -204,7 +208,7 @@
    "answerable": true,
    "reference": "Yes. Friday is a casual dress day.",
    "facts": [
-    "casual"
+    "@yes || casual || allowed"
    ],
    "sources": [
     [
@@ -244,8 +248,7 @@
    "answerable": true,
    "reference": "Sales, with an attrition rate of 11.2%.",
    "facts": [
-    "Sales",
-    "11.2"
+    "Sales"
    ],
    "sources": [
     [
@@ -354,7 +357,7 @@
    "answerable": true,
    "reference": "Yes. Group health insurance covers the employee and family.",
    "facts": [
-    "family"
+    "family || spouse"
    ],
    "sources": [
     [
@@ -522,7 +525,7 @@
    "answerable": true,
    "reference": "Yes. Diwali is on 8 November 2026.",
    "facts": [
-    "8 November || 2026-11-08"
+    "@yes || 8 November || 2026-11-08"
    ],
    "sources": [
     [
@@ -607,7 +610,7 @@
    "answerable": true,
    "reference": "A monitor is provided on request.",
    "facts": [
-    "on request"
+    "on request || upon request || if you request || when requested || request one"
    ],
    "sources": [
     [
@@ -681,7 +684,10 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "7 days"
+   ]
   },
   {
    "id": "A032",
@@ -701,7 +707,10 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "21 days"
+   ]
   },
   {
    "id": "A033",
@@ -742,7 +751,12 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "6,500",
+    "3,500",
+    "7,500"
+   ]
   },
   {
    "id": "A035",
@@ -762,7 +776,12 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "3,500",
+    "4,500",
+    "5,000"
+   ]
   },
   {
    "id": "A036",
@@ -782,7 +801,12 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "6,500",
+    "7,500",
+    "5,000"
+   ]
   },
   {
    "id": "A037",
@@ -842,7 +866,10 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "30 days"
+   ]
   },
   {
    "id": "A040",
@@ -862,7 +889,10 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "15 days"
+   ]
   },
   {
    "id": "A041",
@@ -872,7 +902,7 @@
    "answerable": true,
    "reference": "No. A receipt is mandatory only for a single expense above Rs 500; for Rs 500 or less a short note is enough.",
    "facts": [
-    "500"
+    "@no || not required || not mandatory || short note"
    ],
    "sources": [
     [
@@ -902,7 +932,11 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "finance head",
+    "reporting manager"
+   ]
   },
   {
    "id": "A043",
@@ -922,7 +956,11 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "department head",
+    "reporting manager"
+   ]
   },
   {
    "id": "A044",
@@ -1014,7 +1052,7 @@
    "answerable": true,
    "reference": "No. The last 5 passwords cannot be reused.",
    "facts": [
-    "last 5 || 5 passwords || 5 previous"
+    "@no || last 5 || cannot be reused || cannot reuse || not allowed"
    ],
    "sources": [
     [
@@ -1066,7 +1104,10 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "4 hours"
+   ]
   },
   {
    "id": "A051",
@@ -1087,7 +1128,10 @@
      ]
     ]
    ],
-   "origin": "v2"
+   "origin": "v2",
+   "wrong_facts": [
+    "2 hours"
+   ]
   },
   {
    "id": "A052",
@@ -1097,8 +1141,7 @@
    "answerable": true,
    "reference": "No. USB storage is blocked by default; exceptions need written approval from the IT head.",
    "facts": [
-    "blocked",
-    "IT head"
+    "blocked || not allowed || prohibited || not permitted"
    ],
    "sources": [
     [
@@ -1180,7 +1223,7 @@
    "reference": "Employees rated 4 or 5 in each of the last two cycles; promotions take effect on 1 July.",
    "facts": [
     "4 or 5",
-    "two cycles"
+    "two cycles || last two || 2 cycles"
    ],
    "sources": [
     [
@@ -1613,8 +1656,7 @@
    "answerable": true,
    "reference": "Rs 25,000, when the referred candidate completes 6 months in the company.",
    "facts": [
-    "25,000",
-    "6 months"
+    "25,000"
    ],
    "sources": [
     [
@@ -1634,8 +1676,7 @@
    "answerable": true,
    "reference": "Up to 10 days, and only in December.",
    "facts": [
-    "10",
-    "December"
+    "10"
    ],
    "sources": [
     [
@@ -1918,8 +1959,7 @@
    "answerable": true,
    "reference": "Up to 10 earned leave days can be encashed each year, only in December.",
    "facts": [
-    "10",
-    "December"
+    "10"
    ],
    "sources": [
     [
@@ -1979,7 +2019,7 @@
    "answerable": true,
    "reference": "No. Business class is for grade L3 and above; grade L2 travels economy.",
    "facts": [
-    "L3"
+    "@no || economy || L3"
    ],
    "sources": [
     [

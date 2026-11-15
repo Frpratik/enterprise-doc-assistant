@@ -39,3 +39,4 @@ evals/retrieval_latest.json
 evals/search_latest.json
 evals/abstain_latest.json
 evals/answer_latest.json
+evals/runs/

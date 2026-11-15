@@ -4,8 +4,8 @@ import copy
 
 import pytest
 
-from indexing.answer_golden import (Golden, Question, corpus_texts, fact_alternatives, fact_present, fact_recall, group_ranks,
-                                    load_golden, summary, term_present, validate)
+from indexing.answer_golden import (Golden, Question, contains, corpus_texts, fact_alternatives, fact_in_sources, fact_present,
+                                    fact_recall, group_ranks, is_polarity, load_golden, numbers_as_digits, summary, term_present, validate)
 from indexing.search import Hit
 
 
@@ -170,3 +170,103 @@ def test_group_ranks_find_the_best_rank_per_evidence_group():
 def test_summary_mentions_the_counts(golden):
     s = summary(golden)
     assert "144 questions" in s and "answerable by type" in s and "v1 62, v2 82" in s
+
+
+# ---------- wrong_facts: values from the look-alike evidence that a correct answer must not state ----------
+def test_the_key_marks_its_lookalike_traps(golden):
+    with_wrong = [q for q in golden.answerable if q.wrong_facts]
+    assert len(with_wrong) >= 10
+    travel = next(q for q in with_wrong if "travel claim" in q.q)
+    assert travel.facts == ["15 days"] and travel.wrong_facts == ["30 days"]
+
+
+def test_a_wrong_fact_that_is_in_the_reference_answer_is_caught(golden, texts):
+    bad = make(golden, wrong_facts=["12 sick leaves"], reference="Employees get 12 sick leaves per year.")
+    assert any("wrong fact '12 sick leaves' is in the reference answer" in p for p in validate(bad, texts))
+
+
+def test_a_wrong_fact_that_exists_in_no_document_is_caught(golden, texts):
+    bad = make(golden, wrong_facts=["99 imaginary days"])
+    assert any("is in no document, so it is not a real look-alike" in p for p in validate(bad, texts))
+
+
+# ---------- the key is versioned: a change to it is written down ----------
+def test_the_key_records_its_version_and_why_it_changed():
+    import json
+    from indexing.answer_golden import GOLDEN
+    raw = json.loads(GOLDEN.read_text(encoding="utf-8"))
+    assert raw["version"] == 3 and len(raw["changelog"]) == 2
+    assert "A016" in raw["changelog"][0] and "A077" in raw["changelog"][0]
+    assert "spelled-out numbers" in raw["changelog"][1] and "@yes" in raw["changelog"][1]
+
+
+def test_facts_ask_only_for_what_the_question_asks(golden):
+    """The three corrected questions: the amount / the count is the answer, the condition is only in the reference."""
+    by_q = {q.q: q for q in golden.answerable}
+    assert by_q["How much is the referral bonus?"].facts == ["25,000"]
+    assert "6 months" in by_q["How much is the referral bonus?"].reference
+    assert by_q["How many earned leave days can I encash in a year?"].facts == ["10"]
+    assert by_q["Does the company cover medical insurance for my family?"].facts == ["family || spouse"]
+
+
+# ---------- the matcher must not favour one model's way of writing ----------
+@pytest.mark.parametrize("fact, answer", [
+    ("2 children", "it covers the employee, the spouse and up to two children"),
+    ("3 consecutive days", "absent for three consecutive days without informing the manager"),
+    ("last 5", "you cannot reuse any of your last five passwords"),
+    ("60 days", "within sixty days of the loss"),
+    ("12 characters", "at least twelve characters long"),
+    ("two cycles || last two", "rated 4 or 5 in each of the last two performance review cycles"),
+    ("10", "up to ten earned leave days"),
+])
+def test_a_fact_in_digits_matches_an_answer_with_number_words(fact, answer):
+    assert fact_present(fact, answer)
+
+
+@pytest.mark.parametrize("fact, answer", [
+    ("two children", "covers the spouse and up to 2 children"),
+    ("three consecutive days", "absent for 3 consecutive days"),
+    ("sixty days", "within 60 days"),
+    ("twelve characters", "at least 12 characters"),
+])
+def test_a_fact_in_words_matches_an_answer_with_digits(fact, answer):
+    assert fact_present(fact, answer)
+
+
+def test_number_words_become_digits_only_as_whole_words():
+    assert numbers_as_digits("twenty one days and someone") == "20 1 days and someone"
+    assert numbers_as_digits("phone and tone") == "phone and tone"
+    assert not contains("the stone is heavy", "1")
+
+
+@pytest.mark.parametrize("fact, answer, expected", [
+    ("@no", "No, a receipt is not required for a Rs 300 taxi ride.", True),
+    ("@no", "No. The last 5 passwords cannot be reused.", True),
+    ("@no", "Not allowed on company laptops.", False),
+    ("@no", "Nobody can do that.", False),
+    ("@yes", "Yes, Diwali is a company holiday.", True),
+    ("@yes", "  **Yes** - jeans are fine on Friday.", True),
+    ("@yes", "I would say yes.", False),
+    ("@no || economy || L3", "An L2 employee travels economy class on all flights.", True),
+    ("@no || economy || L3", "An L2 employee may fly business class.", False),
+])
+def test_yes_no_polarity_facts(fact, answer, expected):
+    assert fact_present(fact, answer) is expected
+
+
+def test_polarity_is_not_something_the_documents_have_to_say():
+    assert is_polarity("@no") and is_polarity(" @YES ") and not is_polarity("no")
+    assert not fact_in_sources("@no", "No document starts like this")                   # the polarity alone is not backed by text
+    assert fact_in_sources("@no || short note", "claimed with a short note")             # a real alternative is
+    assert not fact_in_sources("@no || invented words", "claimed with a short note")
+
+
+def test_the_yes_no_questions_in_the_key_accept_a_correct_answer_in_any_natural_form(golden):
+    by_q = {q.q: q for q in golden.answerable}
+    receipt = by_q["Do I need a receipt for a Rs 300 taxi ride?"]
+    assert fact_recall(receipt.facts, "No. A receipt is mandatory only above Rs 500.") == 1.0
+    assert fact_recall(receipt.facts, "A receipt is not required for that amount; a short note is enough.") == 1.0
+    assert fact_recall(receipt.facts, "Yes, you need a receipt.") == 0.0                  # the wrong polarity must NOT pass
+    usb = by_q["Are USB drives allowed on company laptops?"]
+    assert fact_recall(usb.facts, "USB storage devices are blocked by default.") == 1.0
+    assert fact_recall(usb.facts, "Yes, USB drives are allowed.") == 0.0
