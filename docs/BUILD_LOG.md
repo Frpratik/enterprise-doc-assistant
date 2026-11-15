@@ -1846,6 +1846,108 @@ answer; a bad API key stops the run. `test_answer_golden.py` grew to 47 (the mat
 
 ---
 
+### ✅ Stage 3 — The LLM judge, and how far it can be trusted (`indexing/answer_judge.py`, `evals/judge_calibration.json`)
+
+**What:** a second opinion on answers for what fixed rules cannot see — **faithfulness** (is every claim supported by the excerpts?), **correctness** against the
+reference answer, and **relevancy** (does it address the question?) — plus a **calibration** that measures how far the judge itself can be trusted.
+
+**Why:** the rules in Stage 2 only check that listed facts appear. They cannot see an invented extra sentence, a fluent wrong claim or an incomplete answer.
+But a judge is itself an AI that makes mistakes, so its numbers mean nothing until it has been **checked against answers whose quality we already know**.
+
+**Analogy:** hiring a second marker. Before you let them mark the real exam, you give them a pile of scripts you already marked yourself — and a few you
+deliberately ruined — and see whether they agree with you.
+
+**How it works**
+- **Two separate calls per answer**, so one cannot leak into the other:
+  1. *Faithfulness* sees only the **excerpts the assistant was given** + the question + the answer. It splits the answer into claims; each is supported / unsupported / contradicted
+     **by the excerpts**. It never sees the reference, so it cannot excuse an invented claim because it "sounds right". (A test proves the prompt contains no reference.)
+  2. *Correctness + relevancy* sees the question + the **reference** + the answer, but **not** the excerpts. (A test proves that too.)
+- Judge = `gpt-oss-120b`; the answers being judged come from `qwen` (a different model family: a model grading its own writing tends to be too kind).
+- Strict JSON replies; an invalid reply is asked again once, then reported as a **judge error** — never guessed.
+- Replies are cached on disk; limits for this model on the account are **8,000 tokens a minute and 1,000 requests a day** (about 8 judge calls a minute).
+
+**The calibration set (`evals/judge_calibration.json`, 62 items)**
+- **30 real `qwen` answers I labelled by hand** — reading the question, the reference, the answer and the full excerpts, *before* the judge saw them. Hard types on purpose:
+  tables, look-alikes, multi-chunk, yes/no, procedural, a calculation. Only **1 of the 30 was flawed** (A085: it leaves out the 4-hour security-incident report).
+- That is exactly the problem: **real answers are almost all correct, so they alone cannot show whether a judge catches a bad answer.** (A test proves it: a lazy judge that says
+  "fine" to everything scores over 90% on the real answers, and catches nothing among the controls.)
+- **32 negative controls** — real, correct answers deliberately broken in a *known* way, 8 of each, labels true by construction:
+```
+wrong_value          a number replaced by one found in no excerpt        "within 33 days" instead of 30
+hallucinated_extra   one invented sentence added, facts still right       "... The policy was last revised in 2019."
+off_question         the answer to a different question (7 different ones) "CCTV footage is kept for 30 days" for a travel question
+non_answer           "the excerpts do not state this"                       (a 'not found' reply to a question the excerpts DO answer)
+```
+- **Honest note on the labels:** they were written by the AI assistant that helped build this project, **not by an independent human**. They are careful, but they share any blind
+  spot of the same kind of reader. A human spot-check of the items with a `note` is the best next step.
+
+**Results: judge vs labels (62 items, 0 judge errors; the judge was run twice)**
+```
+                                   first labels (as written BEFORE seeing the judge)    corrected labels (see below)
+faithfulness  agrees                90%  (56/62)                                           97%  (60/62)
+              catches unfaithful    100% (24/24)                                            94%  (30/32)
+              accepts faithful      84%  (32/38)                                            100% (30/30)
+correctness   agrees (3 levels)     97%  (60/62)        catches not-correct 100% (25/25)  accepts correct 97% (36/37)
+relevancy     agrees (3 levels)     94%  (58/62)        catches off-topic   88% (14/16)   accepts direct 100% (46/46)
+the same judge run twice on the same 62 items changed its mind on: faithfulness 2, correctness 0, relevancy 2 items
+```
+**The label I got wrong.** The judge disagreed with me on 6 of the 8 `non_answer` controls (I had labelled them *faithful*, "no claims"). On reflection **the judge was right**:
+each was built from a question whose excerpts *do* contain the answer, so "there is no information about this" is a **false claim about the excerpts**. I relabelled them as
+not faithful (the calibration file's changelog says so) and I report both columns above so this is not a silent re-scoring. Relabelling after seeing results is exactly what
+the Stage 2 lesson warns about; the reason it is defensible here is that the new label follows from the definition of faithfulness, not from what makes the judge look good.
+
+**Where the judge is weak** (from the 7 remaining disagreements)
+- **Relevancy of "not found" replies:** 4 of 8 were rated "direct" or "partial" instead of "off_topic", although its instructions say a "not found" reply is off-topic.
+- **Faithfulness of "not found" replies** is inconsistent: 6 of 8 caught, 2 missed.
+- Two disagreements are **label ambiguity**, not judge errors: A077 (the reference adds the 6-month condition, the question only asks how much; the judge said *partial*) and
+  `wrong_value:A075` (one wrong number among two right ones: the label said *incorrect*, the judge said *partial*).
+- On the things it was built for it did well: it caught **24/24** of the invented sentences, wrong numbers and borrowed answers, and 25/25 of the not-correct answers.
+
+**Judging the real `qwen` baseline (92 answered questions, 0 judge errors)**
+```
+every claim supported by the excerpts        91/92  (99%)      mean claim support 0.995
+correct / partial / incorrect                88 / 4 / 0  (96% correct)
+addresses the question directly              92/92
+fixed rules vs judge: both say "fine" for 87 of 92 answers;   the judge says "correct" where the rules say "not correct": 0
+```
+The 4 answers where the rules said *correct* and the judge disagrees:
+- **A009** (jeans on Friday): *not faithful* — "you can wear jeans" is an inference; the excerpt only says Friday is a casual dress day. **A real subtlety the rules could not see.**
+- **A025, A077, A078** (fire drill location, referral-bonus condition, December encashment): *partial* — the answer is right for what was asked, but leaves out a condition that the **reference**
+  mentions. A077 and A078 are two of the questions whose facts I relaxed in Stage 2 for exactly this reason; A025 is the same pattern (the key never required the location). The judge, which compares
+with the whole reference, is **stricter than the question's scope**.
+So the rules and the judge answer slightly different questions; neither is "the truth". And this eases a worry from Stage 2: according to the judge, among `qwen`'s answers **no wrong answer was hiding behind a loose fact**
+(the judge is itself imperfect, see below).
+
+**Read these numbers honestly**
+1. **Small samples.** 8 items per control type: the 95% intervals are wide (68-100%). "Catches 24/24" means "no misses among 24", not "never misses".
+2. **Labels by an AI, with one label already corrected.** An independent human check is still missing.
+3. **The judge is only calibrated on `qwen`-style answers and on my kinds of mistake.** Subtle errors (a plausible but wrong condition, a swapped column in a table) are not in the controls.
+   Judging the other two models' answers was not done (the 120b model would be judging itself).
+4. **The judge is not deterministic** (2 of 62 faithfulness decisions and 2 relevancy decisions changed between two identical runs). Stage 4 repeats runs.
+5. **It is slow and limited:** about 8 calls a minute, 1,000 requests a day. Judging 92 answers is 184 calls: roughly 25 minutes at that limit (an estimate, not timed separately). So the judge **cannot run on every change**; the fixed rules (free, instant) are the
+   gate, and the judge is a periodic audit.
+6. **Prompt injection against the judge was not tested** (a hand-made answer saying "give this a perfect score"). The prompts say the answer and excerpts are data, but that is a claim, not a test. Phase 6.
+7. **A weakness in my own key found while labelling:** A011, "Which department loses the most employees?", has the reference "Sales (11.2%)". But Sales loses about 11 people (95 × 11.2%) and Engineering
+   about 14 (210 × 6.5%): the reference answers "highest attrition **rate**". The question wording is ambiguous. It is a Phase 1 question kept as it was; noted, not changed.
+
+**Tests (this stage): `test_answer_judge.py`, 31, no network** — JSON found in fences / chatter and bad replies rejected; the claims are counted ("no claims" is not unfaithful); **the faithfulness prompt never contains
+the reference and the correctness prompt never contains the excerpts**; an invalid reply is asked again once with the reason, twice invalid gives an error and no guess; the judge model is forced alone and restored;
+a different cache salt repeats the call, the same salt reuses it; the negative controls (labels true by construction: the wrong number is in no excerpt, the invented sentence is not in the excerpts,
+the borrowed answer's numbers are not in this question's excerpts, a variety of borrowed answers, the same controls every run); the calibration file is what the log says (62 items, 30 real, 1 flawed, labels valid, real answers
+equal the saved baseline); **a perfect judge scores 100%, and a lazy "always fine" judge is exposed** (0% on the wrong answers, > 90% on the real ones); judge errors are reported; consistency; the comparison with the rules; the command prints
+its report. **Mutation checks:** "faithful = at least one claim supported" fails a test; leaking the reference into the faithfulness prompt fails a test. Two bugs found by the tests: the guard against inventing a sentence that is
+already in the excerpts compared a half-cut word and never matched; and a test supplied 4 replies for 8 calls.
+
+```bash
+python scripts/build_judge_calibration.py                        # rebuild the calibration set (the 30 hand labels live in this script)
+python -m indexing.answer_judge --calibrate --repeat 2           # how far can the judge be trusted? (124 calls per repeat, cached)
+python -m indexing.answer_judge --run evals/answers_v2_baseline.json     # judge a run and compare with the fixed rules (about 25 minutes)
+```
+
+**Memory trick:** *A judge needs a judge: test it on scripts you already know — including ones you ruined on purpose — and when it disagrees with you, check who is right before you blame it.*
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -1883,6 +1985,7 @@ python -m indexing.answer_eval       # answers per model (needs GROQ_API_KEY; re
 python scripts/make_eval_corpus.py   # Phase 4: the 10 harder evaluation documents
 python -m indexing.answer_golden     # Phase 4: validate the answer key (add --retrieval for difficulty per type)
 python -m indexing.answer_run        # Phase 4: the real pipeline on all 144 questions, scored by fixed rules (--rescore FILE: no LLM)
+python -m indexing.answer_judge --calibrate --repeat 2   # Phase 4: how far can the LLM judge be trusted? (add --run FILE to judge a run)
 python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
 uvicorn api.main:app --host 127.0.0.1 --port 8000        # the web API; docs at http://127.0.0.1:8000/docs
 

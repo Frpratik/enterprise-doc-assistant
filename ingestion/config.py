@@ -114,6 +114,7 @@ class Settings(BaseSettings):
     llm_main_model: str = "qwen/qwen3.8-27b"          # writes the answers (first word in ~160 ms; chosen after the Stage 5 timings)
     llm_fallback_model: str = "openai/gpt-oss-120b"   # a DIFFERENT model family: used when the main model fails
     llm_small_model: str = "openai/gpt-oss-20b"       # simple, cheap jobs; also the last fallback
+    judge_model: str = "openai/gpt-oss-120b"           # the LLM judge (Phase 4): NOT the model that writes the answers
     llm_timeout_sec: int = 30                          # one call must finish within this
     llm_max_wait_sec: float = 5.0                      # on a rate limit, wait at most this long before trying the next model
     llm_answer_max_tokens: int = 1200                  # reasoning models "think" first, so leave room

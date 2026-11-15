@@ -48,9 +48,11 @@ class CachingLLM(LLMClient):
     The ORIGINAL call time is stored too (last_ms), so reports show real latency, not the speed of the cache."""
 
     last_ms = 0
+    salt = 0              # a different salt = a different cache entry: lets an evaluation be repeated for real (judge consistency)
 
     def _call(self, model, messages, max_tokens, temperature):
-        key = hashlib.sha256(json.dumps([model, messages, temperature], sort_keys=True).encode()).hexdigest()
+        payload = [model, messages, temperature] + ([self.salt] if self.salt else [])      # salt 0 keeps the old cache keys
+        key = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         path = CACHE / f"{key}.json"
         if path.exists():
             d = json.loads(path.read_text(encoding="utf-8"))
