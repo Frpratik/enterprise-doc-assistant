@@ -1,0 +1,2589 @@
+{
+ "about": "Golden answers for the whole answer pipeline (Phase 4). Every question has a REFERENCE answer, the FACTS a correct answer must contain (alternatives separated by ' || '), and the gold SOURCES: a list of groups - for each group, one chunk from any of its (file, phrase) alternatives must be found. Unanswerable questions have forbidden_terms: words that must NOT appear anywhere in the documents (checked by a test, so a new document can never silently make a question answerable). Written by hand by the project author, who also wrote the documents: expect some bias.",
+ "version": 1,
+ "documents": [
+  "code_of_conduct_2026.pdf",
+  "data_privacy_policy.md",
+  "employee_benefits_guide.pdf",
+  "employee_handbook.docx",
+  "expense_reimbursement_policy.pdf",
+  "holidays_2026.csv",
+  "hr_faq.html",
+  "it_policy.txt",
+  "it_security_policy.pdf",
+  "leave_policy.pdf",
+  "leave_policy_addendum.md",
+  "long_handbook.pdf",
+  "mixed_quarterly_report.pdf",
+  "notice_board_photo.png",
+  "onboarding_deck.pptx",
+  "performance_review_policy.docx",
+  "remote_work.md",
+  "salary_revision_matrix.xlsx",
+  "salary_structure.xlsx",
+  "scanned_code_of_conduct.pdf",
+  "travel_policy.docx",
+  "vendor_onboarding_sop.docx"
+ ],
+ "questions": [
+  {
+   "id": "A001",
+   "q": "How many sick days am I entitled to each year?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Employees get 12 sick leaves per year.",
+   "facts": [
+    "12"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy.pdf",
+      "12 sick leaves"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A002",
+   "q": "When do I need a doctor's note for being ill?",
+   "type": "paraphrase",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "A medical certificate is required for sick leave longer than 2 consecutive days.",
+   "facts": [
+    "medical certificate",
+    "2 consecutive days || 2 days"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy.pdf",
+      "medical certificate"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A003",
+   "q": "How far in advance must I request casual leave?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Casual leave must be applied for at least 1 day in advance, through the HR portal.",
+   "facts": [
+    "1 day"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy.pdf",
+      "at least 1 day in advance"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A004",
+   "q": "Can unused earned leave be carried over to next year?",
+   "type": "paraphrase",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Yes. Earned leave can be carried forward, up to 30 days.",
+   "facts": [
+    "30 days"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy.pdf",
+      "Yes, up to 30 days"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A005",
+   "q": "How long is maternity leave?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Maternity leave is 26 weeks.",
+   "facts": [
+    "26 weeks"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy.pdf",
+      "26 weeks"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A006",
+   "q": "How many days notice must I give before resigning?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "The notice period for all permanent employees is 60 days.",
+   "facts": [
+    "60 days"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy.pdf",
+      "notice period for all permanent employees is 60 days"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A007",
+   "q": "What time does the office open and close?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Office hours are 9:30 AM to 6:30 PM.",
+   "facts": [
+    "9:30",
+    "6:30"
+   ],
+   "sources": [
+    [
+     [
+      "scanned_code_of_conduct.pdf",
+      "Office hours are 9:30 AM to 6:30 PM"
+     ],
+     [
+      "employee_handbook.docx",
+      "9:30 AM to 6:30 PM"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A008",
+   "q": "Where do I report harassment at work?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Report harassment to hr@acme-example.com, or to the Internal Complaints Committee at icc@acme-example.com.",
+   "facts": [
+    "hr@acme-example.com || icc@acme-example.com"
+   ],
+   "sources": [
+    [
+     [
+      "scanned_code_of_conduct.pdf",
+      "Report any harassment"
+     ],
+     [
+      "code_of_conduct_2026.pdf",
+      "icc@acme-example.com"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A009",
+   "q": "Can I wear jeans on Friday?",
+   "type": "yes_no",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Yes. Friday is a casual dress day.",
+   "facts": [
+    "casual"
+   ],
+   "sources": [
+    [
+     [
+      "scanned_code_of_conduct.pdf",
+      "Friday is casual dress day"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A010",
+   "q": "How many people work at the company?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "There were 412 employees at the end of Q3 2026.",
+   "facts": [
+    "412"
+   ],
+   "sources": [
+    [
+     [
+      "mixed_quarterly_report.pdf",
+      "412 employees"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A011",
+   "q": "Which department loses the most employees?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Sales, with an attrition rate of 11.2%.",
+   "facts": [
+    "Sales",
+    "11.2"
+   ],
+   "sources": [
+    [
+     [
+      "mixed_quarterly_report.pdf",
+      "Sales | 95 | 11.2"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A012",
+   "q": "What is the employee satisfaction rating?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "The employee satisfaction score is 4.2 out of 5.",
+   "facts": [
+    "4.2"
+   ],
+   "sources": [
+    [
+     [
+      "mixed_quarterly_report.pdf",
+      "Satisfaction Score: 4.2"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A013",
+   "q": "How long is the probation period for new joiners?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "New employees are on probation for 6 months.",
+   "facts": [
+    "6 months || month 6"
+   ],
+   "sources": [
+    [
+     [
+      "long_handbook.pdf",
+      "probation for 6 months"
+     ],
+     [
+      "performance_review_policy.docx",
+      "month 6"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A014",
+   "q": "When are performance reviews done?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Annual appraisals are held once a year in April, with a mid-year check-in in October. Employees on probation are reviewed at the end of month 5.",
+   "facts": [
+    "April"
+   ],
+   "sources": [
+    [
+     [
+      "long_handbook.pdf",
+      "once a year in April"
+     ],
+     [
+      "performance_review_policy.docx",
+      "held in April"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A015",
+   "q": "What must I hand back on my last day?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "The laptop and the ID card, on the last working day.",
+   "facts": [
+    "laptop",
+    "ID card"
+   ],
+   "sources": [
+    [
+     [
+      "long_handbook.pdf",
+      "return the laptop and ID card"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A016",
+   "q": "Does the company cover medical insurance for my family?",
+   "type": "paraphrase",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Yes. Group health insurance covers the employee and family.",
+   "facts": [
+    "family"
+   ],
+   "sources": [
+    [
+     [
+      "employee_handbook.docx",
+      "Health insurance for employee and family"
+     ],
+     [
+      "employee_benefits_guide.pdf",
+      "covers the employee, the spouse and up to 2 children"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A017",
+   "q": "How much money do I get for courses and learning each year?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "An annual learning budget of Rs 25,000.",
+   "facts": [
+    "25,000"
+   ],
+   "sources": [
+    [
+     [
+      "employee_handbook.docx",
+      "learning budget of Rs 25,000"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A018",
+   "q": "How much of my phone bill can I claim every month?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "The monthly limit for mobile is Rs 800.",
+   "facts": [
+    "800"
+   ],
+   "sources": [
+    [
+     [
+      "employee_handbook.docx",
+      "Mobile | 800"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A019",
+   "q": "What number do I call for IT help?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Call the IT helpdesk on ext 4455.",
+   "facts": [
+    "4455"
+   ],
+   "sources": [
+    [
+     [
+      "employee_handbook.docx",
+      "ext 4455"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A020",
+   "q": "What should I do in my first week after joining?",
+   "type": "procedural",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Collect your laptop from IT, complete the payroll form, meet your buddy and finish the security training.",
+   "facts": [
+    "laptop",
+    "payroll form",
+    "buddy",
+    "security training"
+   ],
+   "sources": [
+    [
+     [
+      "onboarding_deck.pptx",
+      "Collect laptop from IT"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A021",
+   "q": "What is the email address of the IT team?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "it@acme-example.com",
+   "facts": [
+    "it@acme-example.com"
+   ],
+   "sources": [
+    [
+     [
+      "onboarding_deck.pptx",
+      "it@acme-example.com"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A022",
+   "q": "What is the salary range for grade L2?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Grade L2 has a CTC range of 8 to 14 LPA.",
+   "facts": [
+    "8",
+    "14"
+   ],
+   "sources": [
+    [
+     [
+      "salary_structure.xlsx",
+      "L2 | 8 | 14"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A023",
+   "q": "What percentage of my CTC is basic pay?",
+   "type": "table_lookup",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Basic pay is 40 percent of CTC.",
+   "facts": [
+    "40"
+   ],
+   "sources": [
+    [
+     [
+      "salary_structure.xlsx",
+      "Basic | 40"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A024",
+   "q": "Is Diwali a company holiday this year?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Yes. Diwali is on 8 November 2026.",
+   "facts": [
+    "8 November || 2026-11-08"
+   ],
+   "sources": [
+    [
+     [
+      "holidays_2026.csv",
+      "Diwali"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A025",
+   "q": "When is the fire drill happening?",
+   "type": "paraphrase",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "On 15 November 2026 at 11:00 AM; assemble at the main parking area.",
+   "facts": [
+    "15 November",
+    "11:00"
+   ],
+   "sources": [
+    [
+     [
+      "notice_board_photo.png",
+      "15 November 2026"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A026",
+   "q": "How often do I have to update my password?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Passwords must be changed every 90 days.",
+   "facts": [
+    "90 days"
+   ],
+   "sources": [
+    [
+     [
+      "it_policy.txt",
+      "every 90 days"
+     ],
+     [
+      "it_security_policy.pdf",
+      "every 90 days"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A027",
+   "q": "How many days a week can I work remotely?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Employees can work from home 2 days a week.",
+   "facts": [
+    "2 days"
+   ],
+   "sources": [
+    [
+     [
+      "remote_work.md",
+      "work from home 2 days a week"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A028",
+   "q": "Will the company give me a monitor for home?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "A monitor is provided on request.",
+   "facts": [
+    "on request"
+   ],
+   "sources": [
+    [
+     [
+      "remote_work.md",
+      "Monitor | On request"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A029",
+   "q": "How do I apply for leave?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Apply through the HR portal, under Leave > Apply.",
+   "facts": [
+    "HR portal"
+   ],
+   "sources": [
+    [
+     [
+      "hr_faq.html",
+      "HR portal under Leave"
+     ],
+     [
+      "leave_policy.pdf",
+      "through the HR portal"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A030",
+   "q": "On which day is my salary paid?",
+   "type": "paraphrase",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Salary is credited on the last working day of the month.",
+   "facts": [
+    "last working day"
+   ],
+   "sources": [
+    [
+     [
+      "hr_faq.html",
+      "last working day of the month"
+     ]
+    ]
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "A031",
+   "q": "How many days before departure must an international trip be booked?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "International travel must be booked through the travel desk at least 21 days before departure.",
+   "facts": [
+    "21 days"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "at least 21 days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A032",
+   "q": "How far in advance must domestic travel be booked?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Domestic travel must be booked through the travel desk at least 7 days in advance.",
+   "facts": [
+    "7 days"
+   ],
+   "sources": [
+    [
+     [
+      "long_handbook.pdf",
+      "at least 7 days in advance"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A033",
+   "q": "Who is allowed to fly business class?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Employees of grade L3 and above, on flights longer than 6 hours.",
+   "facts": [
+    "L3",
+    "6 hours"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "grade L3 and above"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A034",
+   "q": "What is the maximum hotel cost per night for a grade L3 employee in Pune?",
+   "type": "table_lookup",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Rs 5,000 per night (Tier 2 city, grades L3-L4).",
+   "facts": [
+    "5,000"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "Tier 2 (Pune"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A035",
+   "q": "What hotel limit applies to an L1 employee in a small town?",
+   "type": "table_lookup",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Rs 2,500 per night (Tier 3 cities, grades L1-L2).",
+   "facts": [
+    "2,500"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "Tier 3"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A036",
+   "q": "How much can a grade L5 employee spend per night on a hotel in Mumbai?",
+   "type": "table_lookup",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Rs 9,000 per night (Tier 1 city, grades L5 and above).",
+   "facts": [
+    "9,000"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "Tier 1 (Mumbai"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A037",
+   "q": "What is the daily allowance for a domestic business trip?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Rs 1,200 per day for meals and local transport.",
+   "facts": [
+    "1,200"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "daily allowance of Rs 1,200"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A038",
+   "q": "How much daily allowance do I get on an international trip?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "USD 60 per day.",
+   "facts": [
+    "60"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "USD 60"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A039",
+   "q": "By when must I submit my travel claim after returning from a trip?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Within 15 days of returning from the trip.",
+   "facts": [
+    "15 days"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "within 15 days of returning"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A040",
+   "q": "How many days do I have to submit a normal expense claim?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Within 30 days of the date of the expense.",
+   "facts": [
+    "30 days"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "within 30 days of the date of the expense"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A041",
+   "q": "Do I need a receipt for a Rs 300 taxi ride?",
+   "type": "yes_no",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "No. A receipt is mandatory only for a single expense above Rs 500; for Rs 500 or less a short note is enough.",
+   "facts": [
+    "500"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "above Rs 500"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A042",
+   "q": "Who approves an expense claim of Rs 15,000?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "The department head (claims from Rs 5,001 to Rs 25,000).",
+   "facts": [
+    "department head"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "Rs 5,001 to Rs 25,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A043",
+   "q": "Who has to approve a claim of Rs 40,000?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "The finance head (claims above Rs 25,000).",
+   "facts": [
+    "finance head"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "Above Rs 25,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A044",
+   "q": "How long does it take for an approved claim to be paid?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Within 10 working days.",
+   "facts": [
+    "10 working days"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "within 10 working days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A045",
+   "q": "What is the limit for a client lunch per person?",
+   "type": "lookalike",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Rs 2,000 per person per meal.",
+   "facts": [
+    "2,000"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "Rs 2,000 per person per meal"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A046",
+   "q": "Which kinds of expenses can the company not reimburse?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Fines, penalties, alcohol and personal entertainment.",
+   "facts": [
+    "fines",
+    "alcohol",
+    "personal entertainment"
+   ],
+   "sources": [
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "Fines, penalties, alcohol"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A047",
+   "q": "What is the minimum length of a password?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "At least 12 characters.",
+   "facts": [
+    "12 characters"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "at least 12 characters"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A048",
+   "q": "Can I reuse my old passwords?",
+   "type": "yes_no",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "No. The last 5 passwords cannot be reused.",
+   "facts": [
+    "last 5 || 5 passwords || 5 previous"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "last 5 passwords"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A049",
+   "q": "Which systems need multi-factor authentication?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Company email, the VPN and the HR portal.",
+   "facts": [
+    "email",
+    "VPN",
+    "HR portal"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "mandatory for company email"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A050",
+   "q": "How quickly must I report a lost laptop?",
+   "type": "lookalike",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Within 2 hours of noticing the loss, to the IT helpdesk.",
+   "facts": [
+    "2 hours"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "within 2 hours"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A051",
+   "q": "How soon must a suspected phishing incident be reported, and to whom?",
+   "type": "lookalike",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Within 4 hours, to security@acme-example.com.",
+   "facts": [
+    "4 hours",
+    "security@acme-example.com"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "within 4 hours"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A052",
+   "q": "Are USB drives allowed on company laptops?",
+   "type": "yes_no",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "No. USB storage is blocked by default; exceptions need written approval from the IT head.",
+   "facts": [
+    "blocked",
+    "IT head"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "blocked by default"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A053",
+   "q": "When are appraisals held and when is the mid-year check-in?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Appraisals are held in April; the mid-year check-in is in October.",
+   "facts": [
+    "April",
+    "October"
+   ],
+   "sources": [
+    [
+     [
+      "performance_review_policy.docx",
+      "in October"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A054",
+   "q": "What does a performance rating of 4 mean?",
+   "type": "table_lookup",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "A rating of 4 means Exceeds.",
+   "facts": [
+    "Exceeds"
+   ],
+   "sources": [
+    [
+     [
+      "performance_review_policy.docx",
+      "4 | Exceeds"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A055",
+   "q": "How long does a Performance Improvement Plan last?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "60 days.",
+   "facts": [
+    "60 days"
+   ],
+   "sources": [
+    [
+     [
+      "performance_review_policy.docx",
+      "lasting 60 days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A056",
+   "q": "Who is eligible for promotion?",
+   "type": "single_fact",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Employees rated 4 or 5 in each of the last two cycles; promotions take effect on 1 July.",
+   "facts": [
+    "4 or 5",
+    "two cycles"
+   ],
+   "sources": [
+    [
+     [
+      "performance_review_policy.docx",
+      "rated 4 or 5"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A057",
+   "q": "When is the probation confirmation decision made?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "By the end of month 6 (the probation review is at the end of month 5).",
+   "facts": [
+    "month 6"
+   ],
+   "sources": [
+    [
+     [
+      "performance_review_policy.docx",
+      "end of month 6"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A058",
+   "q": "What salary increment does an L2 employee with rating 4 get?",
+   "type": "table_lookup",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "9 percent.",
+   "facts": [
+    "9"
+   ],
+   "sources": [
+    [
+     [
+      "salary_revision_matrix.xlsx",
+      "4 | 10 | 9 | 8 | 6"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A059",
+   "q": "What increment does a grade L4 employee rated 5 receive?",
+   "type": "table_lookup",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "8 percent.",
+   "facts": [
+    "8"
+   ],
+   "sources": [
+    [
+     [
+      "salary_revision_matrix.xlsx",
+      "5 | 14 | 12 | 10 | 8"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A060",
+   "q": "What increment do employees with a rating of 1 get?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "0 percent, in every grade.",
+   "facts": [
+    "0% || 0 percent || no increment || zero || nil"
+   ],
+   "sources": [
+    [
+     [
+      "salary_revision_matrix.xlsx",
+      "1 | 0 | 0 | 0 | 0"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A061",
+   "q": "When do salary increments take effect?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "From 1 July.",
+   "facts": [
+    "1 July"
+   ],
+   "sources": [
+    [
+     [
+      "salary_revision_matrix.xlsx",
+      "take effect from 1 July"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A062",
+   "q": "What is the limit on gifts from clients, and when must I declare a bigger gift?",
+   "type": "lookalike",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Employees must not accept gifts worth more than Rs 2,000 from vendors or clients; any gift above that limit must be declared to the compliance officer within 7 days.",
+   "facts": [
+    "2,000",
+    "7 days"
+   ],
+   "sources": [
+    [
+     [
+      "code_of_conduct_2026.pdf",
+      "gifts worth more than Rs 2,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A063",
+   "q": "How long does the Internal Complaints Committee take to finish an inquiry?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Within 90 days (it acknowledges a complaint within 3 working days).",
+   "facts": [
+    "90 days"
+   ],
+   "sources": [
+    [
+     [
+      "code_of_conduct_2026.pdf",
+      "within 90 days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A064",
+   "q": "What happens if I am late three times in a month?",
+   "type": "single_fact",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Three late arrivals in a month count as one half-day of leave.",
+   "facts": [
+    "half-day || half day"
+   ],
+   "sources": [
+    [
+     [
+      "code_of_conduct_2026.pdf",
+      "Three late arrivals"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A065",
+   "q": "Where can I report fraud anonymously?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "To ethics@acme-example.com.",
+   "facts": [
+    "ethics@acme-example.com"
+   ],
+   "sources": [
+    [
+     [
+      "code_of_conduct_2026.pdf",
+      "ethics@acme-example.com"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A066",
+   "q": "How long are HR personnel files kept after an employee leaves?",
+   "type": "table_lookup",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "7 years after the employee leaves.",
+   "facts": [
+    "7 years"
+   ],
+   "sources": [
+    [
+     [
+      "data_privacy_policy.md",
+      "HR personnel files | 7 years"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A067",
+   "q": "How long is CCTV footage kept?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "30 days.",
+   "facts": [
+    "30 days"
+   ],
+   "sources": [
+    [
+     [
+      "data_privacy_policy.md",
+      "CCTV footage | 30 days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A068",
+   "q": "Within how many hours must a serious data breach be reported to the authority?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Within 72 hours (and to the Data Protection Officer immediately).",
+   "facts": [
+    "72 hours"
+   ],
+   "sources": [
+    [
+     [
+      "data_privacy_policy.md",
+      "within 72 hours"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A069",
+   "q": "How long does the company take to answer a request to see my personal data?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Within 30 days.",
+   "facts": [
+    "30 days"
+   ],
+   "sources": [
+    [
+     [
+      "data_privacy_policy.md",
+      "reply within 30 days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A070",
+   "q": "For how many years are payroll records kept?",
+   "type": "table_lookup",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "8 years.",
+   "facts": [
+    "8 years"
+   ],
+   "sources": [
+    [
+     [
+      "data_privacy_policy.md",
+      "Payroll records | 8 years"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A071",
+   "q": "How many working days does Procurement have for vendor due diligence?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "5 working days.",
+   "facts": [
+    "5 working days"
+   ],
+   "sources": [
+    [
+     [
+      "vendor_onboarding_sop.docx",
+      "within 5 working days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A072",
+   "q": "What are the steps to onboard a new vendor?",
+   "type": "procedural",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "1) The team submits a vendor request form to Procurement. 2) Procurement completes due diligence (GST, PAN, bank account). 3) Legal reviews the contract. 4) Finance creates the vendor code. 5) The department head approves the vendor. 6) Procurement issues the first purchase order.",
+   "facts": [
+    "request form",
+    "due diligence",
+    "Legal",
+    "vendor code",
+    "department head",
+    "purchase order"
+   ],
+   "sources": [
+    [
+     [
+      "vendor_onboarding_sop.docx",
+      "vendor request form"
+     ]
+    ],
+    [
+     [
+      "vendor_onboarding_sop.docx",
+      "Finance creates the vendor code"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A073",
+   "q": "Which vendor contracts need CFO approval?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Contracts above Rs 10,00,000.",
+   "facts": [
+    "10,00,000"
+   ],
+   "sources": [
+    [
+     [
+      "vendor_onboarding_sop.docx",
+      "Contracts above Rs 10,00,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A074",
+   "q": "How often are vendors re-verified?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Every 2 years.",
+   "facts": [
+    "2 years"
+   ],
+   "sources": [
+    [
+     [
+      "vendor_onboarding_sop.docx",
+      "every 2 years"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A075",
+   "q": "How much is the sum insured under the group health insurance, and who is covered?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Rs 5,00,000 per family per year; it covers the employee, the spouse and up to 2 children.",
+   "facts": [
+    "5,00,000",
+    "2 children"
+   ],
+   "sources": [
+    [
+     [
+      "employee_benefits_guide.pdf",
+      "sum insured is Rs 5,00,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A076",
+   "q": "How much is the yearly wellness allowance?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Rs 12,000 per year, for gym or fitness memberships, against receipts.",
+   "facts": [
+    "12,000"
+   ],
+   "sources": [
+    [
+     [
+      "employee_benefits_guide.pdf",
+      "Rs 12,000 per year"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A077",
+   "q": "How much is the referral bonus?",
+   "type": "lookalike",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Rs 25,000, when the referred candidate completes 6 months in the company.",
+   "facts": [
+    "25,000",
+    "6 months"
+   ],
+   "sources": [
+    [
+     [
+      "employee_benefits_guide.pdf",
+      "referral bonus of Rs 25,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A078",
+   "q": "How many earned leave days can I encash in a year?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Up to 10 days, and only in December.",
+   "facts": [
+    "10",
+    "December"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy_addendum.md",
+      "Up to 10 earned leave days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A079",
+   "q": "Within how many days must I take my compensatory off?",
+   "type": "lookalike",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Within 60 days.",
+   "facts": [
+    "60 days"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy_addendum.md",
+      "within 60 days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A080",
+   "q": "When does absence count as unauthorised?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "After 3 consecutive days of absence without informing the manager.",
+   "facts": [
+    "3 consecutive days"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy_addendum.md",
+      "3 consecutive days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A081",
+   "q": "Who gets a drop-home cab?",
+   "type": "single_fact",
+   "difficulty": "easy",
+   "answerable": true,
+   "reference": "Employees whose shift ends after 9 PM.",
+   "facts": [
+    "9 PM"
+   ],
+   "sources": [
+    [
+     [
+      "employee_benefits_guide.pdf",
+      "shift ends after 9 PM"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A082",
+   "q": "How early must I cancel a trip to avoid a cancellation fee?",
+   "type": "single_fact",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "At least 24 hours before departure.",
+   "facts": [
+    "24 hours"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "at least 24 hours before departure"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A083",
+   "q": "How many days do I have for a travel claim versus a general expense claim?",
+   "type": "multi_chunk",
+   "difficulty": "medium",
+   "answerable": true,
+   "reference": "Travel claims: within 15 days of returning from the trip. General expense claims: within 30 days of the date of the expense.",
+   "facts": [
+    "15 days",
+    "30 days"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "within 15 days of returning"
+     ]
+    ],
+    [
+     [
+      "expense_reimbursement_policy.pdf",
+      "within 30 days of the date of the expense"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A084",
+   "q": "Which grade can fly business class, and what is the hotel limit for that grade in a Tier 1 city?",
+   "type": "multi_chunk",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Grade L3 and above can fly business class on flights over 6 hours; for grades L3-L4 the Tier 1 hotel limit is Rs 6,500 per night.",
+   "facts": [
+    "L3",
+    "6,500"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "grade L3 and above"
+     ]
+    ],
+    [
+     [
+      "travel_policy.docx",
+      "Tier 1 (Mumbai"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A085",
+   "q": "I lost my company laptop and it had employee data on it: how fast must I report it, and to whom?",
+   "type": "multi_chunk",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Report the lost device to the IT helpdesk within 2 hours; report the suspected security incident to security@acme-example.com within 4 hours; and a personal data breach goes to the Data Protection Officer immediately.",
+   "facts": [
+    "2 hours",
+    "4 hours",
+    "Data Protection Officer || DPO"
+   ],
+   "sources": [
+    [
+     [
+      "it_security_policy.pdf",
+      "within 2 hours"
+     ]
+    ],
+    [
+     [
+      "it_security_policy.pdf",
+      "within 4 hours"
+     ]
+    ],
+    [
+     [
+      "data_privacy_policy.md",
+      "Data Protection Officer"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A086",
+   "q": "I am a grade L3 employee rated 5: what is my increment and when does it take effect?",
+   "type": "multi_chunk",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "A 10 percent increment, effective from 1 July.",
+   "facts": [
+    "10",
+    "1 July"
+   ],
+   "sources": [
+    [
+     [
+      "salary_revision_matrix.xlsx",
+      "5 | 14 | 12 | 10 | 8"
+     ]
+    ],
+    [
+     [
+      "salary_revision_matrix.xlsx",
+      "take effect from 1 July"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A087",
+   "q": "What is the most I can get per year from the wellness allowance and the learning budget together?",
+   "type": "computed",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Rs 37,000: Rs 12,000 wellness allowance plus Rs 25,000 learning budget.",
+   "facts": [
+    "37,000"
+   ],
+   "sources": [
+    [
+     [
+      "employee_benefits_guide.pdf",
+      "Rs 12,000 per year"
+     ]
+    ],
+    [
+     [
+      "employee_handbook.docx",
+      "learning budget of Rs 25,000"
+     ]
+    ]
+   ],
+   "origin": "v2",
+   "computed": true
+  },
+  {
+   "id": "A088",
+   "q": "How much money back can I get for my gym membership?",
+   "type": "paraphrase",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "A wellness allowance of Rs 12,000 per year, against receipts.",
+   "facts": [
+    "12,000"
+   ],
+   "sources": [
+    [
+     [
+      "employee_benefits_guide.pdf",
+      "Rs 12,000 per year"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A089",
+   "q": "Do I get anything if I have to work on a public holiday?",
+   "type": "paraphrase",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "A compensatory off, which must be taken within 60 days.",
+   "facts": [
+    "compensatory off",
+    "60 days"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy_addendum.md",
+      "earns a compensatory off"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A090",
+   "q": "Can I cash out my unused vacation days?",
+   "type": "paraphrase",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Up to 10 earned leave days can be encashed each year, only in December.",
+   "facts": [
+    "10",
+    "December"
+   ],
+   "sources": [
+    [
+     [
+      "leave_policy_addendum.md",
+      "Up to 10 earned leave days"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A091",
+   "q": "Who do I tell if I notice fraud at work?",
+   "type": "paraphrase",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "Report it anonymously to ethics@acme-example.com.",
+   "facts": [
+    "ethics@acme-example.com"
+   ],
+   "sources": [
+    [
+     [
+      "code_of_conduct_2026.pdf",
+      "ethics@acme-example.com"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A092",
+   "q": "How much can a vendor's gift be worth before I have to tell the compliance officer?",
+   "type": "paraphrase",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "More than Rs 2,000; such a gift must be declared within 7 days.",
+   "facts": [
+    "2,000"
+   ],
+   "sources": [
+    [
+     [
+      "code_of_conduct_2026.pdf",
+      "gifts worth more than Rs 2,000"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "A093",
+   "q": "Can an L2 employee fly business class on a 7-hour flight?",
+   "type": "yes_no",
+   "difficulty": "hard",
+   "answerable": true,
+   "reference": "No. Business class is for grade L3 and above; grade L2 travels economy.",
+   "facts": [
+    "L3"
+   ],
+   "sources": [
+    [
+     [
+      "travel_policy.docx",
+      "grade L3 and above"
+     ]
+    ]
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U001",
+   "q": "How many days of leave do I get for my marriage?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "marriage"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U002",
+   "q": "What is the bereavement leave policy?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "bereavement"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U003",
+   "q": "When is Holi this year?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "holi"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U004",
+   "q": "How many days of paid time off do I get for volunteering?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "volunteer"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U005",
+   "q": "What is the dental coverage under the health insurance?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "dental"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U006",
+   "q": "What is the sales commission structure?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "commission"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U007",
+   "q": "How much is the joining bonus?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "joining bonus"
+   ],
+   "origin": "v1",
+   "why": "a referral bonus exists: a look-alike"
+  },
+  {
+   "id": "U008",
+   "q": "What is the CEO's salary?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "ceo"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U009",
+   "q": "What is the policy on smoking in the office?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "smoking"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U010",
+   "q": "How many stock options do employees get?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "stock option",
+    "esop"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U011",
+   "q": "How do I reset my email password?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "reset"
+   ],
+   "origin": "v1",
+   "why": "password rules exist, a reset procedure does not"
+  },
+  {
+   "id": "U012",
+   "q": "Which VPN should I use for remote work?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "approved vpn",
+    "vpn client",
+    "vpn software"
+   ],
+   "origin": "v1",
+   "why": "the VPN is mandatory, but no product is named"
+  },
+  {
+   "id": "U013",
+   "q": "How many people work in the Finance department?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "finance headcount",
+    "finance department"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U014",
+   "q": "What is the attrition rate in Marketing?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "marketing"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U015",
+   "q": "What is the CTC range for grade L4?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "l4 ctc"
+   ],
+   "origin": "v1",
+   "why": "L4 exists in the increment matrix, its CTC range does not"
+  },
+  {
+   "id": "U016",
+   "q": "Who is the head of Engineering?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "head of engineering"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U017",
+   "q": "What time does the cafeteria close?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "cafeteria",
+    "canteen"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U018",
+   "q": "How much is the relocation allowance?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "relocation"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U019",
+   "q": "What are the rules for the Diwali bonus?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "diwali bonus"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U020",
+   "q": "Where is the Pune office located?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "pune office"
+   ],
+   "origin": "v1",
+   "why": "Pune appears only as a hotel-limit city"
+  },
+  {
+   "id": "U021",
+   "q": "How often are fire drills held?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "drills are held",
+    "drills every"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U022",
+   "q": "What is the laptop replacement cycle?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "replacement cycle",
+    "replaced every",
+    "refresh cycle"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U023",
+   "q": "What is the penalty for submitting an expense claim late?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "penalty",
+    "late claim"
+   ],
+   "origin": "v2",
+   "why": "the deadline is stated, a penalty is not"
+  },
+  {
+   "id": "U024",
+   "q": "Can sick leave be encashed when I leave the company?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "encash sick",
+    "sick leave can be encashed"
+   ],
+   "origin": "v2",
+   "why": "only earned leave encashment is stated"
+  },
+  {
+   "id": "U025",
+   "q": "How long are employee medical records kept?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "medical record"
+   ],
+   "origin": "v2",
+   "why": "the retention table has other records"
+  },
+  {
+   "id": "U026",
+   "q": "How long are server logs retained?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "server log"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U027",
+   "q": "What is the payment term for vendor invoices?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "payment term"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U028",
+   "q": "What increment does an employee with a rating of 6 get?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "rating of 6",
+    "rating 6"
+   ],
+   "origin": "v2",
+   "why": "ratings stop at 5"
+  },
+  {
+   "id": "U029",
+   "q": "What increment does a grade L5 employee rated 4 receive?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "l5 increment",
+    "increment for l5"
+   ],
+   "origin": "v2",
+   "why": "the matrix stops at L4"
+  },
+  {
+   "id": "U030",
+   "q": "What is the hotel limit for international trips?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "international hotel",
+    "hotel abroad"
+   ],
+   "origin": "v2",
+   "why": "the hotel table covers Indian city tiers only"
+  },
+  {
+   "id": "U031",
+   "q": "What is the notice period for contractors?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "notice period for contractors",
+    "contractor notice"
+   ],
+   "origin": "v2",
+   "why": "only permanent employees are covered"
+  },
+  {
+   "id": "U032",
+   "q": "What is the Wi-Fi password for the guest network?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "wi-fi",
+    "wifi",
+    "guest network"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U033",
+   "q": "What is the limit on gifts I can accept from my colleagues?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "gifts from colleagues",
+    "gift from a colleague"
+   ],
+   "origin": "v2",
+   "why": "the gift limit is for vendors and clients"
+  },
+  {
+   "id": "U034",
+   "q": "Which authenticator app does the company use for multi-factor authentication?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "authenticator"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U035",
+   "q": "What are the working hours for the night shift?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "night shift"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U036",
+   "q": "How much does the company pay for a mobile phone upgrade?",
+   "type": "near_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "upgrade",
+    "handset"
+   ],
+   "origin": "v2",
+   "why": "only a monthly mobile bill limit exists"
+  },
+  {
+   "id": "U037",
+   "q": "What is the capital of France?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "france"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U038",
+   "q": "How do I bake a chocolate cake?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "chocolate"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U039",
+   "q": "Who won the cricket world cup?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "cricket"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U040",
+   "q": "What is the weather in Mumbai today?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "weather"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U041",
+   "q": "Translate 'good morning' into French.",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "french"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U042",
+   "q": "What is the stock price of Tesla?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "tesla"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U043",
+   "q": "Write a poem about spring.",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "poem"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U044",
+   "q": "How do I fix a flat bicycle tyre?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "bicycle"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U045",
+   "q": "Who is the prime minister of Canada?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "canada"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U046",
+   "q": "What is the meaning of life?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "meaning of life"
+   ],
+   "origin": "v1"
+  },
+  {
+   "id": "U047",
+   "q": "How do I make masala chai?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "chai"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U048",
+   "q": "Who wrote the play Hamlet?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "hamlet"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U049",
+   "q": "What is 15 percent of 2,400?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "360"
+   ],
+   "origin": "v2",
+   "why": "the LLM could calculate it, but it is not in the documents"
+  },
+  {
+   "id": "U050",
+   "q": "Which programming language should I learn first?",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "programming language"
+   ],
+   "origin": "v2"
+  },
+  {
+   "id": "U051",
+   "q": "Tell me a joke about managers.",
+   "type": "off_topic",
+   "answerable": false,
+   "reference": "NOT_IN_DOCUMENTS",
+   "forbidden_terms": [
+    "joke"
+   ],
+   "origin": "v2"
+  }
+ ]
+}

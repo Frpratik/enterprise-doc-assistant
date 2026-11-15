@@ -55,10 +55,11 @@ def temp_database():
             admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
-def index_golden_documents(names: list[str]) -> int:
+def index_golden_documents(names: list[str], resolve=None) -> int:
+    """Index the named documents. `resolve(name) -> Path` says where each one lives (default: data/samples/good)."""
     total = 0
     for name in names:
-        path = SAMPLES / name
+        path = resolve(name) if resolve else SAMPLES / name
         doc = load_document(path)
         doc.hash = sha256(path)
         doc.mark(Status.DONE, "eval")
