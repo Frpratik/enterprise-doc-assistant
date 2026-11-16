@@ -18,7 +18,7 @@ tested before moving on.
 | **Phase 1 — Ingestion** | Any file comes in → checked → read correctly → one standard JSON | ✅ Done |
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
-| Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | 🔨 In progress |
+| Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ⏳ |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
@@ -2040,6 +2040,113 @@ without an LLM answer, but a few failures between successes do not stop it**; ex
 
 ---
 
+### ✅ Stage 5 — One command and the regression gate (`indexing/eval_gate.py`, `evals/gate_baseline.json`)
+
+**What:** `python -m indexing.eval_gate` — **one command that says whether a change made the assistant worse**: `PASS` (exit 0), `FAIL` (exit 1, a regression) or `INCOMPLETE`
+(exit 2, something could not be verified). It needs **no API key and no quota**, and the same check runs as a test (`tests/test_answer_gate.py`), so `pytest` is the gate in CI (Phase 9).
+
+**Why:** without it, every change to chunking, search, the reranker, the thresholds or the prompt is a guess. This turns the exam, the scoring and the statistics of Stage 1-4 into a safety net.
+
+**Analogy:** a building inspector who compares the building with the photograph taken on the day it passed inspection. Our "photograph" includes the exact answers the LLM gave then, so we can re-inspect
+everything *around* the LLM for free, as often as we like.
+
+**Every design rule comes from a measurement in Phase 4**
+```
+Stage 4:  the exam can only certify a drop of 6+ questions        ->  a STRICT rule (any new failure among the always-right questions), not a percentage
+Stage 4:  qwen gave identical answers in 3 runs; 0 false alarms   ->  the strict rule is usable for this model
+Stage 4:  qwen allows ~300 answers a day                          ->  RECORD the LLM replies once and REPLAY them: no quota needed to check a change
+Stage 4:  a quota looked like a model changing its mind           ->  a question that cannot be verified is INCOMPLETE, never PASS
+Stage 3:  the judge is slow and limited (~8 calls a minute)       ->  the judge is a periodic audit, not part of the gate
+```
+
+**How it works**
+1. **Record** (`--record --from RUN1 RUN2 RUN3`): from three saved runs of the same model it keeps which questions were right in **every** run (91) and which were wrong in every run (A018, A085);
+   a recording pass through the cached LLM client stores the exact reply for every prompt (124 replies, keyed by a hash of the prompt). The whole baseline is 28 KB and lives in git. Recording is refused
+   if the pass does not reproduce the saved runs.
+2. **Replay** (the default): the pipeline is re-run for all 144 questions in a throwaway database — search, reranker, the "I don't know" score gate, prompt building, citation checks, scoring — and the stored
+   LLM replies are replayed. **If a change alters what the LLM would see, its prompt no longer matches a stored reply**: the gate says so (`its prompt changed: no stored reply`) instead of pretending.
+3. **The rules** — `FAIL` if any of these:
+   - `new_failure`: a question that was correct in every baseline run is not correct now;
+   - `lost_evidence`: the excerpts no longer contain the evidence the baseline had (a retrieval regression, visible without any LLM);
+   - `gate_blocks_answerable`: the score gate now blocks a question the documents can answer;
+   - `gate_no_longer_blocks`: the score gate stopped blocking an unanswerable question it used to block (a safety layer got weaker);
+   - `false_answer`: an unanswerable question got an answer (or a hedged answer);
+   - `answer_key_changed`: the baseline was recorded with another version of the answer key.
+   Otherwise `INCOMPLETE` if some question could not be verified (a changed prompt, or the LLM did not answer); otherwise `PASS`. Improvements (a known failure that is now right) are only reported.
+4. `--live`: for the prompts that changed, ask the real LLM (cached, uses quota); then re-record the baseline once the change is confirmed to be intended, like updating a snapshot test.
+```bash
+python -m indexing.eval_gate                                                  # the gate (about 3 minutes here; needs Docker and the two local models, no key)
+python -m indexing.eval_gate --ids A001,A002,U001                             # a quick check of a few questions
+python -m indexing.eval_gate --live                                           # also ask the real LLM where the prompt changed
+python -m indexing.eval_gate --record --from RUN1.json RUN2.json RUN3.json    # new baseline after an intended change
+python -m pytest tests/test_answer_gate.py                                    # the same gate, as a test
+```
+
+**Results**
+- **Unchanged code: PASS** — 91/93 answerable correct, 51/51 unanswerable refused, exit 0, no key, no quota.
+- **Known-bad change 1** (the meaning threshold far too high, every answerable question blocked): **FAIL**, exit 1, **15 regressions**, each named with its question and scores
+  (`[new_failure] A001 refused / gate`, `[gate_blocks_answerable] A001 rerank 3.435, meaning 0.771`, ...).
+- **Known-bad change 2** (the LLM gets 2 excerpts instead of 5): **INCOMPLETE**, exit 2 — the stored replies no longer match, so the gate cannot tell whether the answers got worse, and says so with the way forward
+  (`--live`, then re-record). It does **not** pass. (In CI a non-zero exit fails the job.)
+- **Mutation checks** — I removed each safeguard in turn and the tests caught every one: new-failure check (3 tests fail), lost-evidence (1), gate blocks answerable (1), gate stops blocking (1),
+  unverified counted as PASS (3), an LLM that did not answer counted as fine (1), a hedged answer to an unanswerable question allowed (1).
+- When Docker was down the command said `Database not reachable` and exited 2: **a broken environment is never a PASS.**
+
+**Bugs found by the tests (and by running it)**
+1. `load_baseline(path=GATE_BASELINE)` bound its default when the function was *defined*, so a test that changed `GATE_BASELINE` was ignored and the test ran the whole **real** gate (over 4 minutes) instead of
+   reporting a missing file. The default is now looked up when called.
+2. The "`--record` needs `--from`" check ran *after* the database check, so a usage mistake looked like a database problem. Arguments are checked first.
+
+**What it costs to keep the baseline up to date**
+A baseline from three runs costs about **75,000 `qwen` tokens per run**; the account allows **200,000 a day**. So a new three-run baseline needs about two days of quota (or a paid tier). Re-recording from 1-2 runs is possible
+(`--from` takes any number), but then "always right" means less. This is the price of the free tier, not of the design.
+
+**Read these numbers honestly**
+1. **The gate cannot see the LLM getting worse when the prompts changed**, only that they changed. The `--live` path is covered by a test with a stand-in LLM, but I could **not try it against the real LLM**
+   (the `qwen` quota was used up). It should work; it is untested in real conditions.
+2. **Replay tests everything around the LLM, not the LLM.** If the provider silently changes how a model answers, replay will not notice. That needs the periodic **live audit**:
+   `answer_run` (one real run) -> `answer_stats --compare` against the baseline run -> `answer_judge --run` (faithfulness and correctness, about 25 minutes).
+3. **The strict rule sees "wrong", not "worse but still right"** (a hedge, an invented extra sentence, a shorter answer): that is the judge's job.
+4. **Noise was measured only for `qwen`** (0 false alarms in 3 leave-one-out tests). A baseline from a noisier model needs its own measurement before the strict rule is trusted.
+5. **Harmless changes can cause friction:** reordering the excerpts changes the prompt, so the gate reports INCOMPLETE until the baseline is re-recorded.
+6. It needs Docker, Postgres, the two local models and the generated sample documents: Phase 9 must set these up in CI (cache the models, run the two sample scripts).
+7. It says nothing about speed, cost or tokens.
+
+**Tests (this stage): `test_answer_gate.py` (28) + 1 in `test_answer_run.py`.** The verdict rules on a tiny hand-made exam (pass; each of the 6 failure kinds; always-wrong questions may stay wrong or improve; a question that was not run is ignored;
+a failure beats an unverified question; the reports say what to do); a prompt's identity changes with its content and with the order of excerpts; replay hit and miss; live mode replays what it can and asks only for changed prompts;
+recording; replay inside the real `answer()`; the committed baseline is consistent with the answer key (91 always right, A018 and A085 known failures, 20 blocked by the score gate, 51 refused, 124 replies);
+the command's exit codes, a missing baseline, a missing database, a broken gate; **and, on the real pipeline: the real gate passes; a broken threshold fails it; a prompt change is not passed silently.**
+
+**Memory trick:** *A smoke detector that has never been tested is decoration: prove it rings for a real fire, and make it say "I can't tell" — never "all clear" — when it cannot see.*
+
+---
+
+## ✅ Phase 4 complete — we can measure the assistant, and a change cannot quietly make it worse
+
+```
+Stage 1  a harder exam            22 documents, 144 questions (93 answerable, 51 not), reference answers, required facts, gold evidence, a validated answer key (v3, with a changelog)
+Stage 2  rule-based scoring       facts, citations, refusals, cause of every failure (retrieval / generation / gate); a scorer that favoured one model's wording was found and fixed
+Stage 3  an LLM judge             faithfulness + correctness + relevancy, calibrated on 62 items incl. negative controls: catches 24/24 injected errors, accepts 97% of correct answers; labels written by an AI
+Stage 4  spread and significance  qwen is steady (3 identical runs); the three models are statistically the same; a paired test needs 6+ changed questions; a strict gate is the right shape
+Stage 5  the regression gate      one command (and a test): PASS / FAIL / INCOMPLETE, no key, no quota; proven to fail on known-bad changes and to refuse to pass when it cannot verify
+```
+**Where the assistant stands (qwen, this exam):** 91/93 answerable correct (97.9%), 51/51 unanswerable refused, 0 false answers; the judge finds 99% of the answers fully supported by their excerpts.
+**The two questions it gets wrong are both retrieval failures** (A018 the phone-bill limit, A085 the lost-laptop question that needs three chunks): adding documents pushed the evidence out of the top 5. That is a real
+weakness to fix, and the gate now guards the rest while it is fixed.
+
+**What is still weak (the hand-off)**
+1. **Retrieval at scale** (A018, A085): more documents crowd the evidence out. Candidate fixes (more candidates, a smarter query, boosting by document type) are not built.
+2. **Nothing here tests who is allowed to see what.** The exam has no roles. **Phase 5 (Access)** must add its own tests: a user without access must never get an answer built from a restricted chunk, even a correct-looking one. The gate has a natural place for it (a `forbidden evidence` rule).
+3. **Labels and questions are mine** (an AI helped write documents, questions, reference answers and the judge's calibration labels): a human spot-check is the best next step.
+4. **The exam has a ceiling** (97.9%): it can catch regressions, not rank models.
+5. **Throughput of the free tier** (about 300 `qwen` answers a day) limits live runs and baseline updates; production would need a paid tier, shorter prompts or caching (Phases 6 and 9).
+6. **Prompt injection, PII and abuse** are not tested at all (Phase 6). **Speed and cost** are not gated (Phases 8-9).
+7. The ambiguity in A011 ("loses the most employees": rate vs people) is noted, not fixed.
+
+**Next phase:** Phase 5 — Access: login (JWT), roles, and making sure each person only ever gets answers built from documents they are allowed to see (the columns `tenant_id` and `allowed_roles` are already in the database).
+
+---
+
 ## How to run (so far)
 
 ```bash
@@ -2079,6 +2186,7 @@ python -m indexing.answer_golden     # Phase 4: validate the answer key (add --r
 python -m indexing.answer_run        # Phase 4: the real pipeline on all 144 questions, scored by fixed rules (--rescore FILE: no LLM)
 python -m indexing.answer_judge --calibrate --repeat 2   # Phase 4: how far can the LLM judge be trusted? (add --run FILE to judge a run)
 python -m indexing.answer_run --repeat 3                 # Phase 4: three real runs + spread; python -m indexing.answer_stats --compare A.json B.json
+python -m indexing.eval_gate                             # Phase 4: THE regression gate: PASS / FAIL / INCOMPLETE (exit 0 / 1 / 2), no key, no quota
 python -m indexing.ask "How long is maternity leave?"     # a real answer with sources (needs GROQ_API_KEY in .env)
 uvicorn api.main:app --host 127.0.0.1 --port 8000        # the web API; docs at http://127.0.0.1:8000/docs
 

@@ -57,7 +57,7 @@ class LLMStalled(RuntimeError):
     """The LLM failed for several questions in a row (most likely a rate limit or a daily quota)."""
 
 
-def _answer_all(questions, llm, k, progress) -> list[dict]:
+def _answer_all(questions, llm, k, progress, stall_after: int | None = STALL_AFTER) -> list[dict]:
     records, start, stalled = [], time.time(), 0
     for i, q in enumerate(questions, 1):
         try:
@@ -65,7 +65,7 @@ def _answer_all(questions, llm, k, progress) -> list[dict]:
             records.append(to_record(q.id, a, llm_ms=getattr(llm, "last_ms", 0) if a.model else 0))
             if a.status == "llm_unavailable":
                 stalled += 1
-                if stalled >= STALL_AFTER:
+                if stall_after and stalled >= stall_after:
                     raise LLMStalled(f"the LLM did not answer {stalled} questions in a row (after {i} of {len(questions)}): probably a rate limit or a daily quota. "
                                      "Answers already received are cached: run the same command again later and it continues where it stopped.")
             elif a.model:
@@ -81,7 +81,7 @@ def _answer_all(questions, llm, k, progress) -> list[dict]:
 
 
 def generate_repeats(golden: Golden, model: str | None = None, repeats: int = 1, llm=None, ids: list[str] | None = None,
-                     progress=None, first_salt: int = 0, k: int | None = None) -> list[list[dict]]:
+                     progress=None, first_salt: int = 0, k: int | None = None, stall_after: int | None = STALL_AFTER) -> list[list[dict]]:
     """
     The same pipeline `repeats` times, in ONE throwaway database. Repeat j uses cache salt first_salt + j, so the LLM is really asked again
     (salt 0 is the run that may already be cached). `llm` can be a stand-in (tests); `model` forces a one-model chain;
@@ -101,7 +101,7 @@ def generate_repeats(golden: Golden, model: str | None = None, repeats: int = 1,
                 llm.salt = first_salt + j
                 if progress and repeats > 1:
                     progress(f"--- run {j + 1} of {repeats} (cache salt {first_salt + j})")
-                runs.append(_answer_all(questions, llm, k, progress))
+                runs.append(_answer_all(questions, llm, k, progress, stall_after))
     finally:
         settings.llm_main_model, settings.llm_fallback_model, settings.llm_small_model = saved
     return runs

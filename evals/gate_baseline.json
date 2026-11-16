@@ -1,0 +1,879 @@
+{
+ "meta": {
+  "created": "2026-11-15T19:24:54+00:00",
+  "model": "qwen/qwen3.8-27b",
+  "golden_version": 3,
+  "prompt_version": "answer-v1",
+  "source_runs": [
+   "answers_qwen_qwen3_8_27b_r1_20261115T184319.json",
+   "answers_qwen_qwen3_8_27b_r2_20261115T184319.json",
+   "answers_qwen_qwen3_8_27b_r3_20261115T184320.json"
+  ],
+  "answerable": 93,
+  "unanswerable": 51,
+  "min_rerank_score": -10.0,
+  "min_vector_score": 0.56,
+  "context_chunks": 5,
+  "rerank_candidates": 10,
+  "rrf_keyword_weight": 0.1,
+  "replies": 124
+ },
+ "stable_correct": [
+  "A001",
+  "A002",
+  "A003",
+  "A004",
+  "A005",
+  "A006",
+  "A007",
+  "A008",
+  "A009",
+  "A010",
+  "A011",
+  "A012",
+  "A013",
+  "A014",
+  "A015",
+  "A016",
+  "A017",
+  "A019",
+  "A020",
+  "A021",
+  "A022",
+  "A023",
+  "A024",
+  "A025",
+  "A026",
+  "A027",
+  "A028",
+  "A029",
+  "A030",
+  "A031",
+  "A032",
+  "A033",
+  "A034",
+  "A035",
+  "A036",
+  "A037",
+  "A038",
+  "A039",
+  "A040",
+  "A041",
+  "A042",
+  "A043",
+  "A044",
+  "A045",
+  "A046",
+  "A047",
+  "A048",
+  "A049",
+  "A050",
+  "A051",
+  "A052",
+  "A053",
+  "A054",
+  "A055",
+  "A056",
+  "A057",
+  "A058",
+  "A059",
+  "A060",
+  "A061",
+  "A062",
+  "A063",
+  "A064",
+  "A065",
+  "A066",
+  "A067",
+  "A068",
+  "A069",
+  "A070",
+  "A071",
+  "A072",
+  "A073",
+  "A074",
+  "A075",
+  "A076",
+  "A077",
+  "A078",
+  "A079",
+  "A080",
+  "A081",
+  "A082",
+  "A083",
+  "A084",
+  "A086",
+  "A087",
+  "A088",
+  "A089",
+  "A090",
+  "A091",
+  "A092",
+  "A093"
+ ],
+ "known_failures": [
+  "A018",
+  "A085"
+ ],
+ "evidence_in_context": [
+  "A001",
+  "A002",
+  "A003",
+  "A004",
+  "A005",
+  "A006",
+  "A007",
+  "A008",
+  "A009",
+  "A010",
+  "A011",
+  "A012",
+  "A013",
+  "A014",
+  "A015",
+  "A016",
+  "A017",
+  "A019",
+  "A020",
+  "A021",
+  "A022",
+  "A023",
+  "A024",
+  "A025",
+  "A026",
+  "A027",
+  "A028",
+  "A029",
+  "A030",
+  "A031",
+  "A032",
+  "A033",
+  "A034",
+  "A035",
+  "A036",
+  "A037",
+  "A038",
+  "A039",
+  "A040",
+  "A041",
+  "A042",
+  "A043",
+  "A044",
+  "A045",
+  "A046",
+  "A047",
+  "A048",
+  "A049",
+  "A050",
+  "A051",
+  "A052",
+  "A053",
+  "A054",
+  "A055",
+  "A056",
+  "A057",
+  "A058",
+  "A059",
+  "A060",
+  "A061",
+  "A062",
+  "A063",
+  "A064",
+  "A065",
+  "A066",
+  "A067",
+  "A068",
+  "A069",
+  "A070",
+  "A071",
+  "A072",
+  "A073",
+  "A074",
+  "A075",
+  "A076",
+  "A077",
+  "A078",
+  "A079",
+  "A080",
+  "A081",
+  "A082",
+  "A083",
+  "A084",
+  "A086",
+  "A087",
+  "A088",
+  "A089",
+  "A090",
+  "A091",
+  "A092",
+  "A093"
+ ],
+ "answerable_gate_passes": [
+  "A001",
+  "A002",
+  "A003",
+  "A004",
+  "A005",
+  "A006",
+  "A007",
+  "A008",
+  "A009",
+  "A010",
+  "A011",
+  "A012",
+  "A013",
+  "A014",
+  "A015",
+  "A016",
+  "A017",
+  "A018",
+  "A019",
+  "A020",
+  "A021",
+  "A022",
+  "A023",
+  "A024",
+  "A025",
+  "A026",
+  "A027",
+  "A028",
+  "A029",
+  "A030",
+  "A031",
+  "A032",
+  "A033",
+  "A034",
+  "A035",
+  "A036",
+  "A037",
+  "A038",
+  "A039",
+  "A040",
+  "A041",
+  "A042",
+  "A043",
+  "A044",
+  "A045",
+  "A046",
+  "A047",
+  "A048",
+  "A049",
+  "A050",
+  "A051",
+  "A052",
+  "A053",
+  "A054",
+  "A055",
+  "A056",
+  "A057",
+  "A058",
+  "A059",
+  "A060",
+  "A061",
+  "A062",
+  "A063",
+  "A064",
+  "A065",
+  "A066",
+  "A067",
+  "A068",
+  "A069",
+  "A070",
+  "A071",
+  "A072",
+  "A073",
+  "A074",
+  "A075",
+  "A076",
+  "A077",
+  "A078",
+  "A079",
+  "A080",
+  "A081",
+  "A082",
+  "A083",
+  "A084",
+  "A085",
+  "A086",
+  "A087",
+  "A088",
+  "A089",
+  "A090",
+  "A091",
+  "A092",
+  "A093"
+ ],
+ "gate_blocked_unanswerable": [
+  "U006",
+  "U008",
+  "U016",
+  "U020",
+  "U032",
+  "U037",
+  "U038",
+  "U039",
+  "U040",
+  "U041",
+  "U042",
+  "U043",
+  "U044",
+  "U045",
+  "U046",
+  "U047",
+  "U048",
+  "U049",
+  "U050",
+  "U051"
+ ],
+ "unanswerable_refused": [
+  "U001",
+  "U002",
+  "U003",
+  "U004",
+  "U005",
+  "U006",
+  "U007",
+  "U008",
+  "U009",
+  "U010",
+  "U011",
+  "U012",
+  "U013",
+  "U014",
+  "U015",
+  "U016",
+  "U017",
+  "U018",
+  "U019",
+  "U020",
+  "U021",
+  "U022",
+  "U023",
+  "U024",
+  "U025",
+  "U026",
+  "U027",
+  "U028",
+  "U029",
+  "U030",
+  "U031",
+  "U032",
+  "U033",
+  "U034",
+  "U035",
+  "U036",
+  "U037",
+  "U038",
+  "U039",
+  "U040",
+  "U041",
+  "U042",
+  "U043",
+  "U044",
+  "U045",
+  "U046",
+  "U047",
+  "U048",
+  "U049",
+  "U050",
+  "U051"
+ ],
+ "replies": {
+  "4a0d3625570245f9070acb942827493f1737493d4bcdf13b191e75559ee4e494": {
+   "text": "You are entitled to 12 sick leaves per year [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "1fdbe710f0c1d740f114abca18d0235f63128fb14044549e417ffa1e9506be66": {
+   "text": "A medical certificate is required for sick leave longer than 2 consecutive days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "0ec9f1146a2bbdd28b702ad7db1f7194fb9a13b691ba570586eb2e1031b054a2": {
+   "text": "Casual leave must be applied at least 1 day in advance through the HR portal [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "bae87775d802dd31a986fbdd956302b42eb91011e8ac54701177851920f4cec1": {
+   "text": "Yes, unused earned leave can be carried forward to the next year, up to a maximum of 30 days [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "24ebe445098f4b27510766df85950cb69dd04ec8734efd11e721c5be74b74fd6": {
+   "text": "Maternity leave is 26 weeks [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "3cf580041afa86290c045b4b499479f80a63e220203127a4a691af42d7129ef4": {
+   "text": "The notice period for all permanent employees is 60 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "3c5e449389cd70f08e16cab7e2036275b654a1c5a7020e2fc58c518af35e87de": {
+   "text": "Office hours are 9:30 AM to 6:30 PM [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "ff1166a2d2c7975dd8ad6f4681b853a3095c0126ac908c3003023c9ad91339ed": {
+   "text": "Harassment can be reported to hr@acme-example.com [1] or to the Internal Complaints Committee at icc@acme-example.com [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "7e595a0cf83f55da295203aec2aa738f8aebe48014960e9f8adcb6199b12c2bb": {
+   "text": "Yes, you can wear jeans on Friday because it is designated as casual dress day [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "0f102e71f819970904e894166504f428c41fd602e13ad158220fd29fc6777767": {
+   "text": "The total headcount at the end of Q3 was 412 employees [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "c6ed9fe4da955066949348cdc5deaa09f0cf9123dd4e5bac1ece544096739b0f": {
+   "text": "Sales has the highest attrition rate at 11.2% [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "0853effb506a1f78ff1240e5af17baa635cbd0eac7f0b3f91e1d4206c2eca9a0": {
+   "text": "The employee satisfaction score is 4.2 / 5 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "78e7159c456e335b8f35503db9f569e4aab98fca5f5ecb1f147dab6d989a33f7": {
+   "text": "New employees are on probation for 6 months. [1]",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "400e45f9ba10ff2a23fdfb23d7bd8aee201f937fa856c57c57c7634a7b126d2b": {
+   "text": "Annual appraisals are held in April for the previous financial year, and a mid-year check-in conversation takes place in October [1]. New employees on probation are reviewed at the end of month 5 [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "59ac385cfed3d863866c1e6e7beefe8023ce5ad02c81adaa290d5ab012de9155": {
+   "text": "You must return the laptop and ID card on your last working day [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "a9e502b8530145f2ddc5931b88aaeb048559a46247ba24770ba5337be02faefc": {
+   "text": "Yes, group health insurance covers the employee, the spouse, and up to 2 children [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "4e4e603e2d3b21ead94576e8dcaab610ceb24d889c9b52d6d306b15b865fccbb": {
+   "text": "The annual learning budget is Rs 25,000 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "2a827928454b9bab392525c79a2e6a17c38237f3df9166282c8ba057aa73e5fa": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "36cb561cc49a99fb0d7828c0ea7dea04c401b8f7d2f913f05ec7834a96cb3629": {
+   "text": "The IT helpdesk can be reached at extension 4455 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "9220abf7d927c4f9945bf8db982d0a4e2af690ea3926ee43d6005d328b85bd04": {
+   "text": "In your first week, you should collect your laptop from IT, complete the payroll form, meet your buddy, and finish security training [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "59d922a2849eaed3d39b9581b2594601ae0b124e9814b201be8db65f7c69a179": {
+   "text": "The email address of the IT team is it@acme-example.com [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "35fdcd63503e8cf071698b73de712f7a6101c061ebb837320767483c98fc4275": {
+   "text": "The salary range for grade L2 is a minimum CTC of 8 LPA and a maximum CTC of 14 LPA [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "77a3aa5dc3e791be651b5721cdc4194d41c10bc1214baf85be99f7acb0f81f34": {
+   "text": "Basic pay constitutes 40% of your CTC [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "86024f21298caa6824b7922cd421167c812b7a3dbe2e1f30ea3138e23cb266d2": {
+   "text": "Yes, Diwali is a company holiday on 2026-11-08 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "0586aa43b4c8edc5a74bb319eb23adc80b5bf616121bd1ea34bb9012d01a4711": {
+   "text": "The fire drill is happening on 15 November 2026 at 11:00 AM [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "ff66c4788b1300f0a8de2b4b055eec7ff3c178caf6fc1d401a79d4f46784b53d": {
+   "text": "Passwords must be changed every 90 days [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "e0ab42529a882af98cc251f7385eb7f547bf9c04f60dd4973ecb201528b9037c": {
+   "text": "Employees can work from home 2 days a week [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "3fed4fe8ddf1d17b1884ca82f8bcbdf37c417e20ce6ba68c2f04229d8d669797": {
+   "text": "Yes, a monitor is provided on request. [1]",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "c07441531d85dc341f08a3656ffa6fe43cd514b864bd03f111587b0909d2483c": {
+   "text": "Use the HR portal under Leave > Apply [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "05bea92bbe7617206326edbbde13385110eafad7e10f293b7324ed7fc1eb6066": {
+   "text": "Salary is credited on the last working day of the month [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "81f23a031cce19598a8803076601aacc3c603512b407dfabe0626202d190f30b": {
+   "text": "International travel must be booked at least 21 days before departure [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "3dc4a2479d1ad90aa6fa185841145265d73c8d106f56d626ac50b84ab10ce17a": {
+   "text": "Domestic travel must be booked through the travel desk at least 7 days in advance [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "88baf3bad14a4ec11bbd1f8f544a2bea928b489f9ba8ebe020ddcd811c939c66": {
+   "text": "Employees of grade L3 and above are allowed to fly business class on flights longer than 6 hours [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "00871a5eff390d7d146fe86ab40acc2ff0fdbec8cc3f3b3eb4aa260946a2a1ae": {
+   "text": "The maximum hotel cost per night for a grade L3 employee in Pune is Rs 5,000 [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "41c8fed3d9524616a5adb4c0e04962b0bbd586216ad72a7804a6912b424162ce": {
+   "text": "The hotel limit for an L1 employee in a small town is Rs 2,500 per night [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "55979704774796a626caee4da4e22238b763e12a51154519cdf5b8407cb0f713": {
+   "text": "A grade L5 employee can spend up to Rs 9,000 per night on a hotel in Mumbai [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "67dd894db863195a412cbe6b7f71108a6df0822f00700822f6acd556936db0dd": {
+   "text": "Employees on domestic trips receive a daily allowance of Rs 1,200 for meals and local transport [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "d76c4bf68b1ca2ad53a85214e51d520a9bf22e0e2cb27b1afd2ecfbcfd303ee6": {
+   "text": "For international trips, the daily allowance is USD 60 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "20211cfe4b0f671f160e7d03a4d47f2f7e8314eec61fa5b84cf33330328924a1": {
+   "text": "Travel claims must be submitted within 15 days of returning from the trip [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "6769808018337a2b700c64eaaba4cd58be478f3a46685ae524a68721be43a1ef": {
+   "text": "General expense claims must be submitted within 30 days of the date of the expense [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "7c2120df9fb096b951103073c49432e903b692e44021133961eea5c580010207": {
+   "text": "No, a receipt is not mandatory for a Rs 300 taxi ride because expenses of Rs 500 or less can be claimed with a short note [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "44d8c94e674c6db9a6804870a47ed017215f5541ff9d044d5bdcf0db04e4f020": {
+   "text": "The department head approves an expense claim of Rs 15,000 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "70eff6c334b2f3c22e25d148d2c575e1780b1d14725d0e7825ece9f5c5d45f9a": {
+   "text": "The Finance head must approve a claim of Rs 40,000 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "56dd07abbd8b0bc3488567ec2f3402685189521cbfa12a9a4f8ed359266cb6c6": {
+   "text": "Approved claims are paid within 10 working days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "5e8c6923e6f252da15c165c72ad723b77937d53012375bb9cac1db49b581d47f": {
+   "text": "Client meals are reimbursed up to Rs 2,000 per person per meal [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "6be3e79d886459b1d87d251502754cc151accef186c8f433c0c872342b63dddd": {
+   "text": "Fines, penalties, alcohol, and personal entertainment are not reimbursable [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "dee9cd5182bd794ef279ddc3b98402e4a1a15cfdea9c0c74ada068c232f11754": {
+   "text": "Passwords must be at least 12 characters long [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "20da820cb131240385ee2849442a1b2b78c9221829f3dcdaa954db13cb4b00e3": {
+   "text": "No, the last 5 passwords cannot be reused [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "0e9668af99d7ee8ee731d2bfc3fbdaba5da9fa08600b238f49aab828f35910c1": {
+   "text": "Multi-factor authentication is mandatory for company email, the VPN, and the HR portal [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "c8e482f80cd747c0e5ef478aecc0e1d3415ccd418dced5f87bd2ebda6ce785c0": {
+   "text": "A lost or stolen device must be reported to the IT helpdesk within 2 hours of the loss being noticed [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "5691446624b3fe4873a96e3453b6a0ce4cc7fa82a65297055757e384de5de3ec": {
+   "text": "A suspected phishing incident must be reported to security@acme-example.com within 4 hours [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "406c2430c779c15293cfd28b0fdffc9085e72ed7255a711b47f1f2de278dc471": {
+   "text": "USB storage devices are blocked by default on company laptops, but exceptions can be granted with written approval from the IT head, which is valid for 30 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "f34dda0606863606a56c9ce851d89a4eae900f2acc7bdc3d7c4e2041168a58cd": {
+   "text": "Appraisals are held in April, and a mid-year check-in conversation takes place in October [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "f45c1173d5b4f438fbdd1b7fc5d515fe1ca79b0d65ab16f6634817291f9bc90c": {
+   "text": "A performance rating of 4 means \"Exceeds\" [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "76f9114d70f14ce9e3def1eae61756a1e71818c55a8137e68aa97fae332ac9cd": {
+   "text": "A Performance Improvement Plan lasts 60 days. [1]",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "f9825c625df1567bf8997cf49a21ed9d575f7854a254bb16b2950ff5ef803fc2": {
+   "text": "Only employees rated 4 or 5 in each of the last two cycles are eligible for promotion [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "2a87ce077b0bbcf06c9422533e1e72d6e22ca9f7915e43c583591d8d93f43268": {
+   "text": "The probation confirmation decision is made by the end of month 6 [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "1ee370790de5334a571fa3b82ee6563b899f6847f531e60368e25acebab524f8": {
+   "text": "An L2 employee with a rating of 4 receives a 9% salary increment [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "36efe47e87fe6c7f38cd66bca20f423e56fe9b4ffb58217e4d81d7a0433283c3": {
+   "text": "A grade L4 employee rated 5 receives an 8% increment [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "edbf201b175dd8a1fee17615b3f8d3f9aeb16e2323c3b48b50b94fcc594fccd6": {
+   "text": "Employees with a rating of 1 receive a 0% increment across all levels (L1–L4) [3].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "2786c73dad533ce6c5030739892956825fdcd0dd04e40ba0fc7da53dc282d9dd": {
+   "text": "Salary increments take effect from 1 July [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "6fa84068189127fee4df6b9ee747bcde8f44081687c99f9ed0caf12e9c50e364": {
+   "text": "Employees must not accept gifts worth more than Rs 2,000 from clients [1]. Any gift above this limit must be declared to the compliance officer within 7 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "5adba350d28c0f70972bb56395415ea0a78654304459c793b245fe62e0dc8005": {
+   "text": "The Internal Complaints Committee completes its inquiry within 90 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "f6a258411035114f22666854d8c79dd9e77c960e6ab709b5070f4001d2c6a7df": {
+   "text": "Three late arrivals in a month are counted as one half-day of leave [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "e5788eec7d5ae46240cbc775040da5a7ea07ee4b837caa109b77e7e5095d290a": {
+   "text": "Concerns about fraud can be reported anonymously to ethics@acme-example.com [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "6f4ccbfd33bb6991910454435499b8536fa7773e62383b24779a38fba579e5a5": {
+   "text": "HR personnel files are kept for 7 years after the employee leaves [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "2411b8fdf56d41794da67a915edb7744f7e977bb08572f8fa3d883b873d542ef": {
+   "text": "CCTV footage is kept for 30 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "81a9cbbebd9dd1beb9a7b08d7ee3c9b71273c02c0c2200ef0957f98513874be7": {
+   "text": "The company reports serious breaches to the authority within 72 hours [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "b0bc4509c8c97248d1233550d510b10939a6a882f0db5d7d42d29a773fc46b8a": {
+   "text": "The company replies to a request to see personal data within 30 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "dcedf9d5d57752405d644031588ac5c32e7a7da81523963cf1a65f8800d1fd1a": {
+   "text": "Payroll records are kept for 8 years [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "ba1f124c1fdebfd0a9e1aee4c8c585e01b7b2700057e0a80dd597fb3d1001c56": {
+   "text": "Procurement has 5 working days to complete vendor due diligence [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "834942888c0ad2744428ac2f9edaf2d5be92a8742a1a53e809dfa4e704ac0e0f": {
+   "text": "The steps to onboard a new vendor are: the requesting team submits a vendor request form to Procurement, Procurement completes due diligence within 5 working days, Legal reviews the contract terms, Finance creates the vendor code, the department head approves the vendor, and Procurement issues the first purchase order [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "f2bc6c5bf4c220fc3f9581b1e5a59cfd129f4c7e07ddc51830af093c2cefa30c": {
+   "text": "Contracts above Rs 10,00,000 need approval from the CFO [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "2f3bfb87d171e304cb3e204f2d0a66d5879d740058890883ca75c2e212ed6e35": {
+   "text": "Vendors are re-verified every 2 years [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "98b985c910dc47f7fe2c05684bee8d64dcc92a0468a78a2ef4c9b55fd8c20591": {
+   "text": "The sum insured is Rs 5,00,000 per family per year, and the coverage includes the employee, the spouse, and up to 2 children [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "9db54c81e0c043455f7c20faeb195b39898263f3a568abbbc8ed0ed3140307fa": {
+   "text": "The yearly wellness allowance is Rs 12,000 [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "412903ee86e45607ef0faf73d483e0135d4286e24bf06358b74a673e3bf346d2": {
+   "text": "The referral bonus is Rs 25,000 [1][2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "8e2e0a17d7c39734b9d0f2687d8cce5a865c710db882b39ecfcd148487deffb2": {
+   "text": "Up to 10 earned leave days can be encashed each year [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "451d43662106f925be172e7707e2a223bb00a9a87c394dd67013871dcb22200d": {
+   "text": "You must take your compensatory off within 60 days. [1]",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "c1572be0fb6286eb34e2fb0e719b557af578a5dd3f6f18b320e54a6a93c965c8": {
+   "text": "Absence is treated as unauthorised if it lasts for 3 consecutive days without informing the manager [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "8c5e884baf11a49c8d74069c12b1c0abc0bbb0c9d2125720c35efd10c8f011db": {
+   "text": "A drop-home cab is provided for employees whose shift ends after 9 PM [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "a00c6b767ebaeed8f9c7ae4b599fd4152f041cd14413d554d6f435f4dcc3275f": {
+   "text": "Trips must be cancelled at least 24 hours before departure to avoid a cancellation fee [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "76865c4cd2ad4c7f7251f36e855e96abfbc771b7f1c7a3730dcad67a736e2eb7": {
+   "text": "Travel claims must be submitted within 15 days of returning from the trip [2], while general expense claims must be submitted within 30 days of the date of the expense [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "b61a7fa3e8c809cf3090b877bf5ab506e92ad992d5ee5f5e92f6370f9d660418": {
+   "text": "Employees of grade L3 and above may travel business class on flights longer than 6 hours [2]. The hotel limit for grades L3-L4 in a Tier 1 city is 6,500 rupees [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "362ce0cac349d0b48567481f9d72d29533c785194765d9dec5104c602bc95b4a": {
+   "text": "You must report the lost device to the IT helpdesk within 2 hours of noticing the loss [1]. Additionally, because the laptop contained employee data, you must report the personal data breach to the Data Protection Officer (DPO) immediately [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "1baf397ff97c22dac31b50a124fe67b8a2355c994f9bd7a1113464a308526697": {
+   "text": "Your salary increment is 10% [2], and it takes effect on 1 July [3].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "055f26f5bb54262d16234698a620b8713323da89950d57d709f2c50fdfef97f1": {
+   "text": "The wellness allowance is Rs 12,000 per year [1][2], and the annual learning budget is Rs 25,000 [3], for a combined total of Rs 37,000 per year.",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "90e521b4418b9b81caf87c35bbffccf40c595a0a7609d4098488c1eda2f568f9": {
+   "text": "You can claim a wellness allowance of Rs 12,000 per year for gym or fitness memberships against receipts [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "8a54d6585afc8b6bebd6c4dd431e9c41bf21e39d6e118de18bd3b8c503b622af": {
+   "text": "Yes, you earn a compensatory off, which must be taken within 60 days [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "8a1dd46f0c11b19e913172e688612cb55ad92d61dafe8136bc183a94939e1879": {
+   "text": "Yes, up to 10 earned leave days can be encashed each year, and these requests are processed only in December [2].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "22b8e33c7856692b728d72a37faff984dbaf13108b913f3d874c6fb1eee682df": {
+   "text": "Concerns about fraud can be reported anonymously to ethics@acme-example.com [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "1db9559a21bde173b921bb936c1b0d4df9167f04f6894b8185ae4bf71b7ea722": {
+   "text": "You must declare any gift worth more than Rs 2,000 to the compliance officer [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "517eca540fb308e9d5173a346eeba7524011077137ea31c117855e7318651cb4": {
+   "text": "No, employees below grade L3 travel economy class on all flights [1].",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "d481dcbd212fa590b6cd27dabeff287786edd20001cba86dcb3ec6313e97a2b7": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "51ecfe6a7569955a8b7c2e71410be86482d2651cb33181f3c32709fcb49df7e0": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "838a24227f04dfb4e349203b269242fdfde26f97daa1031bb914fe39ccb4599a": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "58fcbd4e7bf85b56ea4aa59f011cfc9daf023792f544093cd20784ee526fa7b7": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "5fa3b8e6f1d5d633e00b0065d6253b50391ca156789b965219fcab1b22e2075a": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "82632515b11cc8d495132250e5a34c8e4bc97c3569b25048110a0d2c39869ccf": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "9bde63484a885c90754b5e5add5bfe00e90576cd05042b19ed44ebc449786427": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "04e2495b05869ab3f09fc5412733a1e03d6e7bce5b70289693107fff4c641f5d": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "c630c82e20831ddde15dffcb29ebbe27346ca09a25f2701e9fe426fb4161b4bb": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "87598e963b13c37b2c83312b698c1eb0934ff2f539469beac9559a72cdcf1992": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "f6207bbe22970254e77331c2a347255fb4736e4567448d108cfaea12b8c7b9c3": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "c4a715e09c6f98ba9b63ae07dab6f250582abe022b9dab38d2d9fe54144b9873": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "885de77e822be8fa5954d3344397aa7189248a83c3268e1e32151119f86ccaa2": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "292fb64eb3812f497beb7e97f70240121ee3304b08b6c354d691fc0ff1b6fa27": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "7c0541992af2e831d1c4a69028099c960ab3240d229aee75fbdd5ec8caabfce5": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "e734b8d1ee5afc4f1ba3f102c095da980e3a34f490fcbacb2445ef67809b8ea8": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "00b1b5109633d1a17de889bd880542fdd00027cafdbb8a287776000f5fa4ba37": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "cc10fa077d806bb46c1801e8483b27447079a4452bc067b36ebde5cbdbd19099": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "779a694e9cb4294cd7de9f2b0b338129990c031f8a6ff60f2a0253704a1a3314": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "770a8b2ba21337c41537c4e9780709ba3c3e49cbb68f240e33236dc7efe762e8": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "87707c5396a934494d2c8245ce4b7d3ded894df7b1f331d9b888321530a5cfb8": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "47c7b46eca560f687535affedd320b53e5aa8df189e44cd9fb5628d39e1ea28c": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "8225bcd3b9b6eb69fb2341e49957568e0efbceba3ec7b69b1fd28ddb44afa485": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "47625a60ee0c8fa219596cddd239fba8088c960c8ba1fa432814e8ace2fb6ddb": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "a50684665fe9de15e0bbe199326e58fbd85a556b4663040174a7f6e589641f52": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "576f6ec932465e00d59a67edb0561c5a3ea7a3926893b34648805ead46f975ca": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "4723c2b74215a65daaf4ac5a5d7b7edbb30b8fdeb79dc5d6e92b1da0b84f92ca": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "fc2832cf6b149d8f75bc093778094be93941d60df3b938bd1c40bf0ea2602d57": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "9dedf49b546d9c576282f40f0b64aa0880fce429ba2f07bdb9990707955945bf": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "ee0fc1bab07d3668a38f7fa31902a93ba53dba20028f51bd173e59e62c3761bc": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  },
+  "eb4bc544fa5ae1be23b9fda48c3beb7d61102c6a4b049d23f2fbfa05b1267a01": {
+   "text": "NOT_IN_DOCUMENTS",
+   "model": "qwen/qwen3.8-27b"
+  }
+ }
+}

@@ -233,3 +233,11 @@ def test_an_incomplete_repeat_run_exits_with_2(golden, pg_server_url, monkeypatc
     assert answer_run.main(["--repeat", "3"]) == 2
     out = capsys.readouterr().out
     assert "NEVER ANSWERED BY THE LLM: 1" in out and "WARNING: the LLM never answered some questions: run 3: 1" in out
+
+
+def test_the_stall_guard_can_be_switched_off_for_the_replay_gate(golden, pg_server_url, monkeypatch):
+    """Replaying stored replies, a prompt that changed has no reply on purpose: that must not stop the run."""
+    monkeypatch.setattr(settings, "database_url", pg_server_url)
+    ids = [q.id for q in golden.answerable][:8]
+    records = answer_run.generate_repeats(golden, llm=FlakyLLM([True]), ids=ids, stall_after=None)[0]
+    assert len(records) == 8 and {r["status"] for r in records} <= {"llm_unavailable", "refused_gate"}
