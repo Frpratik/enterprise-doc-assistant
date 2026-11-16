@@ -124,6 +124,12 @@ class Settings(BaseSettings):
     # ---------- Access control (Phase 5) ----------
     access_rules_path: Path = PROJECT_ROOT / "access_rules.json"   # who may see which document (matched on the file name); no rule = invisible
 
+    auth_provider: str = "local"                           # who checks tokens: 'local' = our own signed tokens (see indexing/auth.py)
+    auth_secret: str = Field("", validation_alias=AliasChoices("AUTH_SECRET", "INGEST_AUTH_SECRET"))   # in .env, never in git; 32+ chars; empty = no tokens at all
+    auth_token_minutes: int = 15                           # a token is valid this long
+    auth_issuer: str = "enterprise-doc-assistant"
+    auth_audience: str = "doc-assistant-api"
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

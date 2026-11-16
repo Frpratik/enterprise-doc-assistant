@@ -16,6 +16,18 @@ class AskRequest(BaseModel):
         return v
 
 
+class LoginRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1, max_length=200)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int = Field(..., description="seconds until the token stops working")
+    request_id: str
+
+
 class CitationOut(BaseModel):
     n: int = Field(..., description="The [n] marker used in the answer text")
     file_name: str

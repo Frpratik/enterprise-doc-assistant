@@ -248,7 +248,7 @@ def test_existing_documents_become_invisible_when_the_migration_runs(pg_server_u
             conn.execute("INSERT INTO documents (doc_id, version, file_name, hash, status, is_active) VALUES ('old', 1, 'old.pdf', 'h', 'done', true)")
             conn.execute("INSERT INTO chunks (chunk_id, doc_id, version, chunk_index, chunk_type, content, embed_text, embed_hash, token_count, is_active) "
                          "VALUES ('c1', 'old', 1, 0, 'text', 'secret salary', 'secret salary', 'e', 3, true)")
-        assert migrate_mod.migrate(url, quiet=True) == ["004_access_labels.sql"]
+        assert migrate_mod.migrate(url, quiet=True)[0] == "004_access_labels.sql"      # later migrations may follow
         with psycopg.connect(url) as conn:
             assert conn.execute("SELECT tenant_id, allowed_roles, access_status, access_source FROM documents").fetchone() == ("unassigned", [], "unlabelled", "none")
             assert conn.execute("SELECT count(*) FROM chunks").fetchone()[0] == 1          # nothing deleted: only hidden

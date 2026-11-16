@@ -10,13 +10,27 @@ Index management commands.
   python -m indexing.manage set-access DOC_ID --roles hr,finance [--tenant acme]   label one document by hand (survives new versions)
   python -m indexing.manage set-access DOC_ID --unlabel        hide one document from everyone, at once
   python -m indexing.manage apply-rules                        re-apply access_rules.json to every document not labelled by hand
+  python -m indexing.manage create-user NAME --tenant acme [--roles hr,finance]   add a person (asks for the password; it is never shown or stored)
+  python -m indexing.manage users                              who can sign in, in which company, with which roles
+  python -m indexing.manage set-roles NAME --roles hr          change a person's roles (takes effect on their next request)
+  python -m indexing.manage set-password NAME                  new password (all their tokens stop working)
+  python -m indexing.manage disable-user NAME | enable-user NAME   (disabling also stops tokens at once)
 """
 import argparse
+import getpass
 import sys
 from pathlib import Path
 
-from indexing import access, sync
+from indexing import access, sync, users
 from ingestion.config import settings
+
+
+def _ask_password() -> str:
+    """Asked on the keyboard (not shown, not in the command line, not in the shell history)."""
+    first = getpass.getpass("Password: ")
+    if getpass.getpass("Repeat the password: ") != first:
+        raise users.UserError("the two passwords are not the same")
+    return first
 
 
 def main(argv=None) -> int:
@@ -41,6 +55,16 @@ def main(argv=None) -> int:
     sa.add_argument("--tenant", default="acme")
     sa.add_argument("--unlabel", action="store_true", help="hide the document from everyone")
     sub.add_parser("apply-rules")
+    cu = sub.add_parser("create-user")
+    cu.add_argument("username")
+    cu.add_argument("--tenant", required=True)
+    cu.add_argument("--roles", default="", help="comma-separated; empty = only documents labelled for everyone")
+    sub.add_parser("users")
+    sr = sub.add_parser("set-roles")
+    sr.add_argument("username")
+    sr.add_argument("--roles", default="")
+    for name in ("set-password", "disable-user", "enable-user"):
+        sub.add_parser(name).add_argument("username")
     args = ap.parse_args(argv)
     if args.cmd == "set-access" and not args.unlabel and not args.roles:
         ap.error("set-access needs --roles (or --unlabel)")
@@ -121,6 +145,29 @@ def main(argv=None) -> int:
             print(f"nothing changed: access_rules.json is INVALID: {e}")
             return 1
         print(f"labelled {c['labelled']} | re-labelled {c['relabelled']} | hidden (no rule any more) {c['hidden']} | unchanged {c['unchanged']} | kept (set by hand) {c['kept_manual']}")
+    elif args.cmd in ("create-user", "users", "set-roles", "set-password", "disable-user", "enable-user"):
+        try:
+            if args.cmd == "users":
+                rows = users.list_users()
+                print(f"{'USERNAME':24} {'TENANT':10} {'ROLES':30} STATE")
+                for u in rows:
+                    print(f"{u.username:24} {u.tenant:10} {', '.join(u.roles) or '(none)':30} {'active' if u.is_active else 'DISABLED'}")
+                print(f"\n{len(rows)} user(s)")
+            elif args.cmd == "create-user":
+                u = users.create_user(args.username, args.tenant, args.roles, _ask_password())
+                print(f"created {u.username} ({u.user_id}) in {u.tenant}, roles: {', '.join(u.roles) or 'none'}")
+            elif args.cmd == "set-roles":
+                u = users.set_roles(args.username, args.roles)
+                print(f"{u.username}: roles are now {', '.join(u.roles) or 'none'} (effective on their next request)")
+            elif args.cmd == "set-password":
+                u = users.set_password(args.username, _ask_password())
+                print(f"{u.username}: password changed; every token issued before is now invalid")
+            else:
+                u = users.set_active(args.username, args.cmd == "enable-user")
+                print(f"{u.username}: {'enabled' if u.is_active else 'DISABLED, existing tokens stop working now'}")
+        except users.UserError as e:
+            print(f"not done: {e}")
+            return 1
     return 0
 
 

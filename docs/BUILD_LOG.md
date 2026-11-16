@@ -19,7 +19,7 @@ tested before moving on.
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
-| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 2 of 5 done |
+| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 3 of 5 done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
@@ -2205,6 +2205,47 @@ weakness to fix, and the gate now guards the rest while it is fixed.
 4. Chunk text is filtered, but metadata like document counts in logs are not yet audited (Stage 4).
 
 **Memory trick:** *Check the badge at the door, not at the exit.*
+
+---
+
+### Stage 3 — Users, login and signed tokens
+
+**Simple idea:** a hotel key card. At the desk (login) you show your ID and get a card that works for 15 minutes. Every door reads the card, then looks you up in the hotel's guest list to see what you may open *today*. A forged or edited card does not open anything, and if the hotel cancels your stay the card dies at once.
+
+1. **`users` table** (migration 005): username, company, roles (may be empty), password hash, active flag, `token_version`. The database refuses bad usernames, bad companies and the role `all`.
+2. **Passwords:** scrypt (standard library) with a random salt per person and the parameters stored inside the hash string. 10 to 128 characters, must not contain the username. Never stored, logged or shown. The `manage` commands ask for the password on the keyboard (hidden, typed twice), so it is not in the command line or shell history.
+3. **Login (`POST /auth/login`):** username + password in, signed token out. Unknown user, wrong password and disabled account give the **same 401 message**, and an unknown username still pays for one password check (a dummy hash), so neither the text nor the speed reveals which usernames exist.
+4. **Token (JWT, HS256, PyJWT):** valid 15 minutes. Carries only identity (`sub`, `tenant`, `tv`, `iat`, `exp`, `iss`, `aud`, `jti`), **no roles**. Algorithm pinned (`none` and other algorithms refused), all those claims required.
+5. **Roles come from the table on every request**, not from the token. So a role change, a disabled account or a deleted user takes effect at once. The token's `tenant` must match the table. `token_version` is bumped by a password change or disabling, so every older token dies (re-enabling does not bring them back).
+6. **Swappable verifier:** the rest of the system only knows `TokenVerifier.verify(token) -> Principal`. Today `LocalJWTVerifier`; a company with Okta, Azure AD or Keycloak would add a verifier for its tokens that returns the same `Principal` and nothing else changes. Only the interface is built (no identity provider to test against).
+7. **Fail closed:** no `AUTH_SECRET` (32+ characters, in `.env`) means no token is issued or accepted, and login answers a generic 503. I generated a random `AUTH_SECRET` into your local `.env` (git-ignored; never printed).
+
+**New commands:** `manage create-user NAME --tenant acme --roles hr,finance`, `users`, `set-roles`, `set-password`, `disable-user`, `enable-user`.
+
+**Real output (throwaway database):**
+```
+login -> 200 {'access_token': 'eyJhbGciOiJIUzI1NiIs...', 'token_type': 'bearer', 'expires_in': 900, ...}
+claims: ['aud', 'exp', 'iat', 'iss', 'jti', 'sub', 'tenant', 'tv']
+verified principal: Principal(tenant='acme', roles=('finance', 'hr'), user_id='usr_...')
+bad login -> 401 Invalid username or password.     (wrong password)
+bad login -> 401 Invalid username or password.     (unknown user)
+edited token (tenant changed) -> token rejected: InvalidSignatureError
+after role removed: ()
+after password change -> token rejected: revoked (password changed or account disabled since it was issued)
+```
+
+**Tests:** 87 new (`tests/test_auth.py`). Attacks covered: forged signature, edited payload (tenant, user, roles, expiry, version), `none` and HS512 algorithms, expired token, each required claim missing, wrong issuer/audience/claim types, validly signed token with the wrong tenant, extra role claims ignored, disabled / re-enabled / deleted users, password change, garbage strings, no or short secret, swapped verifier, unknown provider. Also: failed logins identical, usernames/passwords/tokens never in logs, bad hashes never raise.
+**Mutation checks:** 12 deliberate breaks (algorithm not pinned, claims not required, tenant / version / disabled / audience / signature not checked, short secret accepted, unknown user skips the hash check, disabled user can log in, password change keeps tokens, wrong password accepted). One was MISSED at first (disabled-user check, because the version bump caught it too); a defence-in-depth test now covers it and it is caught.
+
+**Honest limits:**
+1. **`/ask` and `/ask/stream` are not protected yet:** they still use the anonymous asker. That is Stage 4.
+2. **No rate limit or lockout on login:** someone can guess passwords as fast as the server answers. That belongs to Phase 6 (rate limits and abuse guards).
+3. Tokens cannot be revoked one by one (only all of a person's at once) and there is no refresh token: after 15 minutes the person logs in again.
+4. HS256 uses one shared secret: anyone who has it can mint tokens. Rotating it logs everyone out. A company identity provider with public-key signing would be stronger (the verifier interface allows it).
+5. There is no self-service sign-up or password reset: users are created by an administrator on the command line.
+6. A "login_failed" log line has no username, so repeated attacks on one account cannot be spotted from the logs yet (Stage 4 adds the audit log).
+
+**Memory trick:** *The card says who you are; the guest list says what you can open.*
 
 ---
 

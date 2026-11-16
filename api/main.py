@@ -27,8 +27,9 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from api.schemas import AskRequest, AskResponse, HealthResponse
+from api.schemas import AskRequest, AskResponse, HealthResponse, LoginRequest, TokenResponse
 from indexing.access import Principal
+from indexing import auth
 from indexing.answer import answer, answer_stream, answer_to_dict
 from indexing.db import can_connect
 from indexing.llm import LLMAuthError
@@ -82,6 +83,13 @@ async def llm_auth_error(request: Request, exc: LLMAuthError):
                                                   "request_id": _rid(request)})
 
 
+@app.exception_handler(auth.AuthConfigError)
+async def auth_config_error(request: Request, exc: auth.AuthConfigError):
+    log.error("auth_not_configured", request_id=_rid(request), error=str(exc))
+    return JSONResponse(status_code=503, content={"detail": "Sign-in is not configured correctly. Please contact the administrator.",
+                                                  "request_id": _rid(request)})
+
+
 @app.exception_handler(psycopg.OperationalError)
 async def database_error(request: Request, exc: psycopg.OperationalError):
     log.error("database_unavailable", request_id=_rid(request), error=str(exc)[:200])
@@ -106,6 +114,19 @@ def health():
     if not (h.database and h.embedding_model and h.reranker and h.llm_key_configured):
         h.status = "degraded"
     return JSONResponse(status_code=200 if h.database else 503, content=h.model_dump())
+
+
+@app.post("/auth/login", response_model=TokenResponse)
+def login(body: LoginRequest, request: Request):
+    """Username + password in, short-lived signed token out. One message for every kind of failure (no hint which usernames exist)."""
+    try:
+        token, ttl, user = auth.login(body.username, body.password)
+    except auth.AuthError:
+        log.info("login_failed", request_id=_rid(request))                 # never the username or password
+        return JSONResponse(status_code=401, content={"detail": "Invalid username or password.", "request_id": _rid(request)},
+                            headers={"WWW-Authenticate": "Bearer"})
+    log.info("login_ok", request_id=_rid(request), user_id=user.user_id)
+    return {"access_token": token, "token_type": "bearer", "expires_in": ttl, "request_id": _rid(request)}
 
 
 @app.post("/ask", response_model=AskResponse)

@@ -39,3 +39,4 @@ groq             # the Groq API client
 fastapi          # the web API (Phase 3 Stage 5)
 uvicorn          # the server that runs it
 httpx            # used by FastAPI's test client
+PyJWT            # signed login tokens (Phase 5)
