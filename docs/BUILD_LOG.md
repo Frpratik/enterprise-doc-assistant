@@ -19,7 +19,7 @@ tested before moving on.
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
-| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 3 of 5 done |
+| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 4 of 5 done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
@@ -2246,6 +2246,47 @@ after password change -> token rejected: revoked (password changed or account di
 6. A "login_failed" log line has no username, so repeated attacks on one account cannot be spotted from the logs yet (Stage 4 adds the audit log).
 
 **Memory trick:** *The card says who you are; the guest list says what you can open.*
+
+---
+
+### Stage 4 — Protect `/ask`, pass the person into retrieval, audit log
+
+**Simple idea:** the door now has a guard who reads your key card, and a visitor book that records who went in and which rooms were opened for them (never what they said).
+
+1. **`/ask` and `/ask/stream` need `Authorization: Bearer <token>`.** No header, wrong scheme, empty, garbage, forged, expired, disabled or deleted person: all give the same `401 "Please sign in again."` (reason only in the log). The 401 is a normal HTTP error before any stream starts. `/health` and `/auth/login` stay public. A token in the URL is not accepted.
+2. **The person comes from the verifier** (Stage 3) and goes straight into `answer(..., principal=...)`, so Stage 2's filter decides what is searched. The temporary anonymous asker is gone.
+3. **Audit log** (migration 006, table `audit_log`): who (user id, company), when, which **document ids** were put in front of the model, which chunks the answer cited, status, model, time, and only the **length** of the question. Never the question, the answer, document text, passwords or tokens.
+4. **Audit before the model:** the `ask_retrieved` record is written after the search and before any model sees a chunk (hook `on_retrieval`). If it cannot be written the request fails and no model is called (fail closed). The final `ask_finished` record is best effort (the answer was already allowed).
+5. **Append-only:** triggers refuse UPDATE, DELETE and TRUNCATE on `audit_log`.
+6. **Logins are audited:** `login_ok` (no token is issued if the record cannot be written) and `login_failed` with a **keyed hash** of the typed username (same account = same value, so repeated attacks show up; the log does not contain what was typed).
+7. **Forbidden looks like missing:** a person asking about a document they may not read gets exactly the same answer (status, text, no citations) as for a document that does not exist.
+8. `manage audit [--user NAME] [--limit N]` shows the newest records.
+
+**403:** not used on purpose. Access here is per document, not per endpoint, so a person without access to something gets the normal "not found" answer, which must not reveal that the document exists. 401 is for "who are you?".
+
+**Real output (throwaway database):**
+```
+/ask         no token       -> 401 Please sign in again.  www-authenticate=Bearer
+/ask/stream  no token       -> 401 Please sign in again.  www-authenticate=Bearer
+/ask         garbage token  -> 401 Please sign in again.  www-authenticate=Bearer
+/ask/stream  garbage token  -> 401 Please sign in again.  www-authenticate=Bearer
+/health (no token) -> 200
+audit: login_failed user=None tenant=None subject_hash=846d0741bb80d9b7
+audit: login_ok user=usr_cc5be07d8b74 tenant=acme
+```
+
+**Tests:** 28 new in `tests/test_api_access.py` (4 people in 2 companies, 4 documents with canary codes, a recording LLM, no model download): every kind of bad token on both endpoints with no model called; each person's prompt and the whole HTTP response contain exactly the canaries they may read (both endpoints); forbidden = missing; stream events never mention a forbidden document; a role change applies to the very next question with the same token; a validly signed token with the wrong company gets nothing; the audit holds the right user and document ids and no question text or secrets; cited chunks belong to readable documents; the log is append-only; if the audit cannot be written no model is called (both endpoints) and no token is issued; a final-record failure does not undo an allowed answer; logs name people by id only. The older API tests now run as a signed-in person with the audit stubbed; the 44-question end-to-end test signs in for real as a person holding every acme role.
+**Mutation checks:** 10 deliberate breaks (either endpoint ignoring the person, bad or missing token still getting in, either audit hook missing, audit listing no documents, retrieval audit made best-effort, login not audited, failed login storing the name): all caught. The tests also caught one real bug of mine on the way: a logging keyword clash (`event=`) that would have turned a failed final audit write into a 500.
+**Full suite:** 699 passed in the first run, plus 7 errors in the end-to-end file caused by a fixture that tried to create the same user in every test; fixed, and that file alone then passed (8 passed). The whole suite was not rerun after that fix.
+
+**Honest limits:**
+1. **No rate limit or lockout** on login or questions: Phase 6.
+2. The audit log can be bypassed by a database administrator (drop the triggers). It stops mistakes and application bugs, not a hostile administrator; shipping it to a separate system is a Phase 9 topic. There is no retention or cleanup for it yet.
+3. `ask_retrieved` lists the documents retrieved for the model, not only the ones the answer used; `ask_finished` lists the cited chunks.
+4. Requests rejected with 401 are logged (reason, no token) but not written to the audit table (nobody was identified).
+5. The tests use a fake LLM and fake embeddings for the HTTP and access behaviour; the real-model path is covered by the 44-question end-to-end test as an all-roles person.
+
+**Memory trick:** *Guard at the door, visitor book on the desk: names and rooms, never conversations.*
 
 ---
 

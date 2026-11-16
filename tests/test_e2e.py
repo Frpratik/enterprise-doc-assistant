@@ -92,12 +92,19 @@ def llm(monkeypatch):
 @pytest.fixture
 def api(corpus, monkeypatch):
     # This file measures retrieval through the real API for all 44 questions, including salary and headcount documents that are
-    # restricted. Until login exists (Stage 3-4) the API asker is anonymous (no roles), which correctly cannot see them: so here the API asks
-    # as an auditor. Access itself is tested in test_access_filter.py.
-    from api import main
-    from indexing.access import Principal
-    monkeypatch.setattr(main, "ANONYMOUS", Principal.auditor("acme"))
-    return TestClient(app, raise_server_exceptions=False)
+    # restricted: so it signs in (really: login endpoint, real token) as a person holding every role of acme. Access itself is tested
+    # in test_access_filter.py and test_api_access.py.
+    from indexing import users
+    from indexing.access import ROLES
+    monkeypatch.setattr(settings, "auth_secret", "e2e-secret-" + "x" * 40)
+    try:                                                          # the corpus (and its database) lives for the whole file: create the person once
+        users.create_user("exam.auditor", "acme", ",".join(ROLES), "an exam password 123")
+    except users.UserError:
+        pass
+    client = TestClient(app, raise_server_exceptions=False)
+    token = client.post("/auth/login", json={"username": "exam.auditor", "password": "an exam password 123"}).json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client
 
 
 def parse_sse(text):

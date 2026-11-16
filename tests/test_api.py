@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from api import main
 from api.main import app, sse
+from indexing.access import Principal
 from indexing.llm import LLMAuthError
 from ingestion.config import settings
 
@@ -17,6 +18,16 @@ GOOD = {"status": "answered", "text": "You get 12 sick leaves per year [1].",
         "citations": [{"n": 1, "file_name": "leave_policy.pdf", "heading_path": "Leave Policy > Sick Leave",
                        "where": "page 1", "chunk_id": "c1"}],
         "model": "openai/gpt-oss-120b", "fell_back": False, "latency_ms": 1234, "prompt_version": "answer-v1"}
+
+
+@pytest.fixture(autouse=True)
+def _signed_in_and_no_database(monkeypatch):
+    """These tests are about the HTTP layer with a faked answer: the person is already signed in (sign-in itself is tested in
+    test_api_access.py) and the audit log is not written (also tested there)."""
+    app.dependency_overrides[main.current_principal] = lambda: Principal("acme", ("hr",), user_id="usr_test")
+    monkeypatch.setattr(main.audit, "record", lambda *a, **k: None)
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture

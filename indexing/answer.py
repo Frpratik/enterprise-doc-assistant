@@ -124,9 +124,13 @@ def _finish(base: dict, hits: list[Hit], text: str) -> Answer:
 
 # ---------- the whole thing ----------
 def answer(question: str, k: int | None = None, embedder: Embedder | None = None,
-           llm: LLMClient | None = None, principal: Principal | None = None) -> Answer:
+           llm: LLMClient | None = None, principal: Principal | None = None, on_retrieval=None) -> Answer:
+    """on_retrieval(retrieval): called after the search and BEFORE any model sees a chunk (the API writes its audit record here;
+    if it raises, nothing is sent to the model)."""
     k = k or settings.answer_context_chunks
     r = retrieve(question, k=k, embedder=embedder, principal=principal)       # only what this person may see is ever retrieved
+    if on_retrieval:
+        on_retrieval(r)
     base = dict(question=question, decision=r.decision, hits=r.hits)
 
     if not r.decision.answerable:                                  # layer 1: scores say there is nothing relevant
@@ -200,7 +204,7 @@ def answer_to_dict(a: Answer) -> dict:
 
 
 def answer_stream(question: str, k: int | None = None, embedder: Embedder | None = None, llm: LLMClient | None = None,
-                  principal: Principal | None = None):
+                  principal: Principal | None = None, on_retrieval=None):
     """
     Like answer(), but yields (event, data) pairs while it works:
       retrieval  {"answerable", "code", "sources"}   after searching (before any LLM call)
@@ -213,6 +217,8 @@ def answer_stream(question: str, k: int | None = None, embedder: Embedder | None
     """
     k = k or settings.answer_context_chunks
     r = retrieve(question, k=k, embedder=embedder, principal=principal)
+    if on_retrieval:
+        on_retrieval(r)                                                        # before anything is shown or sent to a model
     base = dict(question=question, decision=r.decision, hits=r.hits)
     yield "retrieval", {"answerable": r.decision.answerable, "code": r.decision.code, "sources": len(r.hits)}
 

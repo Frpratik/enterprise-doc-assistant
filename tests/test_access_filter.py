@@ -222,9 +222,9 @@ def test_answer_and_answer_stream_hand_the_asker_to_retrieve(monkeypatch):
     assert seen_by == [who, who]
 
 
-def test_the_api_and_the_cli_default_to_the_least_privileged_asker():
-    from api.main import ANONYMOUS
-    assert ANONYMOUS.roles == () and ANONYMOUS.tenant == "acme"
+def test_the_api_has_no_anonymous_asker_any_more():
+    from api import main
+    assert not hasattr(main, "ANONYMOUS")                                       # every question comes from a signed-in person (Stage 4)
 
 
 def test_the_search_cli_asks_as_a_person_with_no_special_role_unless_told_otherwise(corpus, capsys, monkeypatch):

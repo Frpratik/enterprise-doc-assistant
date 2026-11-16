@@ -15,6 +15,7 @@ Index management commands.
   python -m indexing.manage set-roles NAME --roles hr          change a person's roles (takes effect on their next request)
   python -m indexing.manage set-password NAME                  new password (all their tokens stop working)
   python -m indexing.manage disable-user NAME | enable-user NAME   (disabling also stops tokens at once)
+  python -m indexing.manage audit [--user NAME] [--limit N]    who asked for what (ids and counts only, never the question text)
 """
 import argparse
 import getpass
@@ -22,6 +23,7 @@ import sys
 from pathlib import Path
 
 from indexing import access, sync, users
+from indexing.db import connect
 from ingestion.config import settings
 
 
@@ -60,6 +62,9 @@ def main(argv=None) -> int:
     cu.add_argument("--tenant", required=True)
     cu.add_argument("--roles", default="", help="comma-separated; empty = only documents labelled for everyone")
     sub.add_parser("users")
+    au = sub.add_parser("audit")
+    au.add_argument("--user", help="username")
+    au.add_argument("--limit", type=int, default=20)
     sr = sub.add_parser("set-roles")
     sr.add_argument("username")
     sr.add_argument("--roles", default="")
@@ -145,6 +150,22 @@ def main(argv=None) -> int:
             print(f"nothing changed: access_rules.json is INVALID: {e}")
             return 1
         print(f"labelled {c['labelled']} | re-labelled {c['relabelled']} | hidden (no rule any more) {c['hidden']} | unchanged {c['unchanged']} | kept (set by hand) {c['kept_manual']}")
+    elif args.cmd == "audit":
+        from indexing import audit
+        uid = None
+        if args.user:
+            with connect() as conn:
+                row = conn.execute("SELECT user_id FROM users WHERE username = %s", (args.user.strip().lower(),)).fetchone()
+            if not row:
+                print(f"not done: no user '{args.user}'")
+                return 1
+            uid = row[0]
+        rows = audit.recent(args.limit, uid)
+        print(f"{'WHEN':19} {'EVENT':14} {'USER':16} {'TENANT':8} {'STATUS':16} {'DOCS':>4} {'CITED':>5} {'CHARS':>5}  REQUEST")
+        for at, event, user, tenant, status, docs, chunks, chars, ms, rid, subject in rows:
+            who = user or (f"name#{subject[:8]}" if subject else "-")
+            print(f"{at:19} {event:14} {who:16} {tenant or '-':8} {status or '-':16} {len(docs):>4} {len(chunks):>5} {chars if chars is not None else '-':>5}  {rid}")
+        print(f"\n{len(rows)} record(s), newest first")
     elif args.cmd in ("create-user", "users", "set-roles", "set-password", "disable-user", "enable-user"):
         try:
             if args.cmd == "users":

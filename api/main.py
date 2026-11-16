@@ -24,12 +24,13 @@ import uuid
 from contextlib import asynccontextmanager
 
 import psycopg
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from api.schemas import AskRequest, AskResponse, HealthResponse, LoginRequest, TokenResponse
 from indexing.access import Principal
-from indexing import auth
+from indexing import audit, auth
 from indexing.answer import answer, answer_stream, answer_to_dict
 from indexing.db import can_connect
 from indexing.llm import LLMAuthError
@@ -38,9 +39,24 @@ from ingestion.logs import get_logger
 
 log = get_logger()
 
-# Until login exists (Stage 3-4) every caller is anonymous: a member of the default company with NO special role,
-# so only documents labelled for everyone are ever searched. Fail closed.
-ANONYMOUS = Principal("acme", (), user_id="anonymous")
+
+class Unauthorized(Exception):
+    """No token, or a token that is not valid. The caller is told only 'sign in again', never why."""
+
+
+bearer = HTTPBearer(auto_error=False, description="The token from POST /auth/login")
+
+
+def current_principal(request: Request, creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> Principal:
+    """Who is asking, from the Authorization header. Everything but /health and /auth/login depends on this."""
+    if creds is None or not creds.credentials:
+        raise Unauthorized()
+    try:
+        principal = auth.get_verifier().verify(creds.credentials)
+    except auth.AuthError as e:
+        log.info("auth_rejected", request_id=_rid(request), reason=str(e)[:80])           # the reason is for the log only
+        raise Unauthorized() from e
+    return principal
 
 
 @asynccontextmanager
@@ -83,6 +99,11 @@ async def llm_auth_error(request: Request, exc: LLMAuthError):
                                                   "request_id": _rid(request)})
 
 
+@app.exception_handler(Unauthorized)
+async def unauthorized(request: Request, exc: Unauthorized):
+    return JSONResponse(status_code=401, content={"detail": "Please sign in again.", "request_id": _rid(request)}, headers={"WWW-Authenticate": "Bearer"})
+
+
 @app.exception_handler(auth.AuthConfigError)
 async def auth_config_error(request: Request, exc: auth.AuthConfigError):
     log.error("auth_not_configured", request_id=_rid(request), error=str(exc))
@@ -105,6 +126,26 @@ async def unexpected_error(request: Request, exc: Exception):
                         headers={"X-Request-ID": _rid(request)})
 
 
+# ---------- audit helpers ----------
+def _audit_best_effort(event: str, **kw) -> None:
+    try:
+        audit.record(event, **kw)
+    except Exception as e:                      # an answer or a refusal that was already decided is not undone by a logging problem
+        log.error("audit_write_failed", audit_event=event, error=f"{type(e).__name__}: {str(e)[:120]}")
+
+
+def _audit_retrieval(rid: str, principal: Principal, question_chars: int):
+    """Called after the search and BEFORE any model sees a chunk. Not best effort: if this cannot be written, the request fails."""
+    def hook(retrieval):
+        audit.record("ask_retrieved", request_id=rid, principal=principal, doc_ids=[h.doc_id for h in retrieval.hits], question_chars=question_chars)
+    return hook
+
+
+def _audit_finished(rid: str, principal: Principal, result: dict, ms: int) -> None:
+    _audit_best_effort("ask_finished", request_id=rid, principal=principal, status=result.get("status"), model=result.get("model"),
+                       chunk_ids=[c["chunk_id"] for c in result.get("citations", [])], latency_ms=ms)
+
+
 # ---------- endpoints ----------
 @app.get("/health", response_model=HealthResponse)
 def health():
@@ -123,19 +164,22 @@ def login(body: LoginRequest, request: Request):
         token, ttl, user = auth.login(body.username, body.password)
     except auth.AuthError:
         log.info("login_failed", request_id=_rid(request))                 # never the username or password
+        _audit_best_effort("login_failed", request_id=_rid(request), subject=audit.subject_hash(body.username))
         return JSONResponse(status_code=401, content={"detail": "Invalid username or password.", "request_id": _rid(request)},
                             headers={"WWW-Authenticate": "Bearer"})
+    audit.record("login_ok", request_id=_rid(request), user_id=user.user_id, tenant=user.tenant)       # no record = no sign-in
     log.info("login_ok", request_id=_rid(request), user_id=user.user_id)
     return {"access_token": token, "token_type": "bearer", "expires_in": ttl, "request_id": _rid(request)}
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask(body: AskRequest, request: Request):
-    start = time.perf_counter()
-    result = answer_to_dict(answer(body.question, principal=ANONYMOUS))
-    result["request_id"] = _rid(request)
-    log.info("ask", request_id=_rid(request), status=result["status"], model=result["model"],
-             question_chars=len(body.question), ms=int((time.perf_counter() - start) * 1000))
+def ask(body: AskRequest, request: Request, principal: Principal = Depends(current_principal)):
+    start, rid = time.perf_counter(), _rid(request)
+    result = answer_to_dict(answer(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question))))
+    result["request_id"] = rid
+    ms = int((time.perf_counter() - start) * 1000)
+    _audit_finished(rid, principal, result, ms)
+    log.info("ask", request_id=rid, user_id=principal.user_id, status=result["status"], model=result["model"], question_chars=len(body.question), ms=ms)
     return result
 
 
@@ -145,9 +189,9 @@ def sse(event: str, data: dict) -> str:
 
 
 @app.post("/ask/stream")
-def ask_stream(body: AskRequest, request: Request):
+def ask_stream(body: AskRequest, request: Request, principal: Principal = Depends(current_principal)):
     rid, start = _rid(request), time.perf_counter()
-    events = answer_stream(body.question, principal=ANONYMOUS)
+    events = answer_stream(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question)))
     first = next(events)            # runs the search BEFORE the response starts, so a database problem is a proper 503, not a broken stream
 
     def body_iter():
@@ -156,8 +200,10 @@ def ask_stream(body: AskRequest, request: Request):
             for event, data in events:
                 if event == "done":
                     data["request_id"] = rid
-                    log.info("ask_stream", request_id=rid, status=data["status"], model=data["model"],
-                             question_chars=len(body.question), ms=int((time.perf_counter() - start) * 1000))
+                    ms = int((time.perf_counter() - start) * 1000)
+                    _audit_finished(rid, principal, data, ms)
+                    log.info("ask_stream", request_id=rid, user_id=principal.user_id, status=data["status"], model=data["model"],
+                             question_chars=len(body.question), ms=ms)
                 yield sse(event, data)
         except LLMAuthError as e:
             log.error("llm_auth_error", request_id=rid, error=str(e))
