@@ -61,7 +61,7 @@ def _answer_all(questions, llm, k, progress, stall_after: int | None = STALL_AFT
     records, start, stalled = [], time.time(), 0
     for i, q in enumerate(questions, 1):
         try:
-            a = answer_mod.answer(q.q, k=k, llm=llm)
+            a = answer_mod.answer(q.q, k=k, llm=llm, principal=search_eval.EVAL_ASKER)
             records.append(to_record(q.id, a, llm_ms=getattr(llm, "last_ms", 0) if a.model else 0))
             if a.status == "llm_unavailable":
                 stalled += 1

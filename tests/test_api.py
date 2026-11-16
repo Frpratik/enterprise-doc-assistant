@@ -74,7 +74,7 @@ def test_health_never_reveals_the_key(client, monkeypatch):
 
 # ---------- /ask ----------
 def test_ask_returns_the_answer_with_citations(client, monkeypatch):
-    monkeypatch.setattr(main, "answer", lambda q: __import__("types").SimpleNamespace())
+    monkeypatch.setattr(main, "answer", lambda q, **kw: __import__("types").SimpleNamespace())
     monkeypatch.setattr(main, "answer_to_dict", lambda a: dict(GOOD))
     r = client.post("/ask", json={"question": QUESTION})
     body = r.json()
@@ -84,7 +84,7 @@ def test_ask_returns_the_answer_with_citations(client, monkeypatch):
 
 
 def test_a_given_request_id_is_kept(client, monkeypatch):
-    monkeypatch.setattr(main, "answer", lambda q: None)
+    monkeypatch.setattr(main, "answer", lambda q, **kw: None)
     monkeypatch.setattr(main, "answer_to_dict", lambda a: dict(GOOD))
     r = client.post("/ask", json={"question": "x"}, headers={"X-Request-ID": "trace-me-123"})
     assert r.headers["X-Request-ID"] == "trace-me-123" and r.json()["request_id"] == "trace-me-123"
@@ -94,14 +94,14 @@ def test_a_given_request_id_is_kept(client, monkeypatch):
                                      {"question": 42}, {"q": "wrong field"}])
 def test_bad_questions_are_rejected_before_any_work(client, monkeypatch, payload):
     called = []
-    monkeypatch.setattr(main, "answer", lambda q: called.append(q))
+    monkeypatch.setattr(main, "answer", lambda q, **kw: called.append(q))
     r = client.post("/ask", json=payload)
     assert r.status_code == 422 and not called
 
 
 def test_the_question_is_trimmed(client, monkeypatch):
     seen = []
-    monkeypatch.setattr(main, "answer", lambda q: seen.append(q))
+    monkeypatch.setattr(main, "answer", lambda q, **kw: seen.append(q))
     monkeypatch.setattr(main, "answer_to_dict", lambda a: dict(GOOD))
     client.post("/ask", json={"question": "   padded question \n"})
     assert seen == ["padded question"]
@@ -113,7 +113,7 @@ def test_wrong_method_and_unknown_path(client):
 
 def test_the_question_text_is_never_logged(client, monkeypatch, logged):
     """Questions can contain personal details (an employee id, a health condition): log only the length."""
-    monkeypatch.setattr(main, "answer", lambda q: None)
+    monkeypatch.setattr(main, "answer", lambda q, **kw: None)
     monkeypatch.setattr(main, "answer_to_dict", lambda a: dict(GOOD))
     client.post("/ask", json={"question": QUESTION})
     assert logged and all(QUESTION not in json.dumps(kw, default=str) and "4711" not in json.dumps(kw, default=str)
@@ -123,7 +123,7 @@ def test_the_question_text_is_never_logged(client, monkeypatch, logged):
 
 # ---------- errors: clear for the user, no internals ----------
 def test_missing_llm_key_is_a_503_without_details(client, monkeypatch):
-    def boom(q):
+    def boom(q, **kw):
         raise LLMAuthError("GROQ_API_KEY is not set (gsk_leaky_value)")
     monkeypatch.setattr(main, "answer", boom)
     r = client.post("/ask", json={"question": "x"})
@@ -132,7 +132,7 @@ def test_missing_llm_key_is_a_503_without_details(client, monkeypatch):
 
 
 def test_database_down_is_a_503(client, monkeypatch):
-    def boom(q):
+    def boom(q, **kw):
         raise psycopg.OperationalError("connection to server at 10.0.0.5 refused")
     monkeypatch.setattr(main, "answer", boom)
     r = client.post("/ask", json={"question": "x"})
@@ -140,7 +140,7 @@ def test_database_down_is_a_503(client, monkeypatch):
 
 
 def test_unexpected_errors_are_a_generic_500(client, monkeypatch):
-    def boom(q):
+    def boom(q, **kw):
         raise RuntimeError("secret internal detail /etc/passwd")
     monkeypatch.setattr(main, "answer", boom)
     r = client.post("/ask", json={"question": "x"})
@@ -169,7 +169,7 @@ def test_stream_sends_events_in_order_with_the_request_id(client, monkeypatch):
 
 def test_stream_validates_like_ask(client, monkeypatch):
     called = []
-    monkeypatch.setattr(main, "answer_stream", lambda q: called.append(q))
+    monkeypatch.setattr(main, "answer_stream", lambda q, **kw: called.append(q))
     assert client.post("/ask/stream", json={"question": ""}).status_code == 422 and not called
 
 

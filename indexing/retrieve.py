@@ -9,6 +9,7 @@ Stage 4 (the LLM answer) starts from here.
 """
 from dataclasses import dataclass
 
+from indexing.access import Principal
 from indexing.confidence import Decision, decide
 from indexing.embeddings import Embedder
 from indexing.search import Hit, search
@@ -22,6 +23,6 @@ class Retrieval:
     decision: Decision
 
 
-def retrieve(question: str, k: int | None = None, embedder: Embedder | None = None) -> Retrieval:
-    hits = search(question, k=k or settings.search_top_k, embedder=embedder, rerank=True)
+def retrieve(question: str, k: int | None = None, embedder: Embedder | None = None, principal: Principal | None = None) -> Retrieval:
+    hits = search(question, k=k or settings.search_top_k, embedder=embedder, rerank=True, principal=principal)
     return Retrieval(question, hits, decide(hits))

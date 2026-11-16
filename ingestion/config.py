@@ -94,6 +94,7 @@ class Settings(BaseSettings):
     search_top_k: int = 5
     search_ef: int = 100               # HNSW search effort: higher = more accurate, a bit slower (default 40)
     search_mode: str = "hybrid"        # "hybrid" (vectors + keywords), "vector" or "keyword"
+    search_max_scan_tuples: int = 20000      # how far the vector index may scan to find enough ALLOWED rows (pgvector iterative scan)
     search_candidates: int = 20        # how many results each of the two searches contributes
     rrf_keyword_weight: float = 0.1    # how much the keyword list counts vs the vector list (1.0 = equal). 0.1 = vector leads, keywords rescue exact terms
     rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"   # local cross-encoder (~80 MB, English)

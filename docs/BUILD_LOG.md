@@ -19,7 +19,7 @@ tested before moving on.
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
-| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 1 of 5 done |
+| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 2 of 5 done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
@@ -2177,6 +2177,34 @@ weakness to fix, and the gate now guards the rest while it is fixed.
 5. The rules and canary documents were written by me; the access policy itself is a demo policy.
 
 **Memory trick:** *No tag, no entry.*
+
+---
+
+### Stage 2 — Filtered retrieval (the filter lives inside the search)
+
+**Simple idea:** the librarian checks your badge *before* walking to the shelves, not after bringing the books. A chunk you may not read is never fetched, never reranked, never shown to the LLM.
+
+1. **A `Principal`** = who is asking: company + roles (+ id). `all` is a label for documents, not a role a person can hold. A person with no special role still sees documents labelled `all`.
+2. **One SQL condition** (`ACCESS_SQL`): document is labelled, same company, and at least one shared role (`allowed_roles && your roles + 'all'`). It is in **both** searches (vector and keyword), so it runs before the reranker, the gate and the LLM.
+3. **Fail closed in code too:** `search()` without a principal raises an error. There is no default asker in production code.
+4. **Keyword statistics are filtered as well:** the rare-word weights (IDF) are computed over visible chunks only, so a hidden document cannot change a visible score (tested by making hidden documents vanish and comparing scores).
+5. **Over-filtering:** vector search filters after the index scan, so a person who may see little could get too few results. `hnsw.iterative_scan = strict_order` makes pgvector keep scanning until enough allowed rows are found (cap `search_max_scan_tuples` = 20000).
+6. **Passed down the whole path:** `retrieve`, `answer`, `answer_stream`, the CLIs (`--tenant`, `--roles`) and the evals. The API uses an **anonymous** asker (company acme, no roles) until login exists in Stages 3-4, so **today `/ask` can only read documents labelled for everyone**. That is a deliberate behaviour change.
+7. **Evals ask as an auditor** (all roles of acme, never another company). In the throwaway eval databases, documents no rule knows get acme/everyone so the Phase 2-4 measurements are unchanged.
+8. **Refusal text is the same** as "not found": a person cannot tell a forbidden document from a missing one.
+
+**Real output (dev database):** `search "sick leave" --mode keyword` as acme with no roles finds `leave_policy.pdf`; the same search as company `globex` returns `No results`.
+
+**Tests:** 44 new in `tests/test_access_filter.py`: a visibility matrix (9 askers x 3 search modes, e.g. admin does NOT see HR documents, globex never sees acme, unlabelled is invisible to everyone), canary strings never appear in hits of people who may not read them, label changes (including the one-command hide) apply to the very next search with no re-indexing, a person allowed to see 1 of 61 look-alike documents still gets it, every search query carries the condition, keyword scores do not depend on hidden documents. Older tests got an autouse default (a catch-all rule and an auditor asker) in `tests/conftest.py`, and the 44-question API test asks as an auditor. Full suite: **all passed, 0 skipped**.
+**Mutation checks:** 8 deliberate breaks (no filter in vector search, in keyword statistics, in keyword results; no iterative scan; missing principal allowed; keyword search given a more powerful asker; role overlap always true; tenant not checked): all caught.
+
+**Honest limits:**
+1. **No login yet:** the asker is a fixed anonymous one on the API; anyone can still call it, but they only reach `all` documents.
+2. The over-filtering test runs on a small table where Postgres may skip the HNSW index, so it proves the results are right, while a separate test proves the iterative-scan setting is sent. A large-table load test is Phase 9.
+3. Role and tenant checks trust the principal given to them; making that principal trustworthy is Stage 3 (signed tokens).
+4. Chunk text is filtered, but metadata like document counts in logs are not yet audited (Stage 4).
+
+**Memory trick:** *Check the badge at the door, not at the exit.*
 
 ---
 

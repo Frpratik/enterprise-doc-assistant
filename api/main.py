@@ -28,6 +28,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from api.schemas import AskRequest, AskResponse, HealthResponse
+from indexing.access import Principal
 from indexing.answer import answer, answer_stream, answer_to_dict
 from indexing.db import can_connect
 from indexing.llm import LLMAuthError
@@ -35,6 +36,10 @@ from ingestion.config import settings
 from ingestion.logs import get_logger
 
 log = get_logger()
+
+# Until login exists (Stage 3-4) every caller is anonymous: a member of the default company with NO special role,
+# so only documents labelled for everyone are ever searched. Fail closed.
+ANONYMOUS = Principal("acme", (), user_id="anonymous")
 
 
 @asynccontextmanager
@@ -106,7 +111,7 @@ def health():
 @app.post("/ask", response_model=AskResponse)
 def ask(body: AskRequest, request: Request):
     start = time.perf_counter()
-    result = answer_to_dict(answer(body.question))
+    result = answer_to_dict(answer(body.question, principal=ANONYMOUS))
     result["request_id"] = _rid(request)
     log.info("ask", request_id=_rid(request), status=result["status"], model=result["model"],
              question_chars=len(body.question), ms=int((time.perf_counter() - start) * 1000))
@@ -121,7 +126,7 @@ def sse(event: str, data: dict) -> str:
 @app.post("/ask/stream")
 def ask_stream(body: AskRequest, request: Request):
     rid, start = _rid(request), time.perf_counter()
-    events = answer_stream(body.question)
+    events = answer_stream(body.question, principal=ANONYMOUS)
     first = next(events)            # runs the search BEFORE the response starts, so a database problem is a proper 503, not a broken stream
 
     def body_iter():

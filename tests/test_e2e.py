@@ -90,7 +90,13 @@ def llm(monkeypatch):
 
 
 @pytest.fixture
-def api(corpus):
+def api(corpus, monkeypatch):
+    # This file measures retrieval through the real API for all 44 questions, including salary and headcount documents that are
+    # restricted. Until login exists (Stage 3-4) the API asker is anonymous (no roles), which correctly cannot see them: so here the API asks
+    # as an auditor. Access itself is tested in test_access_filter.py.
+    from api import main
+    from indexing.access import Principal
+    monkeypatch.setattr(main, "ANONYMOUS", Principal.auditor("acme"))
     return TestClient(app, raise_server_exceptions=False)
 
 

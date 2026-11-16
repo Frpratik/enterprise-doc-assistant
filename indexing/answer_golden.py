@@ -244,7 +244,7 @@ def retrieval_report(golden: Golden) -> dict:
     with search_eval.temp_database():
         search_eval.index_golden_documents(golden.documents, resolve=lambda n: paths[n])
         for q in golden.questions:
-            hits = search(q.q, k=20, rerank=True)
+            hits = search(q.q, k=20, rerank=True, principal=search_eval.EVAL_ASKER)
             d = decide(hits[:5])
             row = {"id": q.id, "type": q.type, "difficulty": q.difficulty, "origin": q.origin, "answerable": q.answerable,
                    "gate_passes": d.answerable, "top_rerank": d.top_rerank, "top_vector": d.top_vector}

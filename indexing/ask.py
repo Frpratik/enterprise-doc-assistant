@@ -9,6 +9,7 @@ Needs: the database (docker compose up -d), documents indexed, and GROQ_API_KEY 
 import argparse
 import sys
 
+from indexing.access import AccessError, Principal
 from indexing.answer import answer
 from indexing.llm import LLMAuthError
 
@@ -19,14 +20,21 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m indexing.ask")
     ap.add_argument("question")
     ap.add_argument("--show-chunks", action="store_true", help="also show the chunks the LLM was given")
+    ap.add_argument("--tenant", default="acme")
+    ap.add_argument("--roles", default="", help="roles of the asker, e.g. hr,finance (default: none, so only documents for everyone)")
     args = ap.parse_args(argv)
+    try:
+        who = Principal(args.tenant, tuple(r for r in args.roles.split(",") if r.strip()), user_id="cli")
+    except AccessError as e:
+        print(f"bad asker: {e}")
+        return 1
 
     from indexing.db import can_connect
     if not can_connect():
         print("Database not reachable: start it with  docker compose up -d")
         return 1
     try:
-        a = answer(args.question)
+        a = answer(args.question, principal=who)
     except LLMAuthError as e:
         print(f"LLM key problem: {e}")
         return 1

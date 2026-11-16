@@ -20,6 +20,7 @@ import psycopg
 from psycopg.conninfo import make_conninfo
 
 from indexing import db
+from indexing.access import ALL, Label, Principal, set_label
 from indexing.doc_store import PgManifest
 from indexing.embeddings import get_embedder
 from indexing.indexer import index_document
@@ -55,6 +56,16 @@ def temp_database():
             admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
+EVAL_ASKER = Principal.auditor("acme")      # the evals ask as a person who holds every role of the company: they measure search and answers, not access
+
+
+def _label_for_eval(doc) -> None:
+    """Documents the rules do not know (the Phase 2/3 sample files) get acme/everyone in the THROWAWAY eval database, so they stay searchable."""
+    with db.connect() as conn:
+        if conn.execute("SELECT access_status FROM documents WHERE doc_id = %s AND version = %s", (doc.doc_id, doc.version)).fetchone()[0] == "unlabelled":
+            set_label(conn, doc.doc_id, Label("acme", (ALL,), "manual"))
+
+
 def index_golden_documents(names: list[str], resolve=None) -> int:
     """Index the named documents. `resolve(name) -> Path` says where each one lives (default: data/samples/good)."""
     total = 0
@@ -64,6 +75,7 @@ def index_golden_documents(names: list[str], resolve=None) -> int:
         doc.hash = sha256(path)
         doc.mark(Status.DONE, "eval")
         PgManifest().save(doc)
+        _label_for_eval(doc)
         result = index_document(doc)
         if not result.indexed:
             raise RuntimeError(f"{name} was not indexed: {result.reason}")
@@ -77,9 +89,9 @@ def evaluate_mode(mode: str, questions: list[dict], depth: int = 60) -> dict:
     rerank = mode.endswith("+rerank")
     for item in questions:
         if rerank:
-            hits = search(item["q"], k=settings.rerank_candidates, mode=mode.split("+")[0], rerank=True)
+            hits = search(item["q"], k=settings.rerank_candidates, mode=mode.split("+")[0], rerank=True, principal=EVAL_ASKER)
         else:
-            hits = search(item["q"], k=depth, mode=mode, candidates=depth)
+            hits = search(item["q"], k=depth, mode=mode, candidates=depth, principal=EVAL_ASKER)
         rank = next((i for i, h in enumerate(hits, 1) if is_relevant(h.file_name, h.content, item["answers"])), None)
         ranks.append(rank)
         per_q.append({"q": item["q"], "rank": rank,

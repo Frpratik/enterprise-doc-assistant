@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from indexing.confidence import NO_ANSWER_MESSAGE, Decision
 from indexing.embeddings import Embedder
 from indexing.llm import LLMClient, LLMError, LLMUnavailable, default_client
+from indexing.access import Principal
 from indexing.retrieve import retrieve
 from indexing.search import Hit
 from ingestion.config import settings
@@ -123,9 +124,9 @@ def _finish(base: dict, hits: list[Hit], text: str) -> Answer:
 
 # ---------- the whole thing ----------
 def answer(question: str, k: int | None = None, embedder: Embedder | None = None,
-           llm: LLMClient | None = None) -> Answer:
+           llm: LLMClient | None = None, principal: Principal | None = None) -> Answer:
     k = k or settings.answer_context_chunks
-    r = retrieve(question, k=k, embedder=embedder)
+    r = retrieve(question, k=k, embedder=embedder, principal=principal)       # only what this person may see is ever retrieved
     base = dict(question=question, decision=r.decision, hits=r.hits)
 
     if not r.decision.answerable:                                  # layer 1: scores say there is nothing relevant
@@ -198,7 +199,8 @@ def answer_to_dict(a: Answer) -> dict:
             "prompt_version": a.prompt_version}
 
 
-def answer_stream(question: str, k: int | None = None, embedder: Embedder | None = None, llm: LLMClient | None = None):
+def answer_stream(question: str, k: int | None = None, embedder: Embedder | None = None, llm: LLMClient | None = None,
+                  principal: Principal | None = None):
     """
     Like answer(), but yields (event, data) pairs while it works:
       retrieval  {"answerable", "code", "sources"}   after searching (before any LLM call)
@@ -210,7 +212,7 @@ def answer_stream(question: str, k: int | None = None, embedder: Embedder | None
     words as they are written. An answer that fails the checks is replaced by the 'not found' message at the end.
     """
     k = k or settings.answer_context_chunks
-    r = retrieve(question, k=k, embedder=embedder)
+    r = retrieve(question, k=k, embedder=embedder, principal=principal)
     base = dict(question=question, decision=r.decision, hits=r.hits)
     yield "retrieval", {"answerable": r.decision.answerable, "code": r.decision.code, "sources": len(r.hits)}
 

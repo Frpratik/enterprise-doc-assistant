@@ -18,6 +18,7 @@ import re
 import sys
 from dataclasses import dataclass
 
+from indexing.access import ACCESS_SQL, Principal, require_principal
 from indexing.db import connect
 from indexing.embeddings import Embedder, get_embedder
 from ingestion.config import settings
@@ -63,21 +64,25 @@ def keyword_terms(question: str) -> list[str]:
     return list(dict.fromkeys(t for t in terms if t))
 
 
-def _vector_candidates(conn, qvec, embedder: Embedder, n: int) -> list[tuple]:
+def _vector_candidates(conn, qvec, embedder: Embedder, n: int, principal: Principal) -> list[tuple]:
     dims = embedder.dims
     conn.execute(f"SET LOCAL hnsw.ef_search = {int(settings.search_ef)}")
+    # The access filter removes rows AFTER the index scan: without this, a user who may see few documents could get fewer than n results
+    # (or none) even though allowed chunks exist. Iterative scan keeps scanning the index until n allowed rows are found.
+    conn.execute("SET LOCAL hnsw.iterative_scan = strict_order")
+    conn.execute(f"SET LOCAL hnsw.max_scan_tuples = {int(settings.search_max_scan_tuples)}")
     return conn.execute(
         f"""SELECT 1 - ((e.embedding::vector({dims})) <=> %(q)s::vector({dims})) AS vscore, {SELECT_PART}
             FROM embeddings e
             JOIN chunks c    ON c.embed_hash = e.embed_hash
             JOIN documents d ON d.doc_id = c.doc_id AND d.version = c.version
-            WHERE e.embed_model = %(model)s AND c.is_active AND d.deleted_at IS NULL
+            WHERE e.embed_model = %(model)s AND c.is_active AND d.deleted_at IS NULL AND {ACCESS_SQL}
             ORDER BY (e.embedding::vector({dims})) <=> %(q)s::vector({dims})
             LIMIT %(n)s""",
-        {"q": qvec, "model": embedder.name, "n": n}).fetchall()
+        {"q": qvec, "model": embedder.name, "n": n, **principal.sql_params()}).fetchall()
 
 
-def _keyword_candidates(conn, question: str, qvec, embedder: Embedder, n: int) -> list[tuple]:
+def _keyword_candidates(conn, question: str, qvec, embedder: Embedder, n: int, principal: Principal) -> list[tuple]:
     """
     Keyword search with IDF weighting (the idea behind BM25), done in Postgres:
       every term becomes its own tsquery; a term's weight is how RARE it is among the active chunks
@@ -94,7 +99,7 @@ def _keyword_candidates(conn, question: str, qvec, embedder: Embedder, n: int) -
         f"""WITH active AS (
                 SELECT c.chunk_id, c.tsv FROM chunks c
                 JOIN documents d ON d.doc_id = c.doc_id AND d.version = c.version
-                WHERE c.is_active AND d.deleted_at IS NULL),
+                WHERE c.is_active AND d.deleted_at IS NULL AND {ACCESS_SQL}),
             total AS (SELECT count(*)::float AS n FROM active),
             term_q AS (SELECT plainto_tsquery('english', t) AS query FROM unnest(%(terms)s::text[]) AS t),
             idf AS (
@@ -108,11 +113,11 @@ def _keyword_candidates(conn, question: str, qvec, embedder: Embedder, n: int) -
             JOIN chunks c     ON c.tsv @@ idf.query
             JOIN documents d  ON d.doc_id = c.doc_id AND d.version = c.version
             JOIN embeddings e ON e.embed_hash = c.embed_hash AND e.embed_model = %(model)s
-            WHERE c.is_active AND d.deleted_at IS NULL
+            WHERE c.is_active AND d.deleted_at IS NULL AND {ACCESS_SQL}
             GROUP BY c.chunk_id, d.doc_id, d.version, e.embed_hash, e.embed_model
             ORDER BY kscore DESC, c.chunk_id
             LIMIT %(n)s""",
-        {"q": qvec, "model": embedder.name, "terms": terms, "n": n}).fetchall()
+        {"q": qvec, "model": embedder.name, "terms": terms, "n": n, **principal.sql_params()}).fetchall()
 
 
 def rrf_merge(vector_ids: list[str], keyword_ids: list[str], k: int | None = None,
@@ -132,11 +137,14 @@ def rrf_merge(vector_ids: list[str], keyword_ids: list[str], k: int | None = Non
 
 
 def search(query: str, k: int | None = None, embedder: Embedder | None = None, mode: str | None = None,
-           candidates: int | None = None, rerank: bool = False) -> list[Hit]:
+           candidates: int | None = None, rerank: bool = False, principal: Principal | None = None) -> list[Hit]:
     """
+    principal: who is asking. REQUIRED: only chunks of documents this person may see are ever read, in BOTH searches, before the reranker,
+    the gate or the LLM can see anything. (The keyword weights are computed over the visible chunks only, so rare-word statistics do not leak.)
     rerank=True: take the best `rerank_candidates` results of the search, let the cross-encoder re-read them,
     and return the best k. hit.score is then the reranker's score.
     """
+    principal = require_principal(principal)
     embedder = embedder or get_embedder()
     k = k or settings.search_top_k
     mode = mode or settings.search_mode
@@ -150,8 +158,8 @@ def search(query: str, k: int | None = None, embedder: Embedder | None = None, m
     qvec = embedder.embed_query(query)
 
     with connect() as conn:
-        vec_rows = _vector_candidates(conn, qvec, embedder, n) if mode in ("hybrid", "vector") else []
-        kw_rows = _keyword_candidates(conn, query, qvec, embedder, n) if mode in ("hybrid", "keyword") else []
+        vec_rows = _vector_candidates(conn, qvec, embedder, n, principal) if mode in ("hybrid", "vector") else []
+        kw_rows = _keyword_candidates(conn, query, qvec, embedder, n, principal) if mode in ("hybrid", "keyword") else []
 
     hits: dict[str, Hit] = {}
     for r in vec_rows:                                    # r = (vscore, chunk_id, ...)
@@ -192,13 +200,21 @@ def main(argv=None) -> int:
     ap.add_argument("--full", action="store_true", help="show the whole chunk text")
     ap.add_argument("--rerank", action="store_true", help="let the reranker re-read the best candidates")
     ap.add_argument("--mode", choices=["hybrid", "vector", "keyword"], default=settings.search_mode)
+    ap.add_argument("--tenant", default="acme")
+    ap.add_argument("--roles", default="", help="roles of the asker, e.g. hr,finance (default: none, so only documents for everyone)")
     args = ap.parse_args(argv)
 
     from indexing.db import can_connect
     if not can_connect():
         print("Database not reachable: start it with  docker compose up -d")
         return 1
-    hits = search(args.query, args.k, mode=args.mode, rerank=args.rerank)
+    from indexing.access import AccessError
+    try:
+        who = Principal(args.tenant, tuple(r for r in args.roles.split(',') if r.strip()), user_id='cli')
+    except AccessError as e:
+        print(f'bad asker: {e}')
+        return 1
+    hits = search(args.query, args.k, mode=args.mode, rerank=args.rerank, principal=who)
     if not hits:
         print("No results (is anything indexed? try: python -m ingestion.run --file <file>)")
         return 0

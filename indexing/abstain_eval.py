@@ -46,7 +46,7 @@ def run() -> dict:
         for group, qs in questions.items():
             rows = []
             for q in qs:
-                r = retrieve(q)
+                r = retrieve(q, principal=search_eval.EVAL_ASKER)
                 rows.append({"q": q, "answered": r.decision.answerable, "code": r.decision.code,
                              "top_rerank": r.decision.top_rerank, "top_vector": r.decision.top_vector,
                              "top": f"{r.hits[0].file_name} > {r.hits[0].heading_path.split(' > ')[-1]}" if r.hits else ""})

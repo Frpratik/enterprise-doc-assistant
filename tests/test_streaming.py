@@ -200,7 +200,7 @@ class FakeLLM:
 def retrieval(monkeypatch):
     def set_(answerable=True):
         d = Decision(answerable, "ok" if answerable else "weak_match", "test", 5.0, 0.8)
-        monkeypatch.setattr(answer_mod, "retrieve", lambda q, k=None, embedder=None: Retrieval(q, HITS, d))
+        monkeypatch.setattr(answer_mod, "retrieve", lambda q, k=None, embedder=None, principal=None: Retrieval(q, HITS, d))
     return set_
 
 

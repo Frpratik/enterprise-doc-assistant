@@ -80,6 +80,35 @@ def db_url(pg_server_url, monkeypatch):
         admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
+# ---------------- access (Phase 5): old tests are about search quality, not access ----------------
+@pytest.fixture(autouse=True)
+def _tests_default_to_an_open_company(tmp_path, monkeypatch):
+    """
+    By default a test indexes documents under a catch-all rule (acme / everyone) and searches as an acme auditor, so the older
+    tests keep measuring what they measured. Production code has NO such default: search(principal=None) raises (tested in test_access_filter.py,
+    through search.__wrapped__). A test that is about access sets its own rules file and passes its own principal.
+    """
+    import functools
+    import json
+
+    from indexing import access, search as search_mod
+    rules = tmp_path / "default_test_rules.json"
+    rules.write_text(json.dumps({"version": 1, "rules": [{"match": "*", "tenant": "acme", "roles": ["all"]}]}), encoding="utf-8")
+    monkeypatch.setattr(settings, "access_rules_path", rules)
+
+    original = search_mod.search
+
+    @functools.wraps(original)
+    def with_default_asker(*args, **kw):
+        if kw.get("principal") is None:
+            kw["principal"] = access.Principal.auditor("acme")
+        return original(*args, **kw)
+
+    for module in list(sys.modules.values()):                     # every module that imported `search` by name
+        if getattr(module, "search", None) is original:
+            monkeypatch.setattr(module, "search", with_default_asker)
+
+
 # ---------------- logs: tests must never write into the real log file ----------------
 @pytest.fixture(autouse=True)
 def _logs_go_to_a_temp_file(tmp_path, monkeypatch):

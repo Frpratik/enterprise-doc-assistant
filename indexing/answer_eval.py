@@ -110,7 +110,7 @@ def run(models: list[str] | None = None) -> dict:
                 llm = CachingLLM(max_wait=70, retries=3)
                 rows = {"answerable": [], "near_topic": [], "off_topic": []}
                 for q, answers in answerable:
-                    a = answer_mod.answer(q, llm=llm)
+                    a = answer_mod.answer(q, llm=llm, principal=search_eval.EVAL_ASKER)
                     cited = [h for c in a.citations for h in a.hits if h.chunk_id == c.chunk_id]
                     rows["answerable"].append({
                         "q": q, "status": a.status, "text": a.text, "model": a.model, "ms": llm.last_ms if a.model else 0,
@@ -119,7 +119,7 @@ def run(models: list[str] | None = None) -> dict:
                         "invalid_citations": a.invalid_citations})
                 for group in ("near_topic", "off_topic"):
                     for q in qs[group]:
-                        a = answer_mod.answer(q, llm=llm)
+                        a = answer_mod.answer(q, llm=llm, principal=search_eval.EVAL_ASKER)
                         rows[group].append({"q": q, "status": a.status, "text": a.text, "ms": a.latency_ms})
                 results[model] = rows
     finally:

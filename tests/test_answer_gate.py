@@ -172,7 +172,7 @@ def test_recording_stores_every_reply_by_prompt_key():
 
 def test_replay_works_inside_the_real_answer_function(monkeypatch):
     hits = [Hit(1.0, "c1", "d", 1, "travel.docx", "Travel > Claims", {"pages": [1]}, "text", "Claims are due within 15 days.", vector_score=0.8, rerank_score=5.0)]
-    monkeypatch.setattr(answer_mod, "retrieve", lambda question, k=None, embedder=None: Retrieval(question, hits, Decision(True, "ok", "t", 5.0, 0.8)))
+    monkeypatch.setattr(answer_mod, "retrieve", lambda question, k=None, embedder=None, principal=None: Retrieval(question, hits, Decision(True, "ok", "t", 5.0, 0.8)))
     stored = {prompt_key(answer_mod.build_messages("By when?", hits)): {"text": "Within 15 days [1].", "model": "qwen"}}
     ok = answer_mod.answer("By when?", llm=ReplayLLM(stored))
     assert ok.status == "answered" and ok.text == "Within 15 days [1]." and ok.model == "qwen"

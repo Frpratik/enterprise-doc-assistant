@@ -141,6 +141,41 @@ class RulesFile:
         return self._rules
 
 
+# ---------------- who is asking ----------------
+@dataclass(frozen=True)
+class Principal:
+    """The person asking: a company and the roles they hold. Everything a search may return is decided from this and nothing else."""
+    tenant: str
+    roles: tuple[str, ...]
+    user_id: str = ""
+
+    def __post_init__(self):
+        validate_tenant(self.tenant)
+        roles = parse_roles(list(self.roles)) if self.roles else ()          # a person with no special role still sees documents for 'all'
+        if ALL in roles:
+            raise AccessError("'all' is a label for documents, not a role a person can hold")
+        object.__setattr__(self, "roles", roles)
+
+    @classmethod
+    def auditor(cls, tenant: str) -> "Principal":
+        """Holds EVERY role of one company (never another company). For exams and checks, not for people."""
+        return cls(tenant, ROLES, user_id="auditor")
+
+    def sql_params(self) -> dict:
+        return {"tenant": self.tenant, "roles": [*self.roles, ALL]}
+
+
+# One SQL condition, used by EVERY search query (alias d = documents): same company, labelled, and at least one shared role.
+ACCESS_SQL = "(d.access_status = 'labelled' AND d.tenant_id = %(tenant)s AND d.allowed_roles && %(roles)s::text[])"
+
+
+def require_principal(principal) -> Principal:
+    """Fail closed: a search without a known asker is a programming error, never 'everything'."""
+    if not isinstance(principal, Principal):
+        raise AccessError("a search needs a principal (who is asking): refusing to search without one")
+    return principal
+
+
 # ---------------- labels in the database (all take an open connection: the caller decides the transaction) ----------------
 def resolve_label(conn, doc_id: str, file_name: str, rules: list[Rule]) -> Label | None:
     """The label a NEW version of this document gets: a person's earlier decision, else the rules, else None (unlabelled)."""
