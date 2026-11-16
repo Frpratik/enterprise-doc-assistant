@@ -3,6 +3,7 @@ The regression gate (Phase 4 Stage 5): ONE command that says whether a change ma
 
   python -m indexing.eval_gate                       PASS / FAIL / INCOMPLETE, needs no API key and no quota
   python -m indexing.eval_gate --live                ask the real LLM for questions whose prompt changed (uses quota, replies are cached)
+  python -m indexing.eval_gate --skip-access         do not run the access exam (the verdict can then be at best INCOMPLETE)
   python -m indexing.eval_gate --record --from RUN1 RUN2 RUN3     (re)create the baseline from saved runs of the same model
   exit code:  0 PASS     1 FAIL (a regression)     2 INCOMPLETE (something could not be verified)
 
@@ -23,6 +24,10 @@ What makes the verdict FAIL (a regression):
   gate_no_longer_blocks    the score gate no longer blocks an unanswerable question it used to block (a safety layer got weaker)
   false_answer         an unanswerable question got an answer (or a hedged answer)
   answer_key_changed   the baseline was recorded with another version of the answer key
+  forbidden_evidence   (Phase 5) the access exam found something a person may not read in a prompt, answer, citation or stream event. Zero tolerance, no baseline
+  access_over_block    (Phase 5) a person who may read the evidence did not get it, although an all-roles auditor did
+  access_exam_vacuous  (Phase 5) the access exam withheld or served nothing, so it proved nothing
+  The access exam (indexing/access_exam.py) needs no LLM, key or quota; it is skipped for a quick --ids check and is INCOMPLETE when skipped on purpose.
 What is only REPORTED: questions that were wrong in the baseline and are right now (improvements: re-record to lock them in).
 The LLM judge (faithfulness, correctness) is NOT part of the gate: it is slow and limited to ~8 calls a minute. It is a periodic audit.
 """
@@ -34,7 +39,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from indexing import answer_run
+from indexing import access_exam, answer_run
 from indexing.answer_golden import Golden, load_golden
 from indexing.answer_score import evidence_groups, score_all
 from indexing.answer_stats import reliability, unavailable_ids
@@ -118,8 +123,12 @@ class Gate:
         return EXIT[self.verdict]
 
 
-def evaluate(baseline: dict, golden: Golden, scored: list[dict], records: list[dict], missed_questions: set[str]) -> Gate:
-    """Compare a run with the baseline. `missed_questions` = questions whose prompt had no stored reply (replay misses)."""
+NOT_RUN = object()          # evaluate(): the access exam is not part of this call (pure unit tests of the answer rules)
+
+
+def evaluate(baseline: dict, golden: Golden, scored: list[dict], records: list[dict], missed_questions: set[str], access=NOT_RUN) -> Gate:
+    """Compare a run with the baseline. `missed_questions` = questions whose prompt had no stored reply (replay misses).
+    `access`: the ExamResult of the access exam, or None = it was not run (then the verdict is at best INCOMPLETE), or NOT_RUN = not part of this call."""
     gate = Gate()
     q_by_id = {q.id: q for q in golden.questions}
     sc = {s["id"]: s for s in scored}
@@ -168,11 +177,18 @@ def evaluate(baseline: dict, golden: Golden, scored: list[dict], records: list[d
             elif s["id"] in unavailable and s["id"] in baseline["unanswerable_refused"]:
                 unverified(s["id"], "the LLM did not answer")
 
+    if access is None:                                                             # 6. the access exam: skipped on purpose is not success
+        gate.unverified.append({"id": "-", "why": "the access exam was not run", "question": "who may see what"})
+    elif access is not NOT_RUN:
+        for p in access.problems:
+            gate.failures.append({"check": p["check"], "id": p["id"], "detail": p["detail"], "question": q_by_id[p["id"]].q if p["id"] in q_by_id else ""})
+        gate.info["access"] = {"checks": access.checks, "served": access.served, "denied": access.denied, "leaks": len(access.leaks)}
+
     gate.improvements = [qid for qid in baseline["known_failures"] if qid in sc and sc[qid]["outcome"] == "correct"]
     ans = [s for s in scored if s["answerable"]]
-    gate.info = {"questions": len(scored), "answerable_correct": sum(s["outcome"] == "correct" for s in ans), "answerable": len(ans),
+    gate.info.update({"questions": len(scored), "answerable_correct": sum(s["outcome"] == "correct" for s in ans), "answerable": len(ans),
                  "baseline_stable_correct": len(baseline["stable_correct"]), "baseline_known_failures": baseline["known_failures"],
-                 "unanswerable_refused": sum(s["outcome"] == "refused_ok" for s in scored if not s["answerable"])}
+                 "unanswerable_refused": sum(s["outcome"] == "refused_ok" for s in scored if not s["answerable"])})
     gate.verdict = "FAIL" if gate.failures else ("INCOMPLETE" if gate.unverified else "PASS")
     return gate
 
@@ -183,11 +199,14 @@ def format_gate(gate: Gate) -> str:
          f"  checked {i['questions']} questions: {i['answerable_correct']}/{i['answerable']} answerable correct now "
          f"(baseline: {i['baseline_stable_correct']} were correct in every run; wrong in every run: {i['baseline_known_failures']}); "
          f"{i['unanswerable_refused']} unanswerable refused"]
+    if "access" in i:
+        a = i["access"]
+        L.append(f"  access exam: {a['checks']} checks, {a['served']} served correctly, {a['denied']} withheld correctly, {a['leaks']} leaks")
     if gate.failures:
         L.append(f"\n  REGRESSIONS ({len(gate.failures)}):")
         L += [f"    [{f['check']}] {f['id'] or '-'}  {f['detail']}  {f['question'][:70]}" for f in gate.failures]
     if gate.unverified:
-        L.append(f"\n  COULD NOT BE VERIFIED ({len(gate.unverified)}): a stored reply is missing or the LLM did not answer.")
+        L.append(f"\n  COULD NOT BE VERIFIED ({len(gate.unverified)}): a stored reply is missing, the LLM did not answer, or the access exam was not run.")
         L += [f"    {u['id']}  {u['why']}  {u['question'][:70]}" for u in gate.unverified[:12]]
         if len(gate.unverified) > 12:
             L.append(f"    ... and {len(gate.unverified) - 12} more")
@@ -208,8 +227,9 @@ def load_baseline(path: Path | None = None) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def run_gate(baseline: dict, golden: Golden, live: bool = False, ids: list[str] | None = None, progress=None) -> Gate:
-    """Re-run the pipeline with the stored LLM replies and compare with the baseline."""
+def run_gate(baseline: dict, golden: Golden, live: bool = False, ids: list[str] | None = None, progress=None, access: bool | None = None) -> Gate:
+    """Re-run the pipeline with the stored LLM replies and compare with the baseline, then run the access exam.
+    access=None: run it unless a quick --ids check was asked | True: always | False: skipped on purpose (the verdict is then at best INCOMPLETE)."""
     if live:
         from indexing.answer_eval import CachingLLM
         llm = LiveFallbackLLM(baseline["replies"], CachingLLM(max_wait=70, retries=3))
@@ -218,7 +238,12 @@ def run_gate(baseline: dict, golden: Golden, live: bool = False, ids: list[str] 
         llm, model = ReplayLLM(baseline["replies"]), None
     records = answer_run.generate_repeats(golden, model, 1, llm=llm, ids=ids, progress=progress, stall_after=None)[0]
     scored = score_all(golden, records)
-    return evaluate(baseline, golden, scored, records, llm.missed_questions)
+    if access is None:
+        access = not ids
+        outcome = access_exam.run_full(progress=progress) if access else NOT_RUN
+    else:
+        outcome = access_exam.run_full(progress=progress) if access else None
+    return evaluate(baseline, golden, scored, records, llm.missed_questions, access=outcome)
 
 
 # ---------------- recording the baseline ----------------
@@ -265,7 +290,8 @@ def main(argv=None) -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="python -m indexing.eval_gate")
     ap.add_argument("--live", action="store_true", help="ask the real LLM for questions whose prompt changed (uses quota)")
-    ap.add_argument("--ids", help="only these question ids (a quick check)")
+    ap.add_argument("--ids", help="only these question ids (a quick check; the access exam is not run)")
+    ap.add_argument("--skip-access", action="store_true", help="do not run the access exam (the verdict is then at best INCOMPLETE)")
     ap.add_argument("--record", action="store_true", help="(re)create the baseline")
     ap.add_argument("--from", dest="runs", nargs="+", metavar="RUN", help="with --record: saved runs of the same model (use 3 for a reliable baseline)")
     args = ap.parse_args(argv)
@@ -295,7 +321,7 @@ def main(argv=None) -> int:
         return 2
     ids = [i.strip() for i in args.ids.split(",")] if args.ids else None
     try:
-        gate = run_gate(baseline, golden, live=args.live, ids=ids, progress=print)
+        gate = run_gate(baseline, golden, live=args.live, ids=ids, progress=print, access=False if args.skip_access else None)
     except Exception as e:                                    # the gate itself broke: that is never a PASS
         print(f"GATE ERROR: {type(e).__name__}: {e}")
         return 2

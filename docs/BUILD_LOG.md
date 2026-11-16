@@ -19,7 +19,7 @@ tested before moving on.
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
-| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 4 of 5 done |
+| Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
@@ -2287,6 +2287,70 @@ audit: login_ok user=usr_cc5be07d8b74 tenant=acme
 5. The tests use a fake LLM and fake embeddings for the HTTP and access behaviour; the real-model path is covered by the 44-question end-to-end test as an all-roles person.
 
 **Memory trick:** *Guard at the door, visitor book on the desk: names and rooms, never conversations.*
+
+---
+
+### Stage 5 — The access exam, leak checks and the "forbidden evidence" gate rule
+
+**Simple idea:** a mystery shopper. Ten people with different badges walk in and ask for things they are not allowed to have, and an inspector checks every piece of paper that leaves the building for anything that should have stayed inside.
+
+1. **`python -m indexing.access_exam`** asks the REAL pipeline (real search, real reranker, real score gate, real prompt, real answer checks) 24 questions as 10 people, in a throwaway database indexed with the real `access_rules.json`. People: an acme employee with no role, each of the 6 roles, hr+finance, a globex employee, a globex hr person. Questions: the 14 answer-exam questions whose evidence is in a restricted document, 4 public ones as controls, and 6 about the canary documents (board minutes, executive pay, Globex leave and salaries; one asks the same topic as Globex's, to test company isolation).
+2. **Every surface is inspected:** the prompt (everything the LLM was given), the answer, the citations, and every stream event. A spy LLM records its prompt and quotes the first excerpt, so whatever is in its reach can show up in the answer. No API key, no quota.
+3. **Forbidden material** = things that exist only in documents that person may not read: their file names, titles, `CANARY-` codes, and the gold evidence phrases of the question. Anything that also appears in a document the person CAN read is not counted (a readable document may mention a name).
+4. **Two failures, zero tolerance.** LEAK: forbidden material reached a surface. OVER-BLOCK: a person who may read the evidence did not get it although an all-roles auditor did. A system that hides everything would pass the leak check, so the exam also counts real servings and real denials and fails itself as "vacuous" if either is zero.
+5. **The exam does not trust the search's own rule.** What a person may read is computed a second time in Python (`may_read`), not with the SQL condition the search uses. If the SQL were wrong, the two would disagree and the exam would show it.
+6. **In the regression gate:** `eval_gate` now runs the exam too and has three new rules: `forbidden_evidence` (a leak), `access_over_block`, `access_exam_vacuous`. They need no baseline. `--skip-access` skips the exam and the verdict can then be at best INCOMPLETE (silence is not success); a quick `--ids` check does not run it.
+
+**Real output (real models, real rules, throwaway database):**
+```
+ACCESS EXAM: PASS
+  24 questions x 10 people = 240 checks (prompt, answer, citations and stream events of each one inspected)
+  served correctly: 93   withheld correctly: 147   leaks: 0   over-blocked: 0
+  acme employee   served 5  denied 19      acme finance   served 16 denied 8     globex employee  served 1  denied 23
+  acme admin      served 8  denied 16      acme hr        served 15 denied 9     globex hr        served 2  denied 22
+  acme it         served 5  denied 19      acme manager   served 13 denied 11    acme procurement served 9  denied 15
+ANSWER-PIPELINE REGRESSION GATE: PASS   (91/93 answerable correct, 51 unanswerable refused, same as the baseline)
+  access exam: 240 checks, 93 served correctly, 147 withheld correctly, 0 leaks
+```
+**The exam can fail (proved on the real stack):** with the company check removed from the search the exam reported **543 leaks** (FAIL); with the role check removed, **628 leaks** (FAIL).
+
+**Tests:** 19 new in `tests/test_access_exam.py` (a 4-document, 4-person world with fake embeddings): exact served/denied counts on a correct system; with the filter removed the exam finds the leaks on the prompt, answer, citations and events (canaries, file names, evidence phrases, across companies); a leak that appears only after the prompt (a forbidden source added to the citations) is found; hiding everything fails as vacuous; a filter that wrongly drops a role is reported as over-blocking; a name that a readable document also contains is not a leak; the exam reads excerpts the way the real prompt writes them; the gate rules (clean pass, leak, over-block, vacuous, skipped = INCOMPLETE, a leak still FAILs when other things are unverified, quick check, `--skip-access`). The real gate test now also asserts the access exam inside it (240 checks, 0 leaks). **Full suite: 725 passed, 0 skipped.**
+
+**Honest limits:**
+1. The exam proves nothing forbidden is put within the model's reach and shown in prompts, answers, citations and events. It cannot prove what a real LLM would say; it also cannot catch knowledge the LLM already has in its training.
+2. 24 questions and 10 people is a sample, not a proof. New restricted documents or roles need questions added (a rule with no question is not tested).
+3. Questions and the access policy (`access_rules.json`) are mine; a human review of who should see what is the real control.
+4. The exam checks retrieval and answers. It does not test the HTTP layer end to end with real tokens (Stage 4's tests do, with a fake LLM and fake embeddings).
+5. The gate now takes about 3 minutes longer.
+
+**Memory trick:** *Send mystery shoppers with every badge, then search the bin bags.*
+
+---
+
+## Phase 5 summary — Access
+
+**Goal:** each person only ever gets answers built from documents they may see, and we can prove it.
+
+| Stage | What | Proof |
+|---|---|---|
+| 1 | Labels (company + roles) on every document, fail closed, rules file, manual labels, canary corpus | 70 tests, 5 mutations |
+| 2 | The filter inside both searches, before rerank / gate / LLM; filtered keyword statistics; pgvector iterative scan | 44 tests, 8 mutations |
+| 3 | Users, scrypt passwords, `POST /auth/login`, short-lived signed tokens, roles read from the table every request, revocation, swappable verifier | 87 tests, 12 mutations |
+| 4 | `/ask` and `/ask/stream` need a token; the person flows into retrieval; append-only audit log written before the model | 28 tests, 10 mutations |
+| 5 | Access exam (10 people x 24 questions, 4 surfaces), forbidden-evidence rule in the gate | 19 tests, real exam 0 leaks, 2 real mutations caught (543 and 628 leaks) |
+
+**Design decisions that matter in an interview:** fail closed everywhere (no label, no secret, no principal, no audit record means no access); filter in the query, before anything is ranked or shown, never after; one source of truth (labels on the document, roles in the users table); identity in the token, permissions from the database (so revocation is immediate); the verifier is an interface (an identity provider can replace ours); forbidden looks exactly like missing; the audit log holds ids and counts, never text; the access exam recomputes the rule independently and fails itself when it proves nothing.
+
+**Numbers now:** 725 tests, 0 skipped. Answer exam unchanged (91/93 answerable correct, 51/51 unanswerable refused). Access exam: 240 checks, 0 leaks.
+
+**What Phase 5 does NOT do (carried forward):**
+1. **No rate limits, lockout or abuse guards:** login can be guessed at the speed of the server (Phase 6).
+2. **Prompt injection, PII masking and output guardrails are not tested** (Phase 6). A document could contain instructions to the model.
+3. No refresh tokens, no one-by-one token revocation, a single shared signing secret, no self-service sign-up or password reset.
+4. The audit log is append-only against mistakes, not against a hostile database administrator, and has no retention or shipping yet (Phase 9).
+5. Access is by file name rules and hand labels; there is no UI to manage it.
+
+**Next phase:** Phase 6 — Safety: prompt-injection and abuse tests, PII masking, rate limits on login and questions, guardrails on what goes in and out.
 
 ---
 

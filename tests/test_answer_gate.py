@@ -252,6 +252,8 @@ def test_the_answer_pipeline_has_not_regressed(samples, pg_server_url, monkeypat
     gate = eval_gate.run_gate(load_baseline(), load_golden())
     assert gate.verdict == "PASS", format_gate(gate)
     assert gate.info["answerable_correct"] == 91 and gate.info["unanswerable_refused"] == 51
+    acc = gate.info["access"]                                                 # Phase 5: the same gate run also ran the access exam on the real pipeline
+    assert acc["leaks"] == 0 and acc["served"] > 0 and acc["denied"] > 0 and acc["checks"] == 240
 
 
 @needs_models
