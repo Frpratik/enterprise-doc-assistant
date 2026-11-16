@@ -120,6 +120,9 @@ class Settings(BaseSettings):
     llm_answer_max_tokens: int = 1200                  # reasoning models "think" first, so leave room
     answer_context_chunks: int = 5                     # how many chunks the LLM gets to read
 
+    # ---------- Access control (Phase 5) ----------
+    access_rules_path: Path = PROJECT_ROOT / "access_rules.json"   # who may see which document (matched on the file name); no rule = invisible
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

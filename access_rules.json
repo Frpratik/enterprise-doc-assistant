@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "about": "Who may see which document. The FIRST rule that matches the file name wins. A file that matches no rule is UNLABELLED and invisible to everyone (fail closed). There is deliberately no catch-all rule here: a forgotten label must hide a document, never publish it.",
+  "rules": [
+    {"match": "globex_salary_bands.*", "tenant": "globex", "roles": ["hr"], "why": "a second company: salary bands are for its HR only"},
+    {"match": "globex_*", "tenant": "globex", "roles": ["all"], "why": "a second company: its other documents are for all its employees"},
+
+    {"match": "acme_board_minutes.*", "tenant": "acme", "roles": ["admin"], "why": "confidential board decisions"},
+    {"match": "acme_executive_compensation.*", "tenant": "acme", "roles": ["admin"], "why": "confidential pay of executives"},
+
+    {"match": "salary_structure.xlsx", "tenant": "acme", "roles": ["finance", "hr"], "why": "salary bands: compensation data"},
+    {"match": "salary_revision_matrix.xlsx", "tenant": "acme", "roles": ["finance", "hr", "manager"], "why": "increments: managers need them for appraisals"},
+    {"match": "mixed_quarterly_report.pdf", "tenant": "acme", "roles": ["hr", "manager"], "why": "headcount and attrition by department"},
+    {"match": "vendor_onboarding_sop.docx", "tenant": "acme", "roles": ["finance", "procurement"], "why": "procurement procedure and approval limits"},
+
+    {"match": "leave_policy.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "leave_policy_addendum.md", "tenant": "acme", "roles": ["all"]},
+    {"match": "scanned_code_of_conduct.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "code_of_conduct_2026.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "long_handbook.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "employee_handbook.docx", "tenant": "acme", "roles": ["all"]},
+    {"match": "employee_benefits_guide.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "onboarding_deck.pptx", "tenant": "acme", "roles": ["all"]},
+    {"match": "holidays_2026.csv", "tenant": "acme", "roles": ["all"]},
+    {"match": "notice_board_photo.png", "tenant": "acme", "roles": ["all"]},
+    {"match": "it_policy.txt", "tenant": "acme", "roles": ["all"]},
+    {"match": "it_security_policy.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "remote_work.md", "tenant": "acme", "roles": ["all"]},
+    {"match": "hr_faq.html", "tenant": "acme", "roles": ["all"]},
+    {"match": "travel_policy.docx", "tenant": "acme", "roles": ["all"]},
+    {"match": "expense_reimbursement_policy.pdf", "tenant": "acme", "roles": ["all"]},
+    {"match": "performance_review_policy.docx", "tenant": "acme", "roles": ["all"]},
+    {"match": "data_privacy_policy.md", "tenant": "acme", "roles": ["all"]}
+  ]
+}

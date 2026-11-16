@@ -8,6 +8,7 @@ Same 3 methods as the JSON Manifest from Phase 1, so intake.admit() works with e
 """
 from typing import Optional
 
+from indexing.access import RulesFile, label_columns, resolve_label
 from indexing.db import connect
 from ingestion.models import Document
 
@@ -20,6 +21,9 @@ def _row(r) -> dict:
 
 
 class PgManifest:
+    def __init__(self):
+        self._rules = RulesFile()                 # the access rules, reloaded when the file changes
+
     def find_by_hash(self, file_hash: str) -> Optional[dict]:
         with connect() as conn:
             r = conn.execute(
@@ -37,10 +41,14 @@ class PgManifest:
     def save(self, doc: Document) -> None:
         m = doc.metadata
         with connect() as conn:
+            # A new version is labelled when its row is created: a person's earlier decision, else the rules, else UNLABELLED (invisible).
+            # An update of an existing row (status changes) never touches the label.
+            access = label_columns(resolve_label(conn, doc.doc_id, doc.file_name, self._rules.get()))
             conn.execute(
                 """INSERT INTO documents (doc_id, version, file_name, file_type, hash, status, status_reason,
-                       doc_label, language, title, page_count, quality_score, source_path, original_path, output_path)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                       doc_label, language, title, page_count, quality_score, source_path, original_path, output_path,
+                       tenant_id, allowed_roles, access_status, access_source, access_updated_at)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, %s,%s,%s,%s, now())
                    ON CONFLICT (doc_id, version) DO UPDATE SET
                        status = EXCLUDED.status, status_reason = EXCLUDED.status_reason,
                        doc_label = EXCLUDED.doc_label, language = EXCLUDED.language, title = EXCLUDED.title,
@@ -49,4 +57,4 @@ class PgManifest:
                        updated_at = now()""",
                 (doc.doc_id, doc.version, doc.file_name, doc.file_type, doc.hash, doc.status.value, doc.status_reason,
                  doc.doc_label, m.language, m.title, m.page_count, doc.quality.score, doc.source_path,
-                 doc.original_path, doc.output_path))
+                 doc.original_path, doc.output_path, *access))

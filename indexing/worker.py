@@ -99,6 +99,7 @@ def sync_folder(self, folder: str) -> dict:
     """Keep the index matching a folder (also run every night by Celery Beat)."""
     from indexing.sync import run_sync
     _progress(self, step="syncing", folder=folder)
+    from indexing.access import unlabelled_documents
     plan = run_sync(Path(folder))
-    return {"folder": folder, "new": len(plan.new), "changed": len(plan.changed),
+    return {"folder": folder, "unlabelled": len(unlabelled_documents()), "new": len(plan.new), "changed": len(plan.changed),
             "unchanged": len(plan.unchanged), "renamed": len(plan.renamed), "deleted": len(plan.deleted)}

@@ -19,7 +19,7 @@ tested before moving on.
 | **Phase 2 — Store** | Chunk, embed, save to a vector database, keep it in sync | ✅ Done |
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
-| Phase 5 — Access | Login, roles, who-can-see-what | ⏳ |
+| Phase 5 — Access | Login, roles, who-can-see-what | 🔄 Stage 1 of 5 done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
@@ -2144,6 +2144,39 @@ weakness to fix, and the gate now guards the rest while it is fixed.
 7. The ambiguity in A011 ("loses the most employees": rate vs people) is noted, not fixed.
 
 **Next phase:** Phase 5 — Access: login (JWT), roles, and making sure each person only ever gets answers built from documents they are allowed to see (the columns `tenant_id` and `allowed_roles` are already in the database).
+
+## Phase 5 — Access (who may see which document)
+
+**Plan (5 stages):** (1) access labels on documents; (2) filtered retrieval inside every search path; (3) login + signed JWT with a swappable verifier; (4) protect `/ask` and `/ask/stream`, audit log; (5) access exam with canary leak checks and a "forbidden evidence" gate rule. Rate limits and abuse guards stay in Phase 6.
+
+**Decisions:** identity = our own login + JWT behind a swappable verifier interface; a document with no label is **invisible** until labelled (fail closed).
+
+### Stage 1 — Access labels on documents
+
+**Simple idea:** every document gets a name tag: *which company* (tenant) and *which roles* may read it (or `all`). No tag = nobody can see it. Like a locked office: a forgotten key hides the room, it never opens it.
+
+1. **Labels live on `documents` only** (migration 004): `tenant_id`, `allowed_roles`, `access_status`, `access_source`, `access_updated_at`. The unused `chunks.tenant_id/allowed_roles` columns were dropped: one source of truth, chunks inherit through the join.
+2. **The database refuses half-labelled rows** (CHECK constraints): labelled needs a company, at least one role and a source; unlabelled must have no roles.
+3. **Where a label comes from:** a person (`set-access`, survives new versions) beats a rule in `access_rules.json` (first matching file-name pattern wins) beats nothing (unlabelled).
+4. **A typo is an error:** an unknown role (`hr_`) or a bad tenant stops loading the rules; nothing is half-applied. The committed rules file has 26 explicit rules and **no catch-all** on purpose.
+5. **Metadata only:** changing a label never re-reads or re-embeds a document (tested).
+6. **Existing documents** become unlabelled when migration 004 runs; `apply-rules` labels them.
+7. **Canary corpus** (`scripts/make_access_corpus.py`): 4 documents (Acme board minutes, Acme executive pay, Globex leave policy, Globex salary bands), each with a unique `CANARY-...` string used for leak tests in Stage 5.
+
+**New commands:** `manage access`, `manage set-access DOC_ID --roles hr,finance [--tenant acme] [--unlabel]`, `manage apply-rules`; `manage list` shows an ACCESS column; `sync` and the worker report unlabelled documents.
+
+**Real output on the dev database:** after migration, `2 documents, 0 labelled, 2 unlabelled`; after `apply-rules`: `labelled 1 | unchanged 1` (`leave_policy.pdf` = acme, everyone; `corrupted_report.pdf` has no rule, so it stays hidden: correct).
+
+**Tests:** 70 new (`tests/test_access.py`); full suite **547 passed, 0 skipped**. Mutation checks: 5 deliberate breaks (unknown roles accepted, manual label not inherited, apply-rules overriding people, no label = public, last rule wins) were all caught.
+
+**Honest limits:**
+1. **Labels do not filter search yet.** Until Stage 2, search still returns everything.
+2. `admin` is an ordinary role, not a super-role (least privilege): admin sees HR pay only if the document says so.
+3. Rules match on **file name only**; a wrongly named file gets the wrong label.
+4. Fail closed means a forgotten label hides a document (a nuisance, not a leak).
+5. The rules and canary documents were written by me; the access policy itself is a demo policy.
+
+**Memory trick:** *No tag, no entry.*
 
 ---
 

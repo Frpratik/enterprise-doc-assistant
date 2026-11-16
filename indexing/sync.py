@@ -148,5 +148,6 @@ def list_documents() -> list[tuple]:
     with connect() as conn:
         return conn.execute(
             """SELECT doc_id, version, file_name, status, is_active, chunk_count,
-                      to_char(deleted_at, 'YYYY-MM-DD') AS deleted
+                      to_char(deleted_at, 'YYYY-MM-DD') AS deleted,
+                      CASE WHEN access_status = 'labelled' THEN tenant_id || ': ' || array_to_string(allowed_roles, ',') ELSE 'UNLABELLED' END AS access
                FROM documents ORDER BY file_name, version""").fetchall()
