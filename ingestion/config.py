@@ -146,6 +146,11 @@ class Settings(BaseSettings):
 
     embedding_cache_dir: Path | None = None                # a disk cache of embeddings (used by tests and evals, which rebuild the same corpus again and again)
 
+    # ---------- Actions (Phase 7) ----------
+    tool_token_minutes: int = 5                            # how long the token that tells a tool server who is calling stays valid
+    tool_audience: str = "eda-mcp-tools"                   # a login token is not a tool token and the other way round
+    company_holidays: list[str] = ["2026-01-26", "2026-08-15", "2026-10-20", "2026-11-08"]   # not working days for leave
+
     # ---------- Prompt injection (Phase 6) ----------
     injection_hostile_score: int = 3                       # a paragraph or chunk scoring this much is hostile (see indexing/injection.py)
 

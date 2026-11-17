@@ -42,3 +42,4 @@ httpx            # used by FastAPI's test client
 PyJWT            # signed login tokens (Phase 5)
 redis           # rate-limit counters (Phase 6; already installed with celery[redis])
 pytest-xdist     # run the tests in parallel (pytest.ini: -n 3)
+mcp              # the Model Context Protocol SDK (Phase 7: the tool server and its client)

@@ -21,7 +21,7 @@ tested before moving on.
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ✅ Done |
-| Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
+| Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | 🔄 Stage 1 of 5 done |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
 | Phase 9 — Production | Retries, caching, CI eval gate | ⏳ |
 | Phase 10 — Ship | Docker, AWS, UI, demo | ⏳ |
@@ -2601,6 +2601,50 @@ pytest                         everything (about 10 minutes)
 pytest tests/test_x.py -k name one test
 pytest -n 2 --dist loadfile    parallel, only on a machine with plenty of RAM
 ```
+
+---
+
+## Phase 7 — Actions (an agent that can do things, safely)
+
+**Plan (5 stages):** (1) tools and a simulated back-end, served by a real MCP server; (2) the approval flow (the model only proposes, a person approves, exactly what was approved runs); (3) the agent loop with function calling, a step limit and a per-role tool list; (4) tool safety (tool results are untrusted input, the agent acts only with the asker's rights, idempotent writes, rate limits, audit); (5) the action exam (attacks on the agent) in the regression gate, and the Phase 7 summary.
+
+**Decisions (yours):** the tools are a **real MCP server** (official `mcp` SDK, stdio); **the requester confirms every write, and leave also needs approval from a person with the manager role (never the requester)**; tickets need only the requester's confirmation.
+
+### Stage 1 — Tools and a simulated back-end, served by a real MCP server
+
+**Simple idea:** the assistant gets a phone to the HR desk and the IT desk, but it can only ask "what is my balance?" and "would this request be allowed?". It has no button that actually files anything. Filing happens only after a person says yes (Stage 2), through a door the assistant cannot reach.
+
+1. **A simulated back-end** (migration 008): `leave_balances`, `leave_requests`, `tickets`, with database CHECK constraints (valid types and statuses, end not before start, a decision needs a decider, lengths). In a real company these would be the HR and ticket systems.
+2. **The rules in one place (`actions/domain.py`):** leave types sick (12 days), casual (8), earned (18), as in the leave policy; Monday to Friday without company holidays; limits per request (3, 10, 15 days); notice (casual 1 day, earned 7 days, sick may be applied for up to 3 days after it began); no request across two calendar years or more than a year ahead; the balance counts days **reserved** by requests waiting for the manager; overlaps with live requests are refused (rejected and cancelled ones do not block).
+3. **A draft changes nothing.** `propose_leave` and `propose_ticket` check everything a real system would check and return what WOULD be created, plus the reasons it cannot be (each a plain sentence) and warnings. Text that would go into a system is cleaned (control and hidden characters, spaces), **personal data is masked** (the ticket system does not need your Aadhaar number), and text that reads like instructions to a machine is refused (the Stage 3 and 4 detectors of Phase 6).
+4. **A fingerprint on every draft:** a SHA-256 over the exact arguments, the person and the company. Stage 2 stores it and a person approves THAT fingerprint, so what runs is exactly what was approved (the same arguments for someone else, or in another company, give a different fingerprint).
+5. **The MCP server (`actions/mcp_server.py`): six tools, all read-only:** `get_leave_balance`, `list_my_leave_requests`, `list_my_tickets`, `get_ticket`, `propose_leave_request`, `propose_ticket`. All annotated `readOnlyHint`, none `destructive` or `openWorld`. **There is no tool that writes**, and the module does not even import the functions that do (a test reads the source).
+6. **The model never chooses who it is.** No tool has a user or company argument (a test scans every schema). The agent starts a tool server for ONE person with a short-lived signed **tool token** (5 minutes, its own audience, so a login token is not a tool token and the other way round). The server verifies it at start-up and **on every call** checks again that the person is still active, in the same company, and that the token version has not moved (a password change or a disabled account ends the session at once). Roles and company come from the table, not from the token.
+7. **Reads are only your own:** someone else's ticket looks exactly like a ticket that does not exist; lists are capped at 20; filters are validated against fixed lists; the SDK checks the arguments against the schema before the code runs.
+8. **The client (`actions/mcp_client.py`):** the server runs as a **separate process** with an environment built from scratch (the token, the database address, the signing secret, and nothing else: not the LLM key, not Redis). Results are capped at 20 KB and tool errors become `ToolError` with a generic message (the reason stays in the server's log, so the model learns nothing more).
+
+**Real output (real stdio MCP session on a throwaway database):**
+```
+tools: ['get_leave_balance', 'list_my_leave_requests', 'list_my_tickets', 'get_ticket', 'propose_leave_request', 'propose_ticket']
+annotations: read_only_hint=True destructive_hint=False idempotent_hint=True open_world_hint=False
+balance: {'balances': {'casual': {'annual': 8.0, 'taken': 0.0, 'pending': 0.0, 'remaining': 8.0}, 'earned': {...18.0}, 'sick': {...12.0}}}
+draft:   {"kind": "leave_request", "args": {"leave_type": "casual", "start_date": "2026-12-08", "end_date": "2026-12-09", "reason": "family function, call [PHONE]", "days": 2.0},
+          "valid": true, "problems": [], "warnings": ["personal data in the reason (phone) was replaced by placeholders: the system does not need it"], ...}
+bad arguments -> ToolError: Error executing tool propose_ticket: 3 validation errors ... Input should be 'hardware', 'software', 'access', 'network' or 'other'
+```
+
+**Tests:** 61 new in `tests/test_actions_tools.py`: working days (weekends, holidays); 14 reasons a request is refused and 7 for a ticket; sick backdating; reserved and taken days; overlaps; personal data masked; a draft changes no table; the fingerprint changes with any argument, the person and the company; reads only your own, lists capped, bad filters; database constraints; the tool token (login and tool tokens not interchangeable, forged, expired, missing claims, wrong company, wrong types, `none` algorithm, password change, disabled person, no secret); the MCP server **in process** (exactly these six tools, all read-only; no identity argument in any schema; an extra `user_id` argument changes nothing; two sessions see only their own person; propose tools create nothing; 10 kinds of bad arguments refused; a session ends when it expires, when the sign-in state moves, when the person is disabled; lists capped) and **as a real process** over stdio (tools, balance, a draft, a tool error; the process refuses to start with no, a garbage or an expired token and prints nothing on stdout; the environment holds exactly six variables and no LLM key; a real session ends when the person is disabled; a result over the cap is refused). **Full suite: 1057 passed, 0 skipped.**
+**Mutation checks:** 27 deliberate breaks (weekends or holidays counted, pending days not reserved, no overlap or balance check, personal data not masked, instruction-like text accepted, fingerprint ignoring the person or the company, someone else's ticket readable or everyone's listed, lists not capped, sick backdating, the per-request cap, a draft that writes a request, token audience / version / disabled person / company not checked, no per-call check, no expiry check, a tool that lets the model name the person, a write tool, a tool not marked read-only, the LLM key travelling to the server, no result cap, tool errors not raised): all caught.
+
+**Honest limits:**
+1. **Nothing writes yet.** Until Stage 2 there is no way to turn a draft into a leave request or ticket except the helper functions used by tests.
+2. **A separate process is not a sandbox.** The tool server can still read any file the user can read (including `.env`); the minimal environment is separation of duties, not containment.
+3. **A tool process is started for each session** (about a second): fine for a chat, not for high volume. A long-lived HTTP server with a per-request token would be the production shape.
+4. The leave rules are a plausible policy I wrote, not your company's: half days, public holidays per location, carry-over and a manager's calendar are not modelled. Balances are created on first read with the annual numbers.
+5. Text in a draft is cleaned and masked, but the instruction detector can still be fooled by a paraphrase (Phase 6, limit 1); the guard against that for tool results is Stage 4.
+6. The back-end is simulated: no email, no real HR or ticket system, no manager inbox yet (Stage 2).
+
+**Memory trick:** *A phone with only "ask" and "would this be allowed?": no button that files anything.*
 
 ---
 
