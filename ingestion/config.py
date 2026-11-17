@@ -144,6 +144,8 @@ class Settings(BaseSettings):
     max_body_bytes: int = 16384                            # larger request bodies are refused (413)
     trust_proxy_headers: bool = False                      # believe X-Forwarded-For (only behind a proxy we control)
 
+    embedding_cache_dir: Path | None = None                # a disk cache of embeddings (used by tests and evals, which rebuild the same corpus again and again)
+
     # ---------- Prompt injection (Phase 6) ----------
     injection_hostile_score: int = 3                       # a paragraph or chunk scoring this much is hostile (see indexing/injection.py)
 

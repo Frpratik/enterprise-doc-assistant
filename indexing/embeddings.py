@@ -15,8 +15,11 @@ embed_with_cache() puts the database in front of the model: every text is identi
 SHA-256 hash, and a (hash, model) pair is embedded only ONCE, ever.
 """
 import hashlib
+import os
 from abc import ABC, abstractmethod
 from functools import lru_cache
+
+from pathlib import Path
 
 import numpy as np
 
@@ -51,10 +54,34 @@ class LocalEmbedder(Embedder):
         self._model = TextEmbedding(self.name, cache_dir=str(settings.models_dir), local_files_only=True)
         self.dims = len(self.embed_documents(["dimension check"])[0])
 
+    def _embed(self, texts: list[str]) -> list[np.ndarray]:
+        return [_normalize(v) for v in self._model.embed(texts, batch_size=settings.embed_batch_size)]
+
     def embed_documents(self, texts: list[str]) -> list[np.ndarray]:
         if not texts:
             return []
-        return [_normalize(v) for v in self._model.embed(texts, batch_size=settings.embed_batch_size)]
+        folder = settings.embedding_cache_dir
+        if not folder:
+            return self._embed(texts)
+        # A disk cache for tests and evals: the same text always gives the same vector, so a corpus that is built again in a new throwaway
+        # database costs a file read instead of a model run. (Off by default: production has the database cache of embed_with_cache.)
+        paths = [Path(folder) / self.name.replace("/", "_") / text_hash(t)[:2] / f"{text_hash(t)}.npy" for t in texts]
+        vectors: list[np.ndarray | None] = []
+        for path in paths:
+            try:
+                vectors.append(np.load(path) if path.exists() else None)
+            except (OSError, ValueError):                         # half-written by another process: embed again
+                vectors.append(None)
+        missing = [i for i, v in enumerate(vectors) if v is None]
+        if missing:
+            for i, vec in zip(missing, self._embed([texts[i] for i in missing])):
+                vectors[i] = vec
+                paths[i].parent.mkdir(parents=True, exist_ok=True)
+                tmp = paths[i].with_name(f"{paths[i].name}.{os.getpid()}.tmp")
+                with open(tmp, "wb") as f:                         # write beside, then rename: a reader never sees half a file
+                    np.save(f, vec)
+                os.replace(tmp, paths[i])
+        return vectors
 
     def embed_query(self, text: str) -> np.ndarray:
         prefix = settings.embed_query_prefix if "bge" in self.name.lower() else ""

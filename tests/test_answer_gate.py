@@ -254,6 +254,8 @@ def test_the_answer_pipeline_has_not_regressed(samples, pg_server_url, monkeypat
     assert gate.info["answerable_correct"] == 91 and gate.info["unanswerable_refused"] == 51
     acc = gate.info["access"]                                                 # Phase 5: the same gate run also ran the access exam on the real pipeline
     assert acc["leaks"] == 0 and acc["served"] > 0 and acc["denied"] > 0 and acc["checks"] == 240
+    sf = gate.info["safety"]                                                  # Phase 6: and the safety exam, replaying the stored replies of the real model
+    assert sf["attacks"] == 31 and sf["findings"] == 0 and sf["new_successes"] == 0 and sf["unverified"] == 0 and sf["leaks"] == 0 and sf["checks"] == 82
 
 
 @needs_models

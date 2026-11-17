@@ -11,6 +11,27 @@ ROOT = Path(__file__).resolve().parent.parent
 SAMPLES = ROOT / "data" / "samples"
 
 
+# ---------------- parallel runs (pytest-xdist) ----------------
+def pytest_configure(config):
+    """The sample documents are made ONCE, by the controller process, before any worker starts: workers that each tried to make them at the same
+    moment would read half-written files."""
+    settings.embedding_cache_dir = ROOT / "evals" / ".cache" / "embeddings"          # tests embed the same sample documents again and again
+    if hasattr(config, "workerinput"):
+        return
+    for folder, script in (("good", "make_sample_data.py"), ("eval2", "make_eval_corpus.py"), ("access", "make_access_corpus.py"), ("poisoned", "make_poisoned_corpus.py")):
+        if not (SAMPLES / folder).exists() or not any((SAMPLES / folder).iterdir()):
+            subprocess.run([sys.executable, str(ROOT / "scripts" / script)], check=True, capture_output=True)
+
+
+def pytest_collection_modifyitems(config, items):
+    """Every test that needs the real models is marked `slow` (skip them with: pytest -m "not slow")."""
+    for item in items:
+        for m in item.iter_markers("skipif"):
+            if "models not downloaded" in str(m.kwargs.get("reason", "")):
+                item.add_marker(pytest.mark.slow)
+                break
+
+
 @pytest.fixture(scope="session")
 def samples() -> Path:
     if not (SAMPLES / "good").exists():
@@ -62,18 +83,31 @@ def pg_server_url(tmp_path_factory):
     return srv.get_uri()
 
 
-@pytest.fixture
-def db_url(pg_server_url, monkeypatch):
-    """A brand-new empty database for ONE test, dropped afterwards. Your real data is never touched."""
-    from indexing import db
+@pytest.fixture(scope="session")
+def migrated_template(pg_server_url):
+    """A database with every migration applied, made ONCE per run. Each test then gets a copy (CREATE DATABASE ... TEMPLATE), which takes a
+    third of the time of creating an empty database and running all the migrations again."""
     from indexing.migrate import migrate
+
+    name = f"eda_tpl_{uuid.uuid4().hex[:10]}"
+    with psycopg.connect(pg_server_url, autocommit=True) as admin:
+        admin.execute(f'CREATE DATABASE "{name}"')
+    migrate(make_conninfo(pg_server_url, dbname=name), quiet=True)
+    yield name
+    with psycopg.connect(pg_server_url, autocommit=True) as admin:
+        admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+
+
+@pytest.fixture
+def db_url(pg_server_url, migrated_template, monkeypatch):
+    """A brand-new database (all migrations applied) for ONE test, dropped afterwards. Your real data is never touched."""
+    from indexing import db
 
     name = f"eda_test_{uuid.uuid4().hex[:10]}"
     with psycopg.connect(pg_server_url, autocommit=True) as admin:
-        admin.execute(f'CREATE DATABASE "{name}"')
+        admin.execute(f'CREATE DATABASE "{name}" TEMPLATE "{migrated_template}"')
     url = make_conninfo(pg_server_url, dbname=name)
     monkeypatch.setattr(settings, "database_url", url)
-    migrate(url, quiet=True)
     yield url
     db.close_all()
     with psycopg.connect(pg_server_url, autocommit=True) as admin:

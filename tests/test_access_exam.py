@@ -201,8 +201,10 @@ def test_a_leak_still_fails_even_when_other_things_are_unverified():
 
 @pytest.fixture
 def stub_run(monkeypatch):
+    from indexing import safety_exam
     calls = []
     monkeypatch.setattr(access_exam, "run_full", lambda progress=None: calls.append(1) or clean())
+    monkeypatch.setattr(safety_exam, "run", lambda mode="replay", progress=None: safety_exam.SafetyResult(offline=True))     # these tests are about the access exam: no real safety run
     monkeypatch.setattr(eval_gate.answer_run, "generate_repeats", lambda *a, **k: [run()[1]])
     monkeypatch.setattr(eval_gate, "score_all", lambda golden, records: run()[0])
     return calls

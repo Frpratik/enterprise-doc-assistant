@@ -22,6 +22,7 @@ Parsed documents and embeddings are cached in evals/.cache, so re-runs take seco
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -50,14 +51,19 @@ def load_document(path: Path) -> Document:
     key = f"{sha256(path)[:16]}_{settings.parser_version}"
     cached = CACHE / "docs" / f"{path.name}.{key}.json"
     if cached.exists():
-        return Document.model_validate_json(cached.read_text(encoding="utf-8"))
+        try:
+            return Document.model_validate_json(cached.read_text(encoding="utf-8"))
+        except ValueError:                                    # half-written by another process: parse again
+            pass
     ft = FILE_TYPES[path.suffix.lower()]
     doc = Document(doc_id=path.stem, file_name=path.name, file_type=ft)
     for el in get_parser(ft).parse(doc, path):
         doc.add(el)
     clean_document(doc)
     cached.parent.mkdir(parents=True, exist_ok=True)
-    cached.write_text(doc.model_dump_json(), encoding="utf-8")
+    tmp = cached.with_name(f"{cached.name}.{os.getpid()}.tmp")          # write beside, then rename: a reader never sees a half-written file
+    tmp.write_text(doc.model_dump_json(), encoding="utf-8")
+    os.replace(tmp, cached)
     return doc
 
 

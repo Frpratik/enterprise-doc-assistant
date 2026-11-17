@@ -41,6 +41,8 @@ KS = (1, 3, 5)
 def temp_database():
     """A brand-new empty database with all migrations, dropped afterwards. settings.database_url points at it meanwhile."""
     real = settings.database_url
+    saved_cache = settings.embedding_cache_dir
+    settings.embedding_cache_dir = saved_cache or PROJECT_ROOT / "evals" / ".cache" / "embeddings"      # the same corpus is indexed again and again: embed it once
     name = f"eda_eval_{uuid.uuid4().hex[:8]}"
     with psycopg.connect(real, autocommit=True) as admin:
         admin.execute(f'CREATE DATABASE "{name}"')
@@ -52,6 +54,7 @@ def temp_database():
     finally:
         db.close_all()
         settings.database_url = real
+        settings.embedding_cache_dir = saved_cache
         with psycopg.connect(real, autocommit=True) as admin:
             admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 

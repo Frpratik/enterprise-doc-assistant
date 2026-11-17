@@ -288,14 +288,20 @@ def ensure_access_documents() -> None:
 def run_full(progress=None) -> ExamResult:
     """Index the exam corpus (the 22 documents of the answer exam + the 4 canary documents) in a throwaway database, then run the exam."""
     from indexing.answer_golden import corpus_paths
+    from ingestion.config import settings
     ensure_access_documents()
     golden = load_golden()
     paths = corpus_paths(golden.documents)
     names = [*golden.documents, *sorted(p.name for p in ACCESS_DIR.glob("*.md"))]
     paths.update({p.name: p for p in ACCESS_DIR.glob("*.md")})
-    with search_eval.temp_database():
-        search_eval.index_golden_documents(names, resolve=lambda n: paths[n])
-        return run_exam(build_questions(golden), PEOPLE, progress=progress)
+    saved_rules = settings.access_rules_path
+    settings.access_rules_path = PROJECT_ROOT / "access_rules.json"                # ALWAYS the real rules, whatever the caller configured (a test may point at its own)
+    try:
+        with search_eval.temp_database():
+            search_eval.index_golden_documents(names, resolve=lambda n: paths[n])
+            return run_exam(build_questions(golden), PEOPLE, progress=progress)
+    finally:
+        settings.access_rules_path = saved_rules
 
 
 def main(argv=None) -> int:

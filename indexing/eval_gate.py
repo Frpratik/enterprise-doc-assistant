@@ -4,6 +4,7 @@ The regression gate (Phase 4 Stage 5): ONE command that says whether a change ma
   python -m indexing.eval_gate                       PASS / FAIL / INCOMPLETE, needs no API key and no quota
   python -m indexing.eval_gate --live                ask the real LLM for questions whose prompt changed (uses quota, replies are cached)
   python -m indexing.eval_gate --skip-access         do not run the access exam (the verdict can then be at best INCOMPLETE)
+  python -m indexing.eval_gate --skip-safety         do not run the safety exam (the verdict can then be at best INCOMPLETE)
   python -m indexing.eval_gate --record --from RUN1 RUN2 RUN3     (re)create the baseline from saved runs of the same model
   exit code:  0 PASS     1 FAIL (a regression)     2 INCOMPLETE (something could not be verified)
 
@@ -28,6 +29,10 @@ What makes the verdict FAIL (a regression):
   access_over_block    (Phase 5) a person who may read the evidence did not get it, although an all-roles auditor did
   access_exam_vacuous  (Phase 5) the access exam withheld or served nothing, so it proved nothing
   The access exam (indexing/access_exam.py) needs no LLM, key or quota; it is skipped for a quick --ids check and is INCOMPLETE when skipped on purpose.
+  new_attack_success   (Phase 6) a live attack that was held when the safety baseline was recorded now succeeds (a forbidden string reached the person)
+  ingestion_regression / pii_leak / pii / output_leak / output_guard / abuse / prompt_exposure / prompt_structure / attack_error   (Phase 6) the safety exam's own checks,
+                       zero tolerance and no baseline. A replayed attack whose prompt changed is UNVERIFIED (INCOMPLETE), never a silent pass.
+  The safety exam (indexing/safety_exam.py) replays the stored replies of the real LLM: no key, no quota.
 What is only REPORTED: questions that were wrong in the baseline and are right now (improvements: re-record to lock them in).
 The LLM judge (faithfulness, correctness) is NOT part of the gate: it is slow and limited to ~8 calls a minute. It is a periodic audit.
 """
@@ -39,7 +44,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from indexing import access_exam, answer_run
+from indexing import access_exam, answer_run, safety_exam
 from indexing.answer_golden import Golden, load_golden
 from indexing.answer_score import evidence_groups, score_all
 from indexing.answer_stats import reliability, unavailable_ids
@@ -126,9 +131,10 @@ class Gate:
 NOT_RUN = object()          # evaluate(): the access exam is not part of this call (pure unit tests of the answer rules)
 
 
-def evaluate(baseline: dict, golden: Golden, scored: list[dict], records: list[dict], missed_questions: set[str], access=NOT_RUN) -> Gate:
+def evaluate(baseline: dict, golden: Golden, scored: list[dict], records: list[dict], missed_questions: set[str], access=NOT_RUN, safety=NOT_RUN) -> Gate:
     """Compare a run with the baseline. `missed_questions` = questions whose prompt had no stored reply (replay misses).
-    `access`: the ExamResult of the access exam, or None = it was not run (then the verdict is at best INCOMPLETE), or NOT_RUN = not part of this call."""
+    `access`: the ExamResult of the access exam, or None = it was not run (then the verdict is at best INCOMPLETE), or NOT_RUN = not part of this call.
+    `safety`: the SafetyResult of the safety exam, with the same three meanings."""
     gate = Gate()
     q_by_id = {q.id: q for q in golden.questions}
     sc = {s["id"]: s for s in scored}
@@ -184,6 +190,15 @@ def evaluate(baseline: dict, golden: Golden, scored: list[dict], records: list[d
             gate.failures.append({"check": p["check"], "id": p["id"], "detail": p["detail"], "question": q_by_id[p["id"]].q if p["id"] in q_by_id else ""})
         gate.info["access"] = {"checks": access.checks, "served": access.served, "denied": access.denied, "leaks": len(access.leaks)}
 
+    if safety is None:                                                             # 7. the safety exam: skipped on purpose is not success
+        gate.unverified.append({"id": "-", "why": "the safety exam was not run", "question": "attacks and abuse"})
+    elif safety is not NOT_RUN:
+        for p in safety.problems:
+            gate.failures.append({"check": p["check"], "id": p["id"], "detail": p["detail"], "question": q_by_id[p["id"]].q if p["id"] in q_by_id else ""})
+        for attack_id in safety.unverified:
+            gate.unverified.append({"id": attack_id, "why": "its prompt changed: no stored reply of the real LLM", "question": "safety attack"})
+        gate.info["safety"] = safety.summary()
+
     gate.improvements = [qid for qid in baseline["known_failures"] if qid in sc and sc[qid]["outcome"] == "correct"]
     ans = [s for s in scored if s["answerable"]]
     gate.info.update({"questions": len(scored), "answerable_correct": sum(s["outcome"] == "correct" for s in ans), "answerable": len(ans),
@@ -199,6 +214,9 @@ def format_gate(gate: Gate) -> str:
          f"  checked {i['questions']} questions: {i['answerable_correct']}/{i['answerable']} answerable correct now "
          f"(baseline: {i['baseline_stable_correct']} were correct in every run; wrong in every run: {i['baseline_known_failures']}); "
          f"{i['unanswerable_refused']} unanswerable refused"]
+    if "safety" in i:
+        sf = i["safety"]
+        L.append(f"  safety exam: {sf['checks']} checks, {sf['attacks']} live attacks, {sf['succeeded']} succeeded (known gap {sf['known_successes']}, new {sf['new_successes']}), {sf['findings']} findings")
     if "access" in i:
         a = i["access"]
         L.append(f"  access exam: {a['checks']} checks, {a['served']} served correctly, {a['denied']} withheld correctly, {a['leaks']} leaks")
@@ -227,7 +245,7 @@ def load_baseline(path: Path | None = None) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def run_gate(baseline: dict, golden: Golden, live: bool = False, ids: list[str] | None = None, progress=None, access: bool | None = None) -> Gate:
+def run_gate(baseline: dict, golden: Golden, live: bool = False, ids: list[str] | None = None, progress=None, access: bool | None = None, safety: bool | None = None) -> Gate:
     """Re-run the pipeline with the stored LLM replies and compare with the baseline, then run the access exam.
     access=None: run it unless a quick --ids check was asked | True: always | False: skipped on purpose (the verdict is then at best INCOMPLETE)."""
     if live:
@@ -243,7 +261,12 @@ def run_gate(baseline: dict, golden: Golden, live: bool = False, ids: list[str] 
         outcome = access_exam.run_full(progress=progress) if access else NOT_RUN
     else:
         outcome = access_exam.run_full(progress=progress) if access else None
-    return evaluate(baseline, golden, scored, records, llm.missed_questions, access=outcome)
+    if safety is None:
+        safety = not ids
+        safety_outcome = safety_exam.run("live" if live else "replay", progress=progress) if safety else NOT_RUN
+    else:
+        safety_outcome = safety_exam.run("live" if live else "replay", progress=progress) if safety else None
+    return evaluate(baseline, golden, scored, records, llm.missed_questions, access=outcome, safety=safety_outcome)
 
 
 # ---------------- recording the baseline ----------------
@@ -291,6 +314,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m indexing.eval_gate")
     ap.add_argument("--live", action="store_true", help="ask the real LLM for questions whose prompt changed (uses quota)")
     ap.add_argument("--ids", help="only these question ids (a quick check; the access exam is not run)")
+    ap.add_argument("--skip-safety", action="store_true", help="do not run the safety exam (the verdict is then at best INCOMPLETE)")
     ap.add_argument("--skip-access", action="store_true", help="do not run the access exam (the verdict is then at best INCOMPLETE)")
     ap.add_argument("--record", action="store_true", help="(re)create the baseline")
     ap.add_argument("--from", dest="runs", nargs="+", metavar="RUN", help="with --record: saved runs of the same model (use 3 for a reliable baseline)")
@@ -321,7 +345,7 @@ def main(argv=None) -> int:
         return 2
     ids = [i.strip() for i in args.ids.split(",")] if args.ids else None
     try:
-        gate = run_gate(baseline, golden, live=args.live, ids=ids, progress=print, access=False if args.skip_access else None)
+        gate = run_gate(baseline, golden, live=args.live, ids=ids, progress=print, access=False if args.skip_access else None, safety=False if args.skip_safety else None)
     except Exception as e:                                    # the gate itself broke: that is never a PASS
         print(f"GATE ERROR: {type(e).__name__}: {e}")
         return 2
