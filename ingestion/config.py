@@ -147,6 +147,10 @@ class Settings(BaseSettings):
     # ---------- Prompt injection (Phase 6) ----------
     injection_hostile_score: int = 3                       # a paragraph or chunk scoring this much is hostile (see indexing/injection.py)
 
+    # ---------- Output guardrails (Phase 6) ----------
+    output_max_chars: int = 2000                           # an answer longer than this is blocked (the prompt asks for one to three sentences)
+    output_leak_shingle_words: int = 8                     # this many words in a row copied from the system prompt = a leak
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

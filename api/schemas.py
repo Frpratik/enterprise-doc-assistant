@@ -37,7 +37,7 @@ class CitationOut(BaseModel):
 
 
 class AskResponse(BaseModel):
-    status: Literal["answered", "refused_gate", "refused_llm", "uncited", "llm_unavailable"]
+    status: Literal["answered", "refused_gate", "refused_llm", "uncited", "llm_unavailable", "blocked_output"]
     text: str = Field(..., description="Show this to the user. When status is not 'answered' it is a plain 'not found' / 'busy' message.")
     citations: list[CitationOut] = []
     model: str | None = None
@@ -45,6 +45,7 @@ class AskResponse(BaseModel):
     latency_ms: int = 0
     prompt_version: str
     request_id: str
+    guard: list[str] = Field([], description="Kinds of content removed from the answer before it was shown (link, image, html, pii:email, pii:pan, ...). Never the values.")
     masked: list[str] = Field([], description="Kinds of personal data found in the question and replaced before it was processed (email, phone, pan, aadhaar, card). Never the values.")
 
 

@@ -212,7 +212,7 @@ def test_stream_event_order_for_a_good_answer(retrieval):
     retrieval()
     llm = FakeLLM("You get 12 sick leaves per year [1].", pieces=["You get 12 ", "sick leaves ", "per year [", "1]."])
     events = collect(answer_stream("sick days?", llm=llm))
-    assert [e for e, _ in events] == ["retrieval", "token", "token", "token", "token", "done"]
+    assert [e for e, _ in events] == ["retrieval", "token", "done"]          # Phase 6: a sentence is shown only after the output checks passed it
     assert events[0][1] == {"answerable": True, "code": "ok", "sources": 2}
     streamed = "".join(d["text"] for e, d in events if e == "token")
     done = events[-1][1]
@@ -248,7 +248,7 @@ def test_reset_clears_the_filter_and_only_the_retry_counts(retrieval):
     retrieval()
     evs = [("token", "Half an ans"), ("reset", "m-main failed while answering"), ("token", "12 sick leaves [1].")]
     events = collect(answer_stream("sick days?", llm=FakeLLM("12 sick leaves [1].", events=evs)))
-    assert [e for e, _ in events] == ["retrieval", "token", "reset", "token", "done"]
+    assert [e for e, _ in events] == ["retrieval", "reset", "token", "done"]     # the half sentence was never shown, so there is nothing to clear
     assert events[-1][1]["text"] == "12 sick leaves [1]."
 
 

@@ -20,7 +20,7 @@ tested before moving on.
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
-| Phase 6 — Safety | Guardrails, PII masking, rate limits | 🔄 Stage 3 of 5 done |
+| Phase 6 — Safety | Guardrails, PII masking, rate limits | 🔄 Stage 4 of 5 done |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
 | Phase 9 — Production | Retries, caching, CI eval gate | ⏳ |
@@ -2474,6 +2474,41 @@ travel_subtle.md            done          (NOT detected: the paraphrased attack)
 6. The patterns were tuned on 26 documents of this project. A different company's documents may need their own false-alarm check (`manage injection-scan` is the tool for that).
 
 **Memory trick:** *Open suspicious mail at the mailroom, pull out any page that gives orders, and never let the folder pretend it has ended.*
+
+---
+
+### Stage 4 — Output guardrails
+
+**Simple idea:** a proofreader at the exit door. Whatever the assistant wrote is read once more before it is handed over: no pages from the staff handbook, no hidden notes, no strange web links, no ID numbers, and nothing that looks like an order.
+
+**The model is not trusted even when nothing attacks it**: a poisoned excerpt, a clever question, or plain model error can make it write something we must not show. `indexing/output_guard.py` runs on every answer, in `answer()` and in the stream.
+
+**Blocked** (the person gets the normal "not found" message; the reason goes to the log, never to the person, and the audit shows `blocked_output`):
+1. `hidden_characters`: Unicode tag characters or text-direction overrides in the answer (a way to smuggle data out invisibly).
+2. `system_prompt_leak`: 8 or more words in a row copied from our system prompt (the system prompt itself is unchanged, so no stored LLM reply of the gate is invalidated).
+3. `instruction_echo`: the answer itself scores as prompt injection (Stage 3 detector): it repeats a command, a forged `</excerpts>`, an image link that carries data out.
+4. `too_long`: more than 2,000 characters (the prompt asks for one to three sentences).
+
+**Sanitised** (the answer is shown with the offending part removed, and the response says what kinds were removed in `guard`, never the values):
+1. `image` / `html`: markdown images and risky HTML tags are removed (a rendered image link sends data to a stranger).
+2. `link`: a web address is kept **only if it appears in the excerpts the model was given** (the company portal stays; a link the model invented or was told to write becomes `[link removed]`; `javascript:`/`data:` schemes go too).
+3. `pii:aadhaar` / `pan` / `card`: never shown in an answer, even if a document contains them.
+4. `pii:email` / `phone`: shown **only if the excerpts contain that same value** (a number written another way still matches). The HR helpdesk address from the documents is fine; one the model invented or recalled from elsewhere is masked. Full-width digits do not get past the check.
+
+**Streaming (the hard part):** words used to appear one by one, before any check could run. Now a **sentence** is shown only after the whole answer so far passed the blocking checks and the sentence itself was sanitised (`StreamGate`); an address split across pieces is never shown half-written; a decimal point (`8.5`) is not a sentence end; an unfinished word waits. If a check fails mid-stream, the model is stopped (`close()`), the client gets a `reset` event so it clears what it already showed, and `done` carries the plain message. The price: the person sees the answer a sentence at a time. The final answer is still checked as a whole (`done` is authoritative).
+
+**Tests:** 42 new in `tests/test_output_guard.py` (attack and normal answers for every rule; images, html, links allowed and not allowed; PII by kind and by "is it in the sources"; full-width digits; the stream gate; stream and normal answer agree on what is shown; leaks stop the model at the right piece and clear the client; the API blocks a leak, records `blocked_output` in the audit and removes a link; a hidden-character payload never reaches the person). Two older streaming tests were updated for the sentence-level release. **False-alarm controls on real data:** none of the 93 reference answers of the answer exam is changed or blocked (checked against the full text of their source documents), none of the stored real-model replies of the gate baseline is blocked, and the real regression gate still passes. **Full suite: 954 passed, 0 skipped.**
+**Mutation checks:** 26 deliberate breaks (each blocking rule removed; leak window cut to 3 words; images, html, markdown links, bare links, bad schemes not handled; every link or every contact detail allowed; PAN/Aadhaar/card following the same-value rule; personal data not masked; full-width digits not folded; zero-width kept; the stream gate not checking, not sanitising or releasing half sentences; the final answer not guarded; blocked text shown; the reason shown to the person; the stream ignoring a block, not stopping the model or not clearing the client; value spelling ignored): all caught. Two were missed at first (the stream test did not prove the model was really stopped); the test now counts the pieces taken and checks the model was already closed when the client is told to clear, and both are caught.
+
+**Honest limits:**
+1. **It cannot tell whether a sentence is true or kind**: only that it has none of these shapes. A model obeying a harmless-looking instruction ("reply only with this code") is not caught here (Stage 3's paraphrased attack; Stage 5 measures it).
+2. **A contact detail in a document is shown to everyone who may read that document**, as intended. The guard only stops values the documents do not contain.
+3. The leak check needs 8 words in a row: a model that paraphrases its rules, or lists them one at a time, is not caught. It would also not catch a leak in another language.
+4. Streaming is coarser (a sentence at a time) and a sentence already shown can still be cleared only if the client honours `reset`.
+5. `guard` kinds are shown to the person (so they know something was removed); the blocking reason is not (to give nothing away), so a legitimate user cannot tell that a good answer was blocked.
+6. Links are matched exactly (case-insensitive, trailing punctuation ignored); a link with a different path from the document's is removed. Addresses without `http`/`www` are not detected.
+
+**Memory trick:** *A proofreader at the exit door: read it once more before it leaves the building.*
 
 ---
 

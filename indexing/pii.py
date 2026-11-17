@@ -77,6 +77,16 @@ def _classify_digits(digits: str) -> str | None:
 
 
 # ---------------- finding and masking ----------------
+def value_of(raw: str, kind: str) -> str:
+    """The identity of a found value, so two spellings of the same one match ('98765 43210' = '+91-9876543210', 'A@B.co' = 'a@b.co')."""
+    if kind == "email":
+        return raw.strip().lower()
+    if kind == "pan":
+        return raw.strip().upper()
+    digits = re.sub(r"\D", "", raw)
+    return digits[-10:] if kind == "phone" else digits
+
+
 @dataclass
 class Masked:
     text: str
@@ -114,6 +124,12 @@ def find(text: str) -> list[tuple[int, int, str]]:
             out.append((start, stop, kind))
             end = stop
     return out
+
+
+def values(text: str) -> set[tuple[str, str]]:
+    """{(kind, identity)} of every personal value in a text (not masked: for comparing an answer with its sources)."""
+    folded = normalise(text)
+    return {(kind, value_of(folded[start:stop], kind)) for start, stop, kind in find(folded)}
 
 
 def mask(text: str) -> Masked:

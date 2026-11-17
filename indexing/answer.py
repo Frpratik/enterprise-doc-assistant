@@ -22,13 +22,17 @@ import re
 from dataclasses import dataclass, field
 
 from indexing.confidence import NO_ANSWER_MESSAGE, Decision
+from indexing import output_guard
 from indexing.injection import defuse
+from ingestion.logs import get_logger
 from indexing.embeddings import Embedder
 from indexing.llm import LLMClient, LLMError, LLMUnavailable, default_client
 from indexing.access import Principal
 from indexing.retrieve import retrieve
 from indexing.search import Hit
 from ingestion.config import settings
+
+log = get_logger()
 
 PROMPT_VERSION = "answer-v1"
 REFUSAL_TOKEN = "NOT_IN_DOCUMENTS"
@@ -72,6 +76,7 @@ class Answer:
     latency_ms: int = 0
     prompt_version: str = PROMPT_VERSION
     invalid_citations: list[int] = field(default_factory=list)
+    guard: list[str] = field(default_factory=list)     # kinds removed by the output guard (or, for 'blocked_output', the reason: log only)
     raw: str = ""                       # what the LLM actually wrote (for debugging and the eval)
 
 
@@ -118,9 +123,14 @@ def _finish(base: dict, hits: list[Hit], text: str) -> Answer:
         return Answer(status="uncited", text=NO_ANSWER_MESSAGE, invalid_citations=invalid, **base)
     for n in invalid:                                              # drop made-up numbers from the shown text
         text = text.replace(f"[{n}]", "")
+    guarded = output_guard.guard(text, [h.content for h in hits])  # layer 3: what the model wrote is checked before anyone sees it
+    if guarded.blocked:
+        log.warning("output_blocked", reason=guarded.reason, chunk_ids=[h.chunk_id for h in hits])      # the reason is for the log, not for the person
+        return Answer(status="blocked_output", text=NO_ANSWER_MESSAGE, guard=[guarded.reason], invalid_citations=invalid, **base)
+    text = guarded.text
     citations = [Citation(n, hits[n - 1].file_name, hits[n - 1].heading_path, hits[n - 1].where(),
                           hits[n - 1].chunk_id, hits[n - 1].doc_id, hits[n - 1].version) for n in valid]
-    return Answer(status="answered", text=text.strip(), citations=citations, invalid_citations=invalid, **base)
+    return Answer(status="answered", text=text.strip(), citations=citations, invalid_citations=invalid, guard=guarded.removed, **base)
 
 
 # ---------- the whole thing ----------
@@ -197,7 +207,7 @@ class StreamFilter:
 
 def answer_to_dict(a: Answer) -> dict:
     """What the API sends. Deliberately leaves out the raw LLM text and the retrieved chunks."""
-    return {"status": a.status, "text": a.text,
+    return {"status": a.status, "text": a.text, "guard": a.guard if a.status == "answered" else [],
             "citations": [{"n": c.n, "file_name": c.file_name, "heading_path": c.heading_path, "where": c.where,
                            "chunk_id": c.chunk_id} for c in a.citations],
             "model": a.model, "fell_back": a.fell_back, "latency_ms": a.latency_ms,
@@ -228,21 +238,38 @@ def answer_stream(question: str, k: int | None = None, embedder: Embedder | None
         return
 
     flt, result = StreamFilter(), None
+    gate = output_guard.StreamGate([h.content for h in r.hits])
+    stream = (llm or default_client()).stream(build_messages(question, r.hits), tier="main")
     try:
-        for kind, payload in (llm or default_client()).stream(build_messages(question, r.hits), tier="main"):
+        for kind, payload in stream:
             if kind == "token":
-                shown = flt.feed(payload)
+                shown = gate.feed(flt.feed(payload))             # a sentence is shown only after the output checks passed it
+                if gate.blocked:
+                    break
                 if shown:
                     yield "token", {"text": shown}
             elif kind == "reset":
                 flt.reset()
+                gate.reset()
                 yield "reset", {"reason": payload}
             else:
                 result = payload
     except LLMUnavailable:
         yield "done", answer_to_dict(Answer(status="llm_unavailable", text=BUSY_MESSAGE, **base))
         return
-    tail = flt.flush()
+    finally:
+        stream.close()                                           # also when we stop early: the model stops writing
+    if gate.blocked:                                             # something unsafe was about to be shown: clear what the client has, end with the plain message
+        log.warning("output_blocked", reason=gate.blocked, chunk_ids=[h.chunk_id for h in r.hits])
+        yield "reset", {"reason": "blocked"}
+        yield "done", answer_to_dict(Answer(status="blocked_output", text=NO_ANSWER_MESSAGE, guard=[gate.blocked], **base))
+        return
+    tail = gate.feed(flt.flush()) + gate.flush()
+    if gate.blocked:
+        log.warning("output_blocked", reason=gate.blocked, chunk_ids=[h.chunk_id for h in r.hits])
+        yield "reset", {"reason": "blocked"}
+        yield "done", answer_to_dict(Answer(status="blocked_output", text=NO_ANSWER_MESSAGE, guard=[gate.blocked], **base))
+        return
     if tail:
         yield "token", {"text": tail}
     base.update(model=result.model, fell_back=result.fell_back, latency_ms=result.latency_ms, raw=result.text)
