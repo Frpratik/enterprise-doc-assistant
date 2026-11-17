@@ -17,6 +17,7 @@ from collections import defaultdict
 
 from langdetect import DetectorFactory, LangDetectException, detect
 
+from indexing.injection import hidden_chars
 from ingestion.models import Document, ElementType
 
 DetectorFactory.seed = 0      # langdetect is random by default; make results repeatable
@@ -61,11 +62,15 @@ def find_repeated_lines(doc: Document, min_share: float = 0.6, min_pages: int = 
 
 
 def clean_document(doc: Document) -> Document:
-    joined = removed_repeats = removed_page_numbers = dropped_empty = 0
+    joined = removed_repeats = removed_page_numbers = dropped_empty = hidden_total = 0
+    hidden_message = []
     repeated = find_repeated_lines(doc)
 
     kept = []
     for e in doc.elements:
+        n_hidden, decoded = hidden_chars(e.text)              # BEFORE the characters are removed: a hidden payload is a strong sign of an attack
+        hidden_total += n_hidden
+        hidden_message.append(decoded)
         text = fix_characters(e.text)
         if e.type != ElementType.TABLE:
             text, n = join_broken_words(text)
@@ -94,7 +99,12 @@ def clean_document(doc: Document) -> Document:
         "clean_removed_headers_footers": removed_repeats,
         "clean_removed_page_numbers": removed_page_numbers,
         "clean_dropped_empty": dropped_empty,
+        "clean_hidden_chars": hidden_total,
     })
+    if hidden_total:
+        message = " ".join(m for m in hidden_message if m).strip()
+        doc.quality.warnings.append(f"{hidden_total} hidden characters (Unicode tags or text-direction overrides) were found and removed: possible hidden instructions"
+                                    + (f" (hidden message: {message[:80]!r})" if message else ""))
     return doc
 
 

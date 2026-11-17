@@ -144,6 +144,9 @@ class Settings(BaseSettings):
     max_body_bytes: int = 16384                            # larger request bodies are refused (413)
     trust_proxy_headers: bool = False                      # believe X-Forwarded-For (only behind a proxy we control)
 
+    # ---------- Prompt injection (Phase 6) ----------
+    injection_hostile_score: int = 3                       # a paragraph or chunk scoring this much is hostile (see indexing/injection.py)
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 

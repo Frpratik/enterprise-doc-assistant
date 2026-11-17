@@ -16,6 +16,7 @@ Index management commands.
   python -m indexing.manage set-password NAME                  new password (all their tokens stop working)
   python -m indexing.manage disable-user NAME | enable-user NAME   (disabling also stops tokens at once)
   python -m indexing.manage audit [--user NAME] [--limit N]    who asked for what (ids and counts only, never the question text)
+  python -m indexing.manage injection-scan                     check every searchable chunk for text written for the model (prompt injection)
 """
 import argparse
 import getpass
@@ -62,6 +63,7 @@ def main(argv=None) -> int:
     cu.add_argument("--tenant", required=True)
     cu.add_argument("--roles", default="", help="comma-separated; empty = only documents labelled for everyone")
     sub.add_parser("users")
+    sub.add_parser("injection-scan")
     au = sub.add_parser("audit")
     au.add_argument("--user", help="username")
     au.add_argument("--limit", type=int, default=20)
@@ -150,6 +152,26 @@ def main(argv=None) -> int:
             print(f"nothing changed: access_rules.json is INVALID: {e}")
             return 1
         print(f"labelled {c['labelled']} | re-labelled {c['relabelled']} | hidden (no rule any more) {c['hidden']} | unchanged {c['unchanged']} | kept (set by hand) {c['kept_manual']}")
+    elif args.cmd == "injection-scan":
+        from indexing import injection
+        with connect() as conn:
+            rows = conn.execute("SELECT d.file_name, d.doc_id, c.content FROM chunks c JOIN documents d ON d.doc_id = c.doc_id AND d.version = c.version "
+                                "WHERE c.is_active AND d.deleted_at IS NULL ORDER BY d.file_name, c.chunk_index").fetchall()
+        per_doc = {}
+        for name, doc_id, content in rows:
+            s = injection.scan(content)
+            entry = per_doc.setdefault((name, doc_id), {"hostile": 0, "suspicious": 0, "what": set()})
+            if s.hostile:
+                entry["hostile"] += 1
+            elif s.suspicious:
+                entry["suspicious"] += 1
+            entry["what"].update(s.categories)
+        flagged = {k: v for k, v in per_doc.items() if v["hostile"] or v["suspicious"]}
+        print(f"{'FILE':34} {'HOSTILE':>7} {'SUSPICIOUS':>10}  WHAT")
+        for (name, doc_id), v in sorted(flagged.items()):
+            print(f"{name[:34]:34} {v['hostile']:>7} {v['suspicious']:>10}  {', '.join(sorted(v['what']))}   {doc_id}")
+        print(f"\n{len(rows)} chunks in {len(per_doc)} documents checked, {len(flagged)} document(s) flagged."
+              + ("  Hostile chunks are never given to the model (they are dropped at retrieval); edit or remove the document." if any(v["hostile"] for v in flagged.values()) else ""))
     elif args.cmd == "audit":
         from indexing import audit
         uid = None

@@ -20,6 +20,7 @@ Real accuracy is measured with the golden set (Stage 8).
 import unicodedata
 from collections import defaultdict
 
+from indexing.injection import scan as scan_injection
 from ingestion.config import settings
 from ingestion.models import Document, ElementType, Status
 
@@ -108,6 +109,20 @@ def check_quality(doc: Document) -> Document:
     if doc.file_type in ("xlsx", "csv") and not any(e.type == T.TABLE for e in real):
         q.warnings.append("spreadsheet but no tables were extracted")
         sub_scores.append(0.0)
+
+    # ---- 8. text written for the MODEL instead of for people (prompt injection) ----
+    hostile = []
+    worst = 0
+    for e in real:                                          # paragraph by paragraph: one weak signal here and another there must not add up across a whole handbook
+        s = scan_injection(e.text)
+        worst = max(worst, s.score)
+        if s.hostile:
+            hostile.append((e.location.label() or e.id, s))
+    q.checks["injection_max_score"] = worst
+    q.checks["injection_hostile_paragraphs"] = len(hostile)
+    if hostile:
+        shown = "; ".join(f"{where}: {s.summary()}" for where, s in hostile[:3])
+        q.warnings.append(f"possible prompt injection in {len(hostile)} paragraph(s) - {shown}" + (f" (+{len(hostile) - 3} more)" if len(hostile) > 3 else ""))
 
     q.score = round(min(sub_scores), 3) if sub_scores else 1.0
     if q.warnings:

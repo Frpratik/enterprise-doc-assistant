@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass, field
 
 from indexing.confidence import NO_ANSWER_MESSAGE, Decision
+from indexing.injection import defuse
 from indexing.embeddings import Embedder
 from indexing.llm import LLMClient, LLMError, LLMUnavailable, default_client
 from indexing.access import Principal
@@ -79,7 +80,7 @@ def build_messages(question: str, hits: list[Hit]) -> list[dict]:
     blocks = []
     for i, h in enumerate(hits, 1):
         label = f"[{i}] {h.file_name}" + (f", {h.where()}" if h.where() else "") + f" | {h.heading_path}"
-        blocks.append(f"{label}\n{h.content}")
+        blocks.append(f"{label}\n{defuse(h.content)}")                 # forged delimiters made harmless; clean text is returned unchanged
     user = "<excerpts>\n" + "\n\n".join(blocks) + f"\n</excerpts>\n\nQuestion: {question}"
     return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}]
 
