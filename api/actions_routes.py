@@ -11,6 +11,8 @@ the ONLY thing that can confirm: there is no tool the model can call that reache
   GET  /approvals                      a MANAGER's inbox: leave requests of the company waiting for a decision (never their own)
   POST /approvals/{leave_id}/decide    a MANAGER approves or rejects, sending the fingerprint of what they were shown
   POST /leave/{leave_id}/cancel        the requester withdraws a leave request that still waits for a manager
+  POST /agent                          talk to the assistant that can look things up and PROPOSE (it never submits): the reply comes with the
+                                       pending actions it prepared, each of which the person must confirm themselves
 """
 from typing import Literal
 
@@ -18,7 +20,9 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from actions import domain, workflow
+import time
+
+from actions import agent as agent_mod, domain, workflow
 from actions.workflow import ActionError
 from api import main
 from indexing import ratelimit
@@ -54,6 +58,16 @@ class Decide(Strict):
     decision: Literal["approve", "reject"]
     note: str = Field("", max_length=300)
     fingerprint: str = Fingerprint
+
+
+class AgentRequest(Strict):
+    message: str = Field(..., min_length=1, max_length=1000)
+
+
+def agent_gate(principal: Principal = Depends(main.current_principal)) -> Principal:
+    """Every agent run costs several LLM calls: its own, smaller budget (5 a minute and 40 a day by default)."""
+    ratelimit.get_limiter().agent_person(principal.user_id)
+    return principal
 
 
 def actions_gate(principal: Principal = Depends(main.current_principal)) -> Principal:
@@ -140,3 +154,21 @@ def cancel_leave(leave_id: str, request: Request, _ip: None = Depends(main.ip_ga
         return {**workflow.cancel_leave(principal, leave_id, main._rid(request)), "request_id": main._rid(request)}
     except ActionError as e:
         return handle(request, e)
+
+
+@router.post("/agent")
+def agent(body: AgentRequest, request: Request, _ip: None = Depends(main.ip_gate), principal: Principal = Depends(agent_gate)):
+    rid, start = main._rid(request), time.perf_counter()
+    question = main._mask_question(body.message, rid)                    # personal data is replaced HERE, as for /ask: the model, the logs and the audit never see it
+    agent_mod.audit_started(principal, rid, len(body.message), question.kinds)       # no record = no run
+    with ratelimit.get_limiter().slot(principal.user_id):
+        result = agent_mod.run_agent(principal, question.text, request_id=rid)
+    ms = int((time.perf_counter() - start) * 1000)
+    try:
+        agent_mod.audit_finished(principal, rid, result, ms)
+    except Exception as e:                                               # the run already happened and its proposals are audited one by one
+        main.log.error("audit_write_failed", audit_event="agent_finished", error=f"{type(e).__name__}: {str(e)[:120]}")
+    main.log.info("agent_run", request_id=rid, user_id=principal.user_id, status=result.status, steps=result.steps, tools=[t["name"] for t in result.tool_calls],
+                  proposals=len(result.proposals), ms=ms)
+    return {"reply": result.reply, "status": result.status, "proposals": result.proposals, "notes": result.notes, "tools": [t["name"] for t in result.tool_calls],
+            "masked": question.kinds, "guard": result.guard, "request_id": rid}

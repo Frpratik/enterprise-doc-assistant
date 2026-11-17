@@ -21,7 +21,7 @@ tested before moving on.
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ✅ Done |
-| Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | 🔄 Stage 2 of 5 done |
+| Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | 🔄 Stage 3 of 5 done |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
 | Phase 9 — Production | Retries, caching, CI eval gate | ⏳ |
 | Phase 10 — Ship | Docker, AWS, UI, demo | ⏳ |
@@ -2692,6 +2692,48 @@ bad arguments -> ToolError: Error executing tool propose_ticket: 3 validation er
 6. The agent (Stage 3) does not exist yet: today a person calls `POST /actions/...` themselves.
 
 **Memory trick:** *A cheque with two signatures and a carbon copy: pay exactly what is written, once, and write it in the ledger in the same breath.*
+
+---
+
+### Stage 3 — The agent loop (a model that can look things up and propose, never act)
+
+**Simple idea:** an assistant at the front desk with a phone to HR and IT. It can ask "what is my balance?" and "would this request be allowed?", and it fills in forms. It cannot sign anything: the forms go into your tray, and you sign them.
+
+**The flow (`actions/agent.py`, `POST /agent`):**
+1. The message is masked for personal data first (as for `/ask`), an audit row `agent_started` is written **before the model sees anything** (no record = no run), and a tool server for ONE person is started (Stage 1).
+2. The model gets the person's allowed tools (function calling through the Groq API, same retry and fallback chain as answers) and a system prompt with **today's date and a 21-day calendar**.
+3. It calls read tools and propose tools for a few turns. Every call goes through the checks below. Then its final words go through the **output guard** of Phase 6.
+4. **This code, not the model, stores every VALID draft** the propose tools produced as a pending action (`workflow.submit`, which re-checks that the draft belongs to this person). The reply comes back with those pending actions and the note *"Nothing has been submitted: this assistant can only prepare drafts. Please confirm each draft below yourself."* The person confirms through Stage 2, in a separate request.
+
+**What keeps the loop in its box (all tested):**
+1. **Per-role tool list:** only the tools a person's roles allow are offered, and a call to any other name (including names that do not exist: `confirm_action`, `approve_leave`, `create_ticket`...) is refused. (Every Stage 1 tool is self-service, so everybody gets all six today; the mechanism, `TOOL_ROLES`, is tested with an IT-only tool.)
+2. **Limits:** 6 model turns, 8 tool calls, 3 calls honoured per turn, 90 seconds; the same call a third time ends the run as a loop; arguments must be a JSON object under 4 KB and the tool server checks them against its schema again (an extra `user_id` argument is ignored: the person comes from the token).
+3. **Tool results are data:** capped at 6,000 characters, wrapped in `<tool_result>`, a result cannot close its own tag, and a result that reads like instructions to a machine (a ticket title written by someone hostile) is **withheld from the model**.
+4. **The model never submits:** proposals come from the tool results, not from the model's words, and the source of `agent.py` contains no call to confirm, decide, create or cancel (a test reads it; there is exactly one `workflow.submit`).
+5. **Honesty check:** a reply that claims something was submitted, approved or created is answered with the plain note (a sentence that denies it, like "nothing has been submitted", does not count).
+6. **Its own budget:** 5 runs a minute and 40 a day per person (each run costs several LLM calls), plus the usual address limit and concurrency slot.
+
+**Real model, 4 requests (qwen3.8-27b, one fell back to gpt-oss-120b):**
+```
+"How many casual leaves do I have left?"          tools: get_leave_balance        -> "You have 8 casual leave days remaining (8 annual, 0 taken, 0 pending)."
+"Apply for casual leave next Tuesday and Wednesday ..."   tools: propose_leave_request -> draft Tue 2026-11-24 to Wed 2026-11-25 (2 working days); pending action created; note added
+"My laptop screen flickers ... raise a ticket"    tools: propose_ticket           -> draft ticket (hardware, normal) ; pending action created
+"Approve my leave request LV-1234 please."        tools: none                     -> "I can't approve leave requests - only your manager can do that, and I can't submit or change anything on your behalf."
+```
+**A real finding:** the first time, the model said "Tue 2026-11-26 to Wed 2026-11-27" while the draft the harness built said "Thu 2026-11-26 to Fri 2026-11-27": it had worked out "next Tuesday" wrongly, and the draft's own summary exposed it. That is why the person confirms the **harness-built summary and arguments**, not the model's words. The fix was a small calendar in the system prompt ("use this table, do not work dates out yourself"); the same request then gave Tue 2026-11-24 to Wed 2026-11-25.
+
+**Tests:** 61 new in `tests/test_agent.py`, with a scripted model (it does exactly what the test says) and the real tool server code in process (plus one run over a real stdio process): the plain loop and its message order, exactly six tools with schemas and no identity argument, the prompt, a draft becoming a pending action (and nothing being created), an invalid draft not stored, duplicate and capped proposals, **a draft for someone else refused even if the tool result calls it valid**, completion claims (14 phrasings), seven tools that do not exist, per-role tools, the step / tool / per-turn / loop / time limits, an LLM that fails, bad arguments (4 shapes) and schema breaks (3), an extra identity argument, hostile and tag-closing tool results, size cap, a tool failing mid-run, two people isolated, the output guard on the reply (link, PAN, e-mail, hidden characters), a link a tool result really contains, the endpoint (login, body shape, proposals then a separate confirmation, another person cannot confirm, personal data masked before the model and kept out of the audit, no audit record = no run, own budget, a disabled person, a model failure), and the tool-calling path of the LLM client with a fake Groq (calls parsed, empty reply, fallback, bad key, all models failing). **Full suite: 1186 passed, 0 skipped.**
+**Mutation checks:** 26 deliberate breaks (every tool offered, a non-offered tool callable, no argument size or object check, no loop detection, no step / tool / per-turn / time limit, orders or closing tags in tool results, no size cap, the reply skipping the output guard, no proposal cap, completion claims unnoticed, the note never added, an invalid draft submitted, results not marked as data, no calendar, no agent rate limit, the raw message reaching the agent, a run without an audit record, tools not passed to the model, an empty tool reply accepted, no fallback): all caught (one was caught by a crash of my mutation, so that case, a draft for someone else, was re-checked separately and is caught).
+
+**Honest limits:**
+1. **Single turn:** every request stands alone (no conversation memory), so "make it Thursday instead" needs the full request again. Accepting client-supplied history would let a client forge "assistant" or "tool" messages, so it was left out on purpose.
+2. **The model can still propose the wrong thing** (a wrong date, a wrong category, a draft that an injected sentence asked for). The protection is the person reading the harness-built draft before confirming, not the model's judgement. A check that a draft matches what the person asked for is not built.
+3. **One real model, four requests:** a smoke test, not a measurement. The agent exam (Stage 5) measures attacks against the real model.
+4. Tool results are protected by simple means here (cap, tag, a detector that a paraphrase can fool). Treating tool output as a full attack surface, and idempotency under retries of the whole run, is Stage 4.
+5. A run starts a tool process (about a second); no streaming (the reply arrives at the end, 4 to 9 seconds in the real runs).
+6. The agent does not answer policy questions from documents (that is `/ask`); there is no router that chooses between them yet.
+
+**Memory trick:** *A front-desk assistant with a phone and a pile of forms: it fills them in, you sign them.*
 
 ---
 

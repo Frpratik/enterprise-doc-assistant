@@ -16,7 +16,8 @@ from indexing.db import connect
 from ingestion.config import settings
 
 EVENTS = ("login_ok", "login_failed", "ask_retrieved", "ask_finished",
-          "action_proposed", "action_executed", "action_cancelled", "action_expired", "action_failed", "leave_decided", "leave_cancelled")
+          "action_proposed", "action_executed", "action_cancelled", "action_expired", "action_failed", "leave_decided", "leave_cancelled",
+          "agent_started", "agent_finished")
 
 
 def subject_hash(username: str) -> str:
@@ -28,16 +29,16 @@ def subject_hash(username: str) -> str:
 
 def record_in(conn, event: str, *, request_id: str, principal=None, user_id: str | None = None, tenant: str | None = None, subject: str | None = None,
               doc_ids=(), chunk_ids=(), status: str | None = None, model: str | None = None, question_chars: int | None = None,
-              latency_ms: int | None = None, pii_kinds=(), ref: str | None = None, result_ref: str | None = None) -> None:
+              latency_ms: int | None = None, pii_kinds=(), ref: str | None = None, result_ref: str | None = None, tools=()) -> None:
     """Write one audit row on the GIVEN connection: inside the caller's transaction. An action and its audit row then stand or fall together."""
     if event not in EVENTS:
         raise ValueError(f"unknown audit event {event!r}")
     if principal is not None:
         user_id, tenant = user_id or principal.user_id, tenant or principal.tenant
     conn.execute(
-        "INSERT INTO audit_log (request_id, event, user_id, tenant_id, subject_hash, doc_ids, chunk_ids, status, model, question_chars, latency_ms, pii_kinds, ref, result_ref) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (request_id, event, user_id, tenant, subject, sorted(set(doc_ids)), list(chunk_ids), status, model, question_chars, latency_ms, sorted(set(pii_kinds)), ref, result_ref))
+        "INSERT INTO audit_log (request_id, event, user_id, tenant_id, subject_hash, doc_ids, chunk_ids, status, model, question_chars, latency_ms, pii_kinds, ref, result_ref, tools) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (request_id, event, user_id, tenant, subject, sorted(set(doc_ids)), list(chunk_ids), status, model, question_chars, latency_ms, sorted(set(pii_kinds)), ref, result_ref, list(tools)))
 
 
 def record(event: str, **kw) -> None:

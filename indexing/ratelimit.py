@@ -219,6 +219,10 @@ class Limiter:
     def action_person(self, user_id: str) -> None:
         self._enforce("actions_minute", self.store.hit(self._k("act-min", user_id), settings.rate_actions_per_minute, 60))
 
+    def agent_person(self, user_id: str) -> None:
+        self._enforce("agent_minute", self.store.hit(self._k("agent-min", user_id), settings.rate_agent_per_minute, 60))
+        self._enforce("agent_day", self.store.hit(self._k("agent-day", user_id), settings.rate_agent_per_day, 86400))
+
     def acquire_slot(self, user_id: str) -> str:
         key = self._k("ask-slots", user_id)
         if not self.store.acquire(key, settings.rate_ask_concurrent, settings.rate_slot_ttl_s):

@@ -151,6 +151,14 @@ class Settings(BaseSettings):
     action_confirm_minutes: int = 30                       # a proposal nobody confirmed in this time expires
     max_pending_actions: int = 10                          # proposals one person may have waiting at once
     rate_actions_per_minute: int = 30                      # action requests (propose, confirm, decide, cancel) per person per minute
+    agent_max_steps: int = 6                               # model turns in one agent run
+    agent_max_tool_calls: int = 8                          # tool calls in one agent run
+    agent_max_calls_per_turn: int = 3                      # tool calls honoured from ONE model turn
+    agent_max_seconds: int = 90                            # the whole run
+    agent_max_proposals: int = 3                           # drafts one run may turn into pending actions
+    agent_tool_result_chars: int = 6000                    # what the model sees of one tool result
+    rate_agent_per_minute: int = 5                         # agent runs per person per minute (each costs several LLM calls)
+    rate_agent_per_day: int = 40
     tool_audience: str = "eda-mcp-tools"                   # a login token is not a tool token and the other way round
     company_holidays: list[str] = ["2026-01-26", "2026-08-15", "2026-10-20", "2026-11-08"]   # not working days for leave
 

@@ -68,6 +68,25 @@ class LLMResult:
         return len(self.attempts) > 1 and self.attempts[0].model != self.model
 
 
+@dataclass
+class ToolCall:
+    id: str
+    name: str
+    arguments: str                  # the JSON text exactly as the model wrote it (never trusted: parsed and checked by the caller)
+
+
+@dataclass
+class ToolReply:
+    """What a model with tools answered: some text, some tool calls, or both."""
+    text: str
+    tool_calls: list[ToolCall]
+    model: str
+    tier: str
+    attempts: list[Attempt] = field(default_factory=list)
+    usage: dict = field(default_factory=dict)
+    latency_ms: int = 0
+
+
 def chain_for(tier: str) -> list[str]:
     chains = {"main": [settings.llm_main_model, settings.llm_fallback_model, settings.llm_small_model],
               "small": [settings.llm_small_model, settings.llm_fallback_model]}
@@ -157,6 +176,48 @@ class LLMClient:
                                                        max_completion_tokens=max_tokens, **_params(model))
         usage = {"prompt_tokens": r.usage.prompt_tokens, "completion_tokens": r.usage.completion_tokens} if r.usage else {}
         return (r.choices[0].message.content or "").strip(), usage
+
+    def _call_tools(self, model: str, messages: list[dict], tools: list[dict], max_tokens: int, temperature: float) -> tuple[str, list[ToolCall], dict]:
+        r = self._get_client().chat.completions.create(model=model, messages=messages, tools=tools, tool_choice="auto", temperature=temperature,
+                                                       max_completion_tokens=max_tokens, **_params(model))
+        msg = r.choices[0].message
+        calls = [ToolCall(str(c.id), str(c.function.name), str(c.function.arguments or "{}")) for c in (msg.tool_calls or [])]
+        usage = {"prompt_tokens": r.usage.prompt_tokens, "completion_tokens": r.usage.completion_tokens} if r.usage else {}
+        return (msg.content or "").strip(), calls, usage
+
+    def chat_tools(self, messages: list[dict], tools: list[dict], tier: str = "main", max_tokens: int | None = None, temperature: float = 0.0) -> ToolReply:
+        """Like chat(), but the model may answer with TOOL CALLS. Same retries and fallback chain; a reply with neither text nor a tool call counts as empty."""
+        log = get_logger()
+        max_tokens = max_tokens or settings.llm_answer_max_tokens
+        attempts: list[Attempt] = []
+        start = time.perf_counter()
+        for model in chain_for(tier):
+            for attempt_no in range(1 + self.retries):
+                t0 = time.perf_counter()
+                try:
+                    text, calls, usage = self._call_tools(model, messages, tools, max_tokens, temperature)
+                except LLMAuthError:
+                    raise
+                except Exception as exc:
+                    kind, retry_after = classify(exc)
+                    attempts.append(Attempt(model, kind, int((time.perf_counter() - t0) * 1000), f"{type(exc).__name__}: {str(exc)[:150]}"))
+                    log.warning("llm_attempt_failed", model=model, kind=kind, attempt=attempt_no + 1)
+                    if kind == "auth":
+                        raise LLMAuthError(f"Groq rejected the API key ({type(exc).__name__}). Check GROQ_API_KEY in .env.") from exc
+                    if kind in ("rate_limited", "temporary") and attempt_no < self.retries:
+                        wait = retry_after if retry_after is not None else 1.0
+                        if wait <= self.max_wait:
+                            self._sleep(wait)
+                            continue
+                    break
+                ms = int((time.perf_counter() - t0) * 1000)
+                if not text and not calls:
+                    attempts.append(Attempt(model, "empty", ms, "neither text nor a tool call came back"))
+                    break
+                attempts.append(Attempt(model, "ok", ms))
+                log.info("llm_tools_ok", model=model, tier=tier, ms=ms, calls=len(calls), **usage)
+                return ToolReply(text, calls, model, tier, attempts, usage, int((time.perf_counter() - start) * 1000))
+        raise LLMUnavailable(attempts)
 
     def chat(self, messages: list[dict], tier: str = "main", max_tokens: int | None = None,
              temperature: float = 0.0) -> LLMResult:

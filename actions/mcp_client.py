@@ -64,3 +64,20 @@ class ToolSession:
             except ValueError as e:
                 raise ToolError(f"{name} returned something that is not JSON") from e
         return data
+
+
+class InProcessToolSession(ToolSession):
+    """The SAME tool server code, connected in this process instead of through stdio: for tests that exercise many agent runs without starting a
+    process each time. Everything else (the schemas, the checks on every call, the size cap) is identical."""
+
+    def __init__(self, principal: Principal, expires_in: float = 300.0, token_version: int | None = None, timeout: float = 20.0):
+        super().__init__(principal, None, timeout)
+        self.expires_in, self.token_version = expires_in, token_version
+
+    async def __aenter__(self) -> "InProcessToolSession":
+        import time
+
+        from actions.mcp_server import build_server
+        self._client = Client(build_server(self.principal, time.time() + self.expires_in, self.token_version))
+        await self._client.__aenter__()
+        return self
