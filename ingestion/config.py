@@ -148,6 +148,9 @@ class Settings(BaseSettings):
 
     # ---------- Actions (Phase 7) ----------
     tool_token_minutes: int = 5                            # how long the token that tells a tool server who is calling stays valid
+    action_confirm_minutes: int = 30                       # a proposal nobody confirmed in this time expires
+    max_pending_actions: int = 10                          # proposals one person may have waiting at once
+    rate_actions_per_minute: int = 30                      # action requests (propose, confirm, decide, cancel) per person per minute
     tool_audience: str = "eda-mcp-tools"                   # a login token is not a tool token and the other way round
     company_holidays: list[str] = ["2026-01-26", "2026-08-15", "2026-10-20", "2026-11-08"]   # not working days for leave
 

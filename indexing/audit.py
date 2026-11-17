@@ -15,7 +15,8 @@ import hmac
 from indexing.db import connect
 from ingestion.config import settings
 
-EVENTS = ("login_ok", "login_failed", "ask_retrieved", "ask_finished")
+EVENTS = ("login_ok", "login_failed", "ask_retrieved", "ask_finished",
+          "action_proposed", "action_executed", "action_cancelled", "action_expired", "action_failed", "leave_decided", "leave_cancelled")
 
 
 def subject_hash(username: str) -> str:
@@ -25,18 +26,23 @@ def subject_hash(username: str) -> str:
     return hmac.new(key, (username or "").strip().lower().encode("utf-8", "replace"), hashlib.sha256).hexdigest()[:16]
 
 
-def record(event: str, *, request_id: str, principal=None, user_id: str | None = None, tenant: str | None = None, subject: str | None = None,
-           doc_ids=(), chunk_ids=(), status: str | None = None, model: str | None = None, question_chars: int | None = None,
-           latency_ms: int | None = None, pii_kinds=()) -> None:
+def record_in(conn, event: str, *, request_id: str, principal=None, user_id: str | None = None, tenant: str | None = None, subject: str | None = None,
+              doc_ids=(), chunk_ids=(), status: str | None = None, model: str | None = None, question_chars: int | None = None,
+              latency_ms: int | None = None, pii_kinds=(), ref: str | None = None, result_ref: str | None = None) -> None:
+    """Write one audit row on the GIVEN connection: inside the caller's transaction. An action and its audit row then stand or fall together."""
     if event not in EVENTS:
         raise ValueError(f"unknown audit event {event!r}")
     if principal is not None:
         user_id, tenant = user_id or principal.user_id, tenant or principal.tenant
+    conn.execute(
+        "INSERT INTO audit_log (request_id, event, user_id, tenant_id, subject_hash, doc_ids, chunk_ids, status, model, question_chars, latency_ms, pii_kinds, ref, result_ref) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (request_id, event, user_id, tenant, subject, sorted(set(doc_ids)), list(chunk_ids), status, model, question_chars, latency_ms, sorted(set(pii_kinds)), ref, result_ref))
+
+
+def record(event: str, **kw) -> None:
     with connect() as conn:
-        conn.execute(
-            "INSERT INTO audit_log (request_id, event, user_id, tenant_id, subject_hash, doc_ids, chunk_ids, status, model, question_chars, latency_ms, pii_kinds) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            (request_id, event, user_id, tenant, subject, sorted(set(doc_ids)), list(chunk_ids), status, model, question_chars, latency_ms, sorted(set(pii_kinds))))
+        record_in(conn, event, **kw)
 
 
 def recent(limit: int = 20, user_id: str | None = None) -> list[tuple]:

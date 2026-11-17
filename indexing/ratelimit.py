@@ -216,6 +216,9 @@ class Limiter:
             # the minute counter was already consumed: refund is not needed (the person is over budget anyway)
             raise RateLimited("ask_day", d.retry_after)
 
+    def action_person(self, user_id: str) -> None:
+        self._enforce("actions_minute", self.store.hit(self._k("act-min", user_id), settings.rate_actions_per_minute, 60))
+
     def acquire_slot(self, user_id: str) -> str:
         key = self._k("ask-slots", user_id)
         if not self.store.acquire(key, settings.rate_ask_concurrent, settings.rate_slot_ttl_s):

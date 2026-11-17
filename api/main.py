@@ -281,3 +281,9 @@ def ask_stream(body: AskRequest, request: Request, _ip: None = Depends(ip_gate),
 
     return StreamingResponse(body_iter(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ---------- actions and approvals (Phase 7): imported last because it uses the gates defined above ----------
+from api.actions_routes import router as actions_router  # noqa: E402
+
+app.include_router(actions_router)

@@ -17,6 +17,7 @@ import json
 import re
 import unicodedata
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -83,6 +84,16 @@ def vet_text(label: str, text: str, minimum: int, maximum: int, problems: list, 
 
 
 # ---------------- working days ----------------
+@contextmanager
+def _use(conn):
+    """The caller's connection (one transaction) or a new one."""
+    if conn is not None:
+        yield conn
+    else:
+        with connect() as c:
+            yield c
+
+
 def holidays() -> set[date]:
     return {date.fromisoformat(d) for d in settings.company_holidays}
 
@@ -106,18 +117,18 @@ def parse_date(value: str, label: str, problems: list) -> date | None:
 
 
 # ---------------- balances and reads ----------------
-def ensure_balances(user_id: str, year: int) -> None:
-    with connect() as conn:
+def ensure_balances(user_id: str, year: int, conn=None) -> None:
+    with _use(conn) as conn:
         for leave_type, days in ANNUAL_DAYS.items():
             conn.execute("INSERT INTO leave_balances (user_id, leave_type, year, annual_days) VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING",
                          (user_id, leave_type, year, days))
 
 
-def balances(user_id: str, year: int | None = None) -> dict[str, dict]:
+def balances(user_id: str, year: int | None = None, conn=None) -> dict[str, dict]:
     """{leave_type: {annual, taken, pending, remaining}}. Days of a request waiting for the manager are RESERVED (they count against 'remaining')."""
     year = year or date.today().year
-    ensure_balances(user_id, year)
-    with connect() as conn:
+    ensure_balances(user_id, year, conn)
+    with _use(conn) as conn:
         annual = dict(conn.execute("SELECT leave_type, annual_days FROM leave_balances WHERE user_id = %s AND year = %s", (user_id, year)).fetchall())
         used = conn.execute("SELECT leave_type, status, coalesce(sum(days), 0) FROM leave_requests WHERE user_id = %s AND status IN ('approved', 'pending_manager') "
                             "AND date_part('year', start_date) = %s GROUP BY leave_type, status", (user_id, year)).fetchall()
@@ -168,7 +179,7 @@ def get_my_ticket(user_id: str, ticket_id: str) -> dict | None:
 
 
 # ---------------- drafts: check everything, change nothing ----------------
-def propose_leave(principal: Principal, leave_type: str, start_date: str, end_date: str, reason: str, today: date | None = None) -> Draft:
+def propose_leave(principal: Principal, leave_type: str, start_date: str, end_date: str, reason: str, today: date | None = None, conn=None) -> Draft:
     today = today or date.today()
     problems, warnings = [], []
     if leave_type not in LEAVE_TYPES:
@@ -194,14 +205,14 @@ def propose_leave(principal: Principal, leave_type: str, start_date: str, end_da
             if start > today + timedelta(days=365):
                 problems.append("a request cannot start more than a year from today")
             if days > 0 and not problems:
-                bal = balances(principal.user_id, start.year)[leave_type]
+                bal = balances(principal.user_id, start.year, conn)[leave_type]
                 if days > bal["remaining"]:
                     problems.append(f"not enough {leave_type} leave: {bal['remaining']:g} day(s) left, {days:g} asked")
                 elif bal["remaining"] - days <= 1:
                     warnings.append(f"only {bal['remaining'] - days:g} day(s) of {leave_type} leave would be left")
-                with connect() as conn:
-                    clash = conn.execute("SELECT request_id FROM leave_requests WHERE user_id = %s AND status IN ('approved', 'pending_manager') "
-                                         "AND start_date <= %s AND end_date >= %s LIMIT 1", (principal.user_id, end, start)).fetchone()
+                with _use(conn) as c:
+                    clash = c.execute("SELECT request_id FROM leave_requests WHERE user_id = %s AND status IN ('approved', 'pending_manager') "
+                                      "AND start_date <= %s AND end_date >= %s LIMIT 1", (principal.user_id, end, start)).fetchone()
                 if clash:
                     problems.append(f"it overlaps your request {clash[0]}")
     args = {"leave_type": leave_type, "start_date": start.isoformat() if start else str(start_date)[:10], "end_date": end.isoformat() if end else str(end_date)[:10],
@@ -226,17 +237,17 @@ def propose_ticket(principal: Principal, category: str, title: str, description:
 
 
 # ---------------- writes: only after a person approved a draft (Stage 2), and in tests ----------------
-def create_leave_request(principal: Principal, args: dict, status: str = "pending_manager", decided_by: str | None = None) -> str:
+def create_leave_request(principal: Principal, args: dict, status: str = "pending_manager", decided_by: str | None = None, action_id: str | None = None, conn=None) -> str:
     request_id = "LV-" + uuid.uuid4().hex[:8].upper()
-    with connect() as conn:
-        conn.execute("INSERT INTO leave_requests (request_id, user_id, tenant_id, leave_type, start_date, end_date, days, reason, status, decided_by, decided_at) "
-                     "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, CASE WHEN %s::text IS NULL THEN NULL ELSE now() END)",
-                     (request_id, principal.user_id, principal.tenant, args["leave_type"], args["start_date"], args["end_date"], args["days"], args["reason"], status,
-                      decided_by, decided_by))
+    with _use(conn) as c:
+        c.execute("INSERT INTO leave_requests (request_id, user_id, tenant_id, leave_type, start_date, end_date, days, reason, status, decided_by, decided_at, action_id) "
+                  "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, CASE WHEN %s::text IS NULL THEN NULL ELSE now() END, %s)",
+                  (request_id, principal.user_id, principal.tenant, args["leave_type"], args["start_date"], args["end_date"], args["days"], args["reason"], status,
+                   decided_by, decided_by, action_id))
     return request_id
 
 
-def create_ticket(principal: Principal, args: dict) -> str:
-    with connect() as conn:
-        return conn.execute("INSERT INTO tickets (user_id, tenant_id, category, priority, title, description) VALUES (%s,%s,%s,%s,%s,%s) RETURNING ticket_id",
-                            (principal.user_id, principal.tenant, args["category"], args["priority"], args["title"], args["description"])).fetchone()[0]
+def create_ticket(principal: Principal, args: dict, action_id: str | None = None, conn=None) -> str:
+    with _use(conn) as c:
+        return c.execute("INSERT INTO tickets (user_id, tenant_id, category, priority, title, description, action_id) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING ticket_id",
+                         (principal.user_id, principal.tenant, args["category"], args["priority"], args["title"], args["description"], action_id)).fetchone()[0]

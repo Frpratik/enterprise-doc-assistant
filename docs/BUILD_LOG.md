@@ -21,7 +21,7 @@ tested before moving on.
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
 | Phase 6 — Safety | Guardrails, PII masking, rate limits | ✅ Done |
-| Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | 🔄 Stage 1 of 5 done |
+| Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | 🔄 Stage 2 of 5 done |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
 | Phase 9 — Production | Retries, caching, CI eval gate | ⏳ |
 | Phase 10 — Ship | Docker, AWS, UI, demo | ⏳ |
@@ -2645,6 +2645,53 @@ bad arguments -> ToolError: Error executing tool propose_ticket: 3 validation er
 6. The back-end is simulated: no email, no real HR or ticket system, no manager inbox yet (Stage 2).
 
 **Memory trick:** *A phone with only "ask" and "would this be allowed?": no button that files anything.*
+
+---
+
+### Stage 2 — The approval flow (the model proposes, people decide, exactly that runs)
+
+**Simple idea:** a cheque with two signatures and a carbon copy. The assistant fills in the cheque (a proposal); the requester signs it (confirms the fingerprint of what they were shown); for leave a manager countersigns; the bank pays exactly what is written on the carbon copy, once, and writes it in the ledger in the same moment.
+
+**The flow (`actions/workflow.py`, `api/actions_routes.py`, migration 009):**
+1. **Propose:** a VALID draft becomes a stored **pending action** (`awaiting_requester`, expires in 30 minutes). Nothing is created. The same draft proposed again returns the same action; one person may have at most 10 waiting.
+2. **Confirm (the requester, a separate request):** sends only the **fingerprint** of the draft they were shown. A ticket is created. A leave request is created in `pending_manager` and **reserves the days**.
+3. **Decide (a manager):** `approve` or `reject` a leave request, sending the fingerprint of what they saw. Needs the **manager role from the database** (hr and admin are not managers: no super roles), the **same company**, and **a different person than the requester**: nobody approves their own leave, not even a manager.
+4. **Also:** cancel a proposal, withdraw a leave request that still waits, an expiry sweep, a manager inbox (`GET /approvals`, never the manager's own requests).
+
+**Why it is safe (each point has tests):**
+1. **What runs is what was stored.** The confirming request carries only the fingerprint; the arguments come from the stored row, which is checked against its fingerprint (a row changed in the database is refused) and against the **rules again** (time has passed: a leave that now overlaps another is refused and the action is marked `failed`). The body cannot add fields (`extra=forbid`): a `title`, a `status` or an `approved` flag is a 422.
+2. **Once.** The action row is locked, moves `awaiting -> executed` in the same transaction as the creation, and the created ticket or leave request carries a **UNIQUE `action_id`**: two parallel confirmations of one action create exactly one thing, and the database would refuse a second even if the application had a bug (tested directly). Confirming an executed action returns the same result.
+3. **One person at a time.** A per-person advisory lock serialises confirmations: two different leave requests that overlap, confirmed at the same moment, cannot both pass (tested with two threads: one executes, one is refused).
+4. **The audit row is part of the transaction.** `action_proposed`, `action_executed` (with the id of what it created), `action_failed`, `action_expired`, `action_cancelled`, `leave_decided`, `leave_cancelled` are written on the same connection: if the audit row cannot be written, nothing happens (tested by failing the write: no ticket, the action still waiting).
+5. **Someone else's action looks like one that does not exist** (404, identical body), for a colleague, a manager, hr+admin and another company, on read, confirm and cancel.
+6. **The model has no way in.** The tool server does not even import the workflow (a test reads its source); the approval endpoints need a login token (a tool token is refused); they have their own rate limit (30 a minute).
+7. **Manager notes** are cleaned, personal data is masked, and a note that gives orders is refused.
+
+**Real output (over HTTP, throwaway database):**
+```
+1 propose       -> 201 awaiting_requester | Casual leave from Tue 2027-03-09 to Wed 2027-03-10 (2 working day(s)).
+  nothing created yet: leave_requests = 0
+2 wrong fp      -> 409 fingerprint_mismatch
+3 confirm       -> 200 pending_manager LV-CB2E5257
+4 confirm again -> 200 already_executed = True
+5 manager inbox -> priya 2.0 days
+6 requester approves her own -> 403 not_allowed
+7 manager approves -> 200 approved
+  audit: action_proposed ref=ACT-fbf9... | action_executed ref=ACT-fbf9... result=LV-CB2E5257 | leave_decided ref=LV-CB2E5257 approved
+```
+
+**Tests:** 68 new. `tests/test_actions_workflow.py` (32): propose, invalid and foreign drafts, idempotent proposals, the pending limit, confirmation creating exactly the stored ticket, retries, wrong fingerprints, only the requester, a tampered row, cancelled / expired / failed actions, expiry sweeps, leave reservation, the rules checked again, **two confirmations at once**, **two overlapping leaves at once**, **the audit failing rolls everything back**, the database's double-run guard, the manager inbox, approve and reject (days taken or given back), no self-approval, only managers of the same company, the fingerprint the manager saw, a request decided once, **two managers at once**, notes, withdrawing, and the whole story in the audit in order. `tests/test_actions_api.py` (36): schemas that may not name a person or a status, every endpoint needing a login (and refusing a tool token), identical 404s, confirmation and retries over HTTP, a double click from two threads, the manager flow, rate limits, a disabled person, and logs and audit never holding the arguments. Dates are computed from today, so the tests never go stale. **Full suite: 1125 passed, 0 skipped (11 minutes).**
+**Mutation checks:** 25 deliberate breaks (the client's or the stored fingerprint not checked, no second rules check, no per-person lock, an executed action accepting any fingerprint, no expiry, the created row not tied to its action, a foreign draft submitted, no pending limit, duplicates, anyone reading / confirming / cancelling an action, an executed action cancelled, anyone deciding, self-approval, another company deciding, the manager fingerprint ignored, a request decided twice, the inbox showing the manager's own requests or crossing companies, anyone withdrawing leave, an approved leave withdrawn, notes not vetted, no action rate limit, extra fields allowed): all caught.
+
+**Honest limits:**
+1. **No reporting lines:** any manager of the company can approve any employee's leave (a real company would tie each employee to a manager). There is no delegation, no second approval for long leave, and no notification: the manager has to look at the inbox.
+2. **The requester's confirmation is a click, not a strong approval.** Anyone holding the requester's login token can confirm: there is no step-up (a second factor) for confirming.
+3. **The fingerprint is shown by the API, so a malicious client can read it from the response and confirm without a person looking.** The protection is that the CONFIRMING path belongs to the person's session, not to the model; a compromised browser is out of scope.
+4. **The 30-minute expiry is checked against the database clock**; an action proposed just before midnight can fail its notice check when confirmed after midnight (the rules are re-run on purpose).
+5. **No ticket system integration:** a confirmed ticket is a row in a local table; nobody is notified.
+6. The agent (Stage 3) does not exist yet: today a person calls `POST /actions/...` themselves.
+
+**Memory trick:** *A cheque with two signatures and a carbon copy: pay exactly what is written, once, and write it in the ledger in the same breath.*
 
 ---
 

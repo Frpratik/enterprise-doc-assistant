@@ -149,7 +149,7 @@ def _tests_default_to_no_limits(monkeypatch):
     """Every test gets its own in-memory limiter with limits too high to matter (and no Redis needed). A test about limits sets low
     values and, if it wants the real thing, installs a RedisStore itself."""
     from indexing import ratelimit
-    for name in ("rate_login_failures", "rate_login_per_address", "rate_ask_per_address_minute", "rate_ask_per_minute", "rate_ask_per_day", "rate_ask_concurrent"):
+    for name in ("rate_login_failures", "rate_login_per_address", "rate_ask_per_address_minute", "rate_ask_per_minute", "rate_ask_per_day", "rate_ask_concurrent", "rate_actions_per_minute"):
         monkeypatch.setattr(settings, name, 10 ** 6)
     ratelimit.set_limiter(ratelimit.Limiter(ratelimit.MemoryStore()))
     yield
