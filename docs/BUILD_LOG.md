@@ -20,7 +20,7 @@ tested before moving on.
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
-| Phase 6 — Safety | Guardrails, PII masking, rate limits | ⏳ |
+| Phase 6 — Safety | Guardrails, PII masking, rate limits | 🔄 Stage 1 of 5 done |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
 | Phase 9 — Production | Retries, caching, CI eval gate | ⏳ |
@@ -2351,6 +2351,54 @@ ANSWER-PIPELINE REGRESSION GATE: PASS   (91/93 answerable correct, 51 unanswerab
 5. Access is by file name rules and hand labels; there is no UI to manage it.
 
 **Next phase:** Phase 6 — Safety: prompt-injection and abuse tests, PII masking, rate limits on login and questions, guardrails on what goes in and out.
+
+---
+
+## Phase 6 — Safety (abuse, personal data, prompt injection)
+
+**Plan (5 stages):** (1) rate limits and abuse guards; (2) PII masking of questions (before the LLM, logs and audit); (3) prompt injection through documents (prompt structure, flagging at ingestion, poisoned canary documents); (4) output guardrails (system-prompt leaks, echoed instructions, sensitive data in answers); (5) safety exam (attack set, gate integration) and the Phase 6 summary.
+
+**Decisions (yours):** rate-limit counters live in Redis and the limiter fails closed; personal data in a question is masked before it reaches the LLM provider, the logs or the audit table.
+
+### Stage 1 — Rate limits and abuse guards
+
+**Simple idea:** a doorman with a clicker and a stopwatch. Too many tries at the lock, too many questions per minute or per day, or too many people already inside: wait outside. If the clicker breaks, nobody comes in (it never means "unlimited").
+
+1. **Login, per typed username:** 5 failures in 15 minutes, then `429` even with the right password (stops password guessing). The counter is keyed on a **keyed hash of the typed name whether or not the account exists**, so a lockout looks identical for real and made-up names (tested: same status codes and bodies). A success resets it.
+2. **Login, per address:** 20 attempts in 15 minutes (one machine trying many names).
+3. **Questions, per address:** 120 a minute, checked **before the token is verified** (a flood of bad tokens must not hammer the database; tested: only the first 3 reach the verifier).
+4. **Questions, per person:** 10 a minute and 150 a day (every question costs LLM quota; the main model allows about 300 answers a day for everyone).
+5. **Concurrency:** at most 2 questions in flight per person. A stream holds its slot until it ends or the person leaves; a slot a crashed request never released frees itself after 3 minutes.
+6. **Request size:** a body must declare its length (`411` otherwise) and stay under 16 KB (`413`), refused before anything reads it.
+7. **Sliding window log** in Redis (a sorted set per key, one Lua script so counting and adding are atomic, Redis' own clock so API servers with different clocks agree). A fixed window lets twice the limit through at the boundary; a sliding one does not (tested).
+8. **Fail closed:** if Redis cannot be reached, login and questions answer `503` with `Retry-After`; `/health` shows `rate_limiter: false` and `degraded`.
+9. **Privacy:** Redis keys hold only keyed hashes, never a raw username or address. `X-Forwarded-For` is ignored unless `trust_proxy_headers` is on (anyone can send that header; tested that rotating it does not dodge the limit).
+10. **A refusal is a log line, not a database row:** a flood of refusals must not become a flood of writes (tested: 25 refusals, 0 new audit rows).
+11. `429` answers carry `Retry-After`; the same store contract (`hit`, `peek`, `reset`, `acquire`, `release`) is implemented by an in-memory store (tests, one process) and by Redis, and the same contract tests run against both.
+
+**Real output (real Redis, throwaway database):**
+```
+health: rate_limiter True
+attempt 1..5 -> 401 Invalid username or password.
+attempt 6 -> 429  Retry-After=900   Too many requests. Please try again in 900 seconds.
+attempt 7 -> 429  (this one used the RIGHT password: the name is locked)
+keys in Redis: ['...:login-ip:<hash>', '...:login-user:<hash>']        (no username, no address)
+Redis down -> 503 The service is temporarily unavailable. | health rate_limiter: False
+20 KB body -> 413 The request is too large (limit 16384 bytes).
+```
+
+**Tests:** 36 new in `tests/test_ratelimit.py` (store contract on memory and real Redis; the policies with a controllable clock; the API: lockout, no username enumeration, address limit, forwarding-header trick, per-person minute and day budgets, flood of bad tokens, concurrency and slot release on success and failure, refusals not audited, dead Redis, store failing half-way, size limits; the whole lockout and budget on real Redis). Other tests run with an in-memory limiter with huge limits (`tests/conftest.py`). Full suite: **761 passed, 0 skipped**.
+**Mutation checks:** 18 deliberate breaks (account never locks, success does not reset, window never slides, day budget off, raw values in keys, forwarding header always believed, slots never released, peek consumes on Redis, Redis errors not converted, login without address limit or lockout check or failure recording, no concurrency slot, no address gate, no person gate, stream slot never released, no size limit, an unavailable limiter that lets requests through): all caught.
+
+**Honest limits:**
+1. **Lockout can be abused:** anyone who knows a username can lock that account for 15 minutes by failing 5 times. That is the usual price of lockout; the answer is a short lock plus the address limit, and alerting (Phase 8).
+2. The limits are per address and per person. An attacker with many addresses can still try each username 5 times per 15 minutes. Behind a shared office address, 20 logins per 15 minutes is shared by everyone there.
+3. Limits are numbers I chose, not measured from real traffic; they are settings.
+4. `Retry-After` for the daily budget can be hours; there is no per-company budget and no global cap (a single person is limited to 150 questions a day, but 7 people still use the whole free tier).
+5. A stream whose client disconnects before the first byte keeps its slot until the 3-minute expiry.
+6. Redis must be up for anyone to log in or ask: the price of failing closed. Redis itself is a single container here (no replica).
+
+**Memory trick:** *A doorman with a clicker: if the clicker breaks, the door stays shut.*
 
 ---
 

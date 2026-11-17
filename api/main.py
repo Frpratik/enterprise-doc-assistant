@@ -30,7 +30,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from api.schemas import AskRequest, AskResponse, HealthResponse, LoginRequest, TokenResponse
 from indexing.access import Principal
-from indexing import audit, auth
+from indexing import audit, auth, ratelimit
 from indexing.answer import answer, answer_stream, answer_to_dict
 from indexing.db import can_connect
 from indexing.llm import LLMAuthError
@@ -59,6 +59,17 @@ def current_principal(request: Request, creds: HTTPAuthorizationCredentials | No
     return principal
 
 
+def ip_gate(request: Request) -> None:
+    """First gate: how many questions this address sends, BEFORE any token is verified (a flood of bad tokens must not reach the database)."""
+    ratelimit.get_limiter().ask_address(ratelimit.client_address(request))
+
+
+def user_gate(principal: Principal = Depends(current_principal)) -> Principal:
+    """Third gate: how many questions this person asks (a minute and a day)."""
+    ratelimit.get_limiter().ask_person(principal.user_id)
+    return principal
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the two local models once at startup, so the first user does not wait for them."""
@@ -76,6 +87,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Enterprise Document Assistant", version="0.3.0", lifespan=lifespan,
               description="Ask questions about company documents. Answers come with citations; "
                           "if the documents do not contain the answer, the assistant says so.")
+
+
+# ---------- request size: a body must declare its length and stay small ----------
+@app.middleware("http")
+async def body_limit_middleware(request: Request, call_next):
+    if request.method in ("POST", "PUT", "PATCH"):
+        length = request.headers.get("content-length", "")
+        if not length.isdigit():
+            return JSONResponse(status_code=411, content={"detail": "The request must declare its size (Content-Length)."})
+        if int(length) > settings.max_body_bytes:
+            return JSONResponse(status_code=413, content={"detail": f"The request is too large (limit {settings.max_body_bytes} bytes)."})
+    return await call_next(request)
 
 
 # ---------- every request gets an id (header + logs) ----------
@@ -97,6 +120,20 @@ async def llm_auth_error(request: Request, exc: LLMAuthError):
     log.error("llm_auth_error", request_id=_rid(request), error=str(exc))
     return JSONResponse(status_code=503, content={"detail": "The assistant is not configured correctly. Please contact the administrator.",
                                                   "request_id": _rid(request)})
+
+
+@app.exception_handler(ratelimit.RateLimited)
+async def rate_limited(request: Request, exc: ratelimit.RateLimited):
+    log.warning("rate_limited", request_id=_rid(request), scope=exc.scope, retry_after=exc.retry_after)     # a log line, not a database row: a flood must not become a write flood
+    return JSONResponse(status_code=429, content={"detail": f"Too many requests. Please try again in {exc.retry_after} seconds.", "request_id": _rid(request)},
+                        headers={"Retry-After": str(exc.retry_after)})
+
+
+@app.exception_handler(ratelimit.LimiterUnavailable)
+async def limiter_unavailable(request: Request, exc: ratelimit.LimiterUnavailable):
+    log.error("rate_limiter_unavailable", request_id=_rid(request), error=str(exc))
+    return JSONResponse(status_code=503, content={"detail": "The service is temporarily unavailable. Please try again later.", "request_id": _rid(request)},
+                        headers={"Retry-After": "5"})                                              # fail closed: never "no limits"
 
 
 @app.exception_handler(Unauthorized)
@@ -150,9 +187,13 @@ def _audit_finished(rid: str, principal: Principal, result: dict, ms: int) -> No
 @app.get("/health", response_model=HealthResponse)
 def health():
     rerank_dir = settings.models_dir / ("models--" + settings.rerank_model.replace("/", "--"))
+    try:
+        limiter_ok = ratelimit.get_limiter().healthy()
+    except Exception:
+        limiter_ok = False
     h = HealthResponse(status="ok", database=can_connect(), embedding_model=any(settings.models_dir.rglob("tokenizer.json")),
-                       reranker=rerank_dir.exists(), llm_key_configured=bool(settings.groq_api_key))
-    if not (h.database and h.embedding_model and h.reranker and h.llm_key_configured):
+                       reranker=rerank_dir.exists(), llm_key_configured=bool(settings.groq_api_key), rate_limiter=limiter_ok)
+    if not (h.database and h.embedding_model and h.reranker and h.llm_key_configured and h.rate_limiter):
         h.status = "degraded"
     return JSONResponse(status_code=200 if h.database else 503, content=h.model_dump())
 
@@ -160,22 +201,28 @@ def health():
 @app.post("/auth/login", response_model=TokenResponse)
 def login(body: LoginRequest, request: Request):
     """Username + password in, short-lived signed token out. One message for every kind of failure (no hint which usernames exist)."""
+    limiter = ratelimit.get_limiter()
+    limiter.login_attempt(ratelimit.client_address(request))             # too many attempts from one address: 429
+    limiter.login_account_open(body.username)                           # too many failures for this typed name: 429, even with the right password
     try:
         token, ttl, user = auth.login(body.username, body.password)
     except auth.AuthError:
+        limiter.login_failed(body.username)
         log.info("login_failed", request_id=_rid(request))                 # never the username or password
         _audit_best_effort("login_failed", request_id=_rid(request), subject=audit.subject_hash(body.username))
         return JSONResponse(status_code=401, content={"detail": "Invalid username or password.", "request_id": _rid(request)},
                             headers={"WWW-Authenticate": "Bearer"})
     audit.record("login_ok", request_id=_rid(request), user_id=user.user_id, tenant=user.tenant)       # no record = no sign-in
+    limiter.login_succeeded(body.username)
     log.info("login_ok", request_id=_rid(request), user_id=user.user_id)
     return {"access_token": token, "token_type": "bearer", "expires_in": ttl, "request_id": _rid(request)}
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask(body: AskRequest, request: Request, principal: Principal = Depends(current_principal)):
+def ask(body: AskRequest, request: Request, _ip: None = Depends(ip_gate), principal: Principal = Depends(user_gate)):
     start, rid = time.perf_counter(), _rid(request)
-    result = answer_to_dict(answer(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question))))
+    with ratelimit.get_limiter().slot(principal.user_id):                                 # at most a few questions in flight per person
+        result = answer_to_dict(answer(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question))))
     result["request_id"] = rid
     ms = int((time.perf_counter() - start) * 1000)
     _audit_finished(rid, principal, result, ms)
@@ -189,10 +236,16 @@ def sse(event: str, data: dict) -> str:
 
 
 @app.post("/ask/stream")
-def ask_stream(body: AskRequest, request: Request, principal: Principal = Depends(current_principal)):
+def ask_stream(body: AskRequest, request: Request, _ip: None = Depends(ip_gate), principal: Principal = Depends(user_gate)):
     rid, start = _rid(request), time.perf_counter()
-    events = answer_stream(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question)))
-    first = next(events)            # runs the search BEFORE the response starts, so a database problem is a proper 503, not a broken stream
+    limiter = ratelimit.get_limiter()
+    slot = limiter.acquire_slot(principal.user_id)             # held until the stream ends (or the person leaves)
+    try:
+        events = answer_stream(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question)))
+        first = next(events)        # runs the search BEFORE the response starts, so a database problem is a proper 503, not a broken stream
+    except BaseException:
+        limiter.release_slot(slot)
+        raise
 
     def body_iter():
         try:
@@ -213,6 +266,7 @@ def ask_stream(body: AskRequest, request: Request, principal: Principal = Depend
             yield sse("error", {"message": "Something went wrong. Please try again.", "request_id": rid})
         finally:
             events.close()          # the user left (or we finished): stop the model right away
+            limiter.release_slot(slot)
 
     return StreamingResponse(body_iter(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

@@ -109,6 +109,19 @@ def _tests_default_to_an_open_company(tmp_path, monkeypatch):
             monkeypatch.setattr(module, "search", with_default_asker)
 
 
+# ---------------- rate limits (Phase 6): older tests are not about limits ----------------
+@pytest.fixture(autouse=True)
+def _tests_default_to_no_limits(monkeypatch):
+    """Every test gets its own in-memory limiter with limits too high to matter (and no Redis needed). A test about limits sets low
+    values and, if it wants the real thing, installs a RedisStore itself."""
+    from indexing import ratelimit
+    for name in ("rate_login_failures", "rate_login_per_address", "rate_ask_per_address_minute", "rate_ask_per_minute", "rate_ask_per_day", "rate_ask_concurrent"):
+        monkeypatch.setattr(settings, name, 10 ** 6)
+    ratelimit.set_limiter(ratelimit.Limiter(ratelimit.MemoryStore()))
+    yield
+    ratelimit.set_limiter(None)
+
+
 # ---------------- logs: tests must never write into the real log file ----------------
 @pytest.fixture(autouse=True)
 def _logs_go_to_a_temp_file(tmp_path, monkeypatch):

@@ -68,7 +68,7 @@ def test_health_all_good(client, monkeypatch):
     r = client.get("/health")
     body = r.json()
     assert r.status_code == 200 and body["database"] is True and body["llm_key_configured"] is True
-    assert set(body) == {"status", "database", "embedding_model", "reranker", "llm_key_configured"}
+    assert set(body) == {"status", "database", "embedding_model", "reranker", "llm_key_configured", "rate_limiter"}
 
 
 def test_health_without_database_is_503_and_degraded(client, monkeypatch):

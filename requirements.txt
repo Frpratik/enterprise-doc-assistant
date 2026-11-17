@@ -40,3 +40,4 @@ fastapi          # the web API (Phase 3 Stage 5)
 uvicorn          # the server that runs it
 httpx            # used by FastAPI's test client
 PyJWT            # signed login tokens (Phase 5)
+redis           # rate-limit counters (Phase 6; already installed with celery[redis])

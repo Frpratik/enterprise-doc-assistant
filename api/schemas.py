@@ -53,3 +53,4 @@ class HealthResponse(BaseModel):
     embedding_model: bool
     reranker: bool
     llm_key_configured: bool
+    rate_limiter: bool

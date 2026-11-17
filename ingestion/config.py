@@ -130,6 +130,20 @@ class Settings(BaseSettings):
     auth_issuer: str = "enterprise-doc-assistant"
     auth_audience: str = "doc-assistant-api"
 
+    # ---------- Rate limits and abuse guards (Phase 6) ----------
+    rate_redis_url: str = "redis://localhost:6379/2"       # the counters (Redis from docker-compose, its own database number)
+    rate_key_prefix: str = "rl:"
+    rate_login_failures: int = 5                           # failed logins per typed username in the window, then 429 even with the right password
+    rate_login_per_address: int = 20                       # login attempts per address in the window
+    rate_login_window_s: int = 900
+    rate_ask_per_address_minute: int = 120                 # questions per address per minute (checked before the token is verified)
+    rate_ask_per_minute: int = 10                          # questions per person per minute
+    rate_ask_per_day: int = 150                            # questions per person per day (every one costs LLM quota)
+    rate_ask_concurrent: int = 2                           # questions in flight per person (a stream holds its slot until it ends)
+    rate_slot_ttl_s: int = 180                             # a slot a crashed request never released frees itself after this long
+    max_body_bytes: int = 16384                            # larger request bodies are refused (413)
+    trust_proxy_headers: bool = False                      # believe X-Forwarded-For (only behind a proxy we control)
+
     # ---------- Versioning ----------
     parser_version: str = "1.0.0"   # bump when parsing logic changes -> lets us re-process old docs
 
