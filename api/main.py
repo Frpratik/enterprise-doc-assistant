@@ -30,7 +30,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from api.schemas import AskRequest, AskResponse, HealthResponse, LoginRequest, TokenResponse
 from indexing.access import Principal
-from indexing import audit, auth, ratelimit
+from indexing import audit, auth, pii, ratelimit
 from indexing.answer import answer, answer_stream, answer_to_dict
 from indexing.db import can_connect
 from indexing.llm import LLMAuthError
@@ -171,11 +171,19 @@ def _audit_best_effort(event: str, **kw) -> None:
         log.error("audit_write_failed", audit_event=event, error=f"{type(e).__name__}: {str(e)[:120]}")
 
 
-def _audit_retrieval(rid: str, principal: Principal, question_chars: int):
+def _audit_retrieval(rid: str, principal: Principal, question_chars: int, pii_kinds=()):
     """Called after the search and BEFORE any model sees a chunk. Not best effort: if this cannot be written, the request fails."""
     def hook(retrieval):
-        audit.record("ask_retrieved", request_id=rid, principal=principal, doc_ids=[h.doc_id for h in retrieval.hits], question_chars=question_chars)
+        audit.record("ask_retrieved", request_id=rid, principal=principal, doc_ids=[h.doc_id for h in retrieval.hits], question_chars=question_chars,
+                     pii_kinds=pii_kinds)
     return hook
+
+
+def _mask_question(text: str, rid: str) -> pii.Masked:
+    masked = pii.mask(text)
+    if masked.found:
+        log.info("pii_masked", request_id=rid, kinds=masked.kinds, count=sum(masked.counts.values()))       # kinds and a count, never a value
+    return masked
 
 
 def _audit_finished(rid: str, principal: Principal, result: dict, ms: int) -> None:
@@ -221,9 +229,10 @@ def login(body: LoginRequest, request: Request):
 @app.post("/ask", response_model=AskResponse)
 def ask(body: AskRequest, request: Request, _ip: None = Depends(ip_gate), principal: Principal = Depends(user_gate)):
     start, rid = time.perf_counter(), _rid(request)
+    question = _mask_question(body.question, rid)               # personal data is replaced HERE: the LLM, the logs and the audit never see it
     with ratelimit.get_limiter().slot(principal.user_id):                                 # at most a few questions in flight per person
-        result = answer_to_dict(answer(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question))))
-    result["request_id"] = rid
+        result = answer_to_dict(answer(question.text, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question), question.kinds)))
+    result["request_id"], result["masked"] = rid, question.kinds
     ms = int((time.perf_counter() - start) * 1000)
     _audit_finished(rid, principal, result, ms)
     log.info("ask", request_id=rid, user_id=principal.user_id, status=result["status"], model=result["model"], question_chars=len(body.question), ms=ms)
@@ -238,11 +247,13 @@ def sse(event: str, data: dict) -> str:
 @app.post("/ask/stream")
 def ask_stream(body: AskRequest, request: Request, _ip: None = Depends(ip_gate), principal: Principal = Depends(user_gate)):
     rid, start = _rid(request), time.perf_counter()
+    question = _mask_question(body.question, rid)
     limiter = ratelimit.get_limiter()
     slot = limiter.acquire_slot(principal.user_id)             # held until the stream ends (or the person leaves)
     try:
-        events = answer_stream(body.question, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question)))
+        events = answer_stream(question.text, principal=principal, on_retrieval=_audit_retrieval(rid, principal, len(body.question), question.kinds))
         first = next(events)        # runs the search BEFORE the response starts, so a database problem is a proper 503, not a broken stream
+        first = (first[0], {**first[1], "masked": question.kinds})
     except BaseException:
         limiter.release_slot(slot)
         raise
@@ -252,7 +263,7 @@ def ask_stream(body: AskRequest, request: Request, _ip: None = Depends(ip_gate),
             yield sse(*first)
             for event, data in events:
                 if event == "done":
-                    data["request_id"] = rid
+                    data["request_id"], data["masked"] = rid, question.kinds
                     ms = int((time.perf_counter() - start) * 1000)
                     _audit_finished(rid, principal, data, ms)
                     log.info("ask_stream", request_id=rid, user_id=principal.user_id, status=data["status"], model=data["model"],

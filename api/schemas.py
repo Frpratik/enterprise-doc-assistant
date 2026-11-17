@@ -45,6 +45,7 @@ class AskResponse(BaseModel):
     latency_ms: int = 0
     prompt_version: str
     request_id: str
+    masked: list[str] = Field([], description="Kinds of personal data found in the question and replaced before it was processed (email, phone, pan, aadhaar, card). Never the values.")
 
 
 class HealthResponse(BaseModel):

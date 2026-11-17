@@ -20,7 +20,7 @@ tested before moving on.
 | Phase 3 — Answer | Search + rerank + LLM answer with citations, streamed API | ✅ Done |
 | Phase 4 — Measure | Evals: golden questions, retrieval + answer scores | ✅ Done |
 | Phase 5 — Access | Login, roles, who-can-see-what | ✅ Done |
-| Phase 6 — Safety | Guardrails, PII masking, rate limits | 🔄 Stage 1 of 5 done |
+| Phase 6 — Safety | Guardrails, PII masking, rate limits | 🔄 Stage 2 of 5 done |
 | Phase 7 — Actions | Agent + MCP tools (apply leave, raise ticket) with approval | ⏳ |
 | Phase 8 — Observe | Tracing, prompt versions, feedback | ⏳ |
 | Phase 9 — Production | Retries, caching, CI eval gate | ⏳ |
@@ -2399,6 +2399,42 @@ Redis down -> 503 The service is temporarily unavailable. | health rate_limiter:
 6. Redis must be up for anyone to log in or ask: the price of failing closed. Redis itself is a single container here (no replica).
 
 **Memory trick:** *A doorman with a clicker: if the clicker breaks, the door stays shut.*
+
+---
+
+### Stage 2 — Personal data in questions (masked before the LLM, the logs and the audit)
+
+**Simple idea:** a receptionist with a black marker. Before your note goes to the outside courier (the LLM provider), anything that identifies you (mobile number, PAN, Aadhaar, card, email) is blacked out and replaced with a label, and you are told what was blacked out. The marker is also used on every page of the visitor book and the incident diary.
+
+1. **`indexing/pii.py`** finds five kinds: `email`, `pan`, `aadhaar`, `card`, `phone`, and replaces each with `[EMAIL]`, `[PAN]`, `[AADHAAR]`, `[CARD]`, `[PHONE]`.
+2. **Numbers are validated, not just pattern-matched.** Aadhaar needs a valid **Verhoeff** check digit, cards a valid **Luhn** one, PAN a valid holder-type letter, a phone number is an Indian mobile (10 digits starting 6-9, optional +91 / 91 / 0). So amounts (`1,50,000`), dates, years, `order 20260512`, `extension 4455`, and 10-digit numbers starting 1-5 are left alone.
+3. **Formatting tricks do not hide a number:** runs of digits with single spaces, dots or dashes are joined first (`98765 43210`, `9-8-7-6-...`); full-width digits are normalised; zero-width characters and soft hyphens are removed first.
+4. **At the door (`api/main.py`):** `/ask` and `/ask/stream` mask the question once, before anything else. The LLM, the local search, the prompt and the audit only ever see the masked text. The response and the stream events carry `masked: ["email", "pan", ...]` (kinds only), so the person knows what was removed.
+5. **The audit log** (migration 007, `pii_kinds`) records the kinds (a compliance signal: "this person pasted an Aadhaar") and the original length, never the values.
+6. **The logger masks every log line** (`mask_log_event` in `ingestion/logs.py`), stack traces included (they are now written as text, then masked). Fields we generate ourselves (`request_id`, ids, status) are left alone.
+7. Rate-limited and unauthenticated requests are refused before the question is even read, so they cannot log it (tested).
+
+**Real output:**
+```
+"my PAN is abcpe1234f, mail me at priya.sharma@acme.co.in or call +91 98765 43210"
+   -> "my PAN is [PAN], mail me at [EMAIL] or call [PHONE]"          kinds: email, pan, phone
+"aadhaar 2345 6789 0124 and card 4111 1111 1111 1111"  -> "aadhaar [AADHAAR] and card [CARD]"
+"order 20260512 total 1,50,000 on 12-05-2026, extension 4455, employee id 4711"  -> unchanged
+"9 8 7 6 5 4 3 2 1 0 spaced out and (full-width digits) and 98765<zero-width>43210"  -> [PHONE] x3
+```
+
+**Tests:** 65 new in `tests/test_pii.py`: the check digits (including that Verhoeff catches swapped neighbours); 18 usual formats of the five kinds; 22 things that must be left alone; 3,000 random ordinary lines (amounts, years, dates) with 0 false alarms; the measured false-positive rate of the two check digits (about 1 random long number in 10, which is why a check digit is used); evasion tricks; idempotence; hostile input stays fast; the logger (including a stack trace); and the API: the LLM prompt and even the local embedder never see the values, the response and stream events say what was masked, logs and audit hold kinds and lengths only, unauthenticated requests log nothing. **Full suite: 826 passed, 0 skipped.**
+**Mutation checks:** 19 deliberate breaks (no check digit for Aadhaar or card, no zero-width removal, no normalisation, any 10 digits a phone, PAN letter not checked, separated digits not joined, emails not found, our ids masked, log masker disabled or not installed, counts wrong, raw question sent from either endpoint, audit not given the kinds from either endpoint, response / stream / done events hiding what was masked): all caught. One was missed at first (the test used a request id that would never have been masked); the test was fixed and it is now caught.
+
+**Honest limits:**
+1. **Not detected:** names, addresses, bank account numbers, passport and voter ids, dates of birth, anything spelled in words ("nine eight seven...") or obfuscated ("priya at acme dot com"), a number split by a word ("98765 and then 43210"), and personal data in non-Latin scripts. It reduces what leaves the building; it is not a guarantee.
+2. **False alarms exist:** about 1 random 12-digit or 16-digit number in 10 passes its check digit, so a long order number can be masked (harmless for the answer, but visible to the person as a note).
+3. **The question changes before search:** the local search sees `[PHONE]` instead of the number; a question that is only a number is masked and simply not found.
+4. **Documents are not masked** (they are the company's own data, and answers can still contain what the documents contain): that is Stage 4 (output guardrails).
+5. The model provider still receives the (masked) question and the document excerpts: nothing here stops company data in documents from going to it.
+6. `manage audit` does not display `pii_kinds` yet (the column is in the table).
+
+**Memory trick:** *Black out the note before the courier takes it, and tell the sender what you blacked out.*
 
 ---
 

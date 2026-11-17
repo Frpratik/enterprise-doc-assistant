@@ -6,7 +6,7 @@ Audit log (Phase 5, Stage 4): an append-only record of who asked, which document
                             no document text is shown to a model without a record of who asked for it (fail closed)
   ask_finished              how it ended: status, model, time, which chunks the answer cited (best effort: the answer was already allowed)
 
-Never stored: the question, the answer, passwords, tokens, document text. Only ids, counts and lengths.
+Never stored: the question, the answer, passwords, tokens, document text. Only ids, counts and lengths (and the KINDS of personal data a question contained).
   python -m indexing.manage audit [--user USERNAME] [--limit N]
 """
 import hashlib
@@ -27,16 +27,16 @@ def subject_hash(username: str) -> str:
 
 def record(event: str, *, request_id: str, principal=None, user_id: str | None = None, tenant: str | None = None, subject: str | None = None,
            doc_ids=(), chunk_ids=(), status: str | None = None, model: str | None = None, question_chars: int | None = None,
-           latency_ms: int | None = None) -> None:
+           latency_ms: int | None = None, pii_kinds=()) -> None:
     if event not in EVENTS:
         raise ValueError(f"unknown audit event {event!r}")
     if principal is not None:
         user_id, tenant = user_id or principal.user_id, tenant or principal.tenant
     with connect() as conn:
         conn.execute(
-            "INSERT INTO audit_log (request_id, event, user_id, tenant_id, subject_hash, doc_ids, chunk_ids, status, model, question_chars, latency_ms) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            (request_id, event, user_id, tenant, subject, sorted(set(doc_ids)), list(chunk_ids), status, model, question_chars, latency_ms))
+            "INSERT INTO audit_log (request_id, event, user_id, tenant_id, subject_hash, doc_ids, chunk_ids, status, model, question_chars, latency_ms, pii_kinds) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (request_id, event, user_id, tenant, subject, sorted(set(doc_ids)), list(chunk_ids), status, model, question_chars, latency_ms, sorted(set(pii_kinds))))
 
 
 def recent(limit: int = 20, user_id: str | None = None) -> list[tuple]:
